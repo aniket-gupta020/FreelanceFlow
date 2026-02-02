@@ -10,6 +10,8 @@ const INPUT_ICON = "absolute left-3 w-5 h-5 text-gray-400 dark:text-gray-500";
 const INPUT_CLASSES = "w-full pl-10 p-3 bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none transition-all dark:text-white";
 const LABEL_CLASSES = "block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1";
 
+const BACKEND_URL = "https://freelanceflow-oy9e.onrender.com/api/auth/login";
+
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -45,8 +47,17 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
+    alert(`Connecting to: ${BACKEND_URL}\nUser: ${email}`);
+
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/login', { email, password });
+      const res = await axios.post(BACKEND_URL, {
+        email: email.trim().toLowerCase(),
+        password: password
+      });
+
+      alert("LOGIN SUCCESS! Redirecting...");
+
       localStorage.setItem('user', JSON.stringify(res.data.user));
       if (res.data.token) {
         localStorage.setItem('token', res.data.token);
@@ -55,7 +66,18 @@ const Login = () => {
       navigate('/');
       toast.success(`Welcome back, ${res.data.user.name}! 🚀`);
     } catch (err) {
-      toast.error(err.response?.data?.message || "Invalid Credentials");
+      console.error("Login Error:", err);
+
+      if (err.response) {
+        alert(`SERVER REJECTED: ${err.response.status}\n${JSON.stringify(err.response.data)}`);
+        toast.error(err.response?.data?.message || "Invalid Credentials");
+      } else if (err.request) {
+        alert("NETWORK ERROR: Server not reachable.\nCheck internet connection.");
+        toast.error("Network Error: Can't reach server");
+      } else {
+        alert(`APP ERROR: ${err.message}`);
+        toast.error("An error occurred");
+      }
     } finally {
       setLoading(false);
     }
@@ -101,6 +123,10 @@ const Login = () => {
                 placeholder="name@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck="false"
               />
             </div>
           </div>
@@ -116,6 +142,10 @@ const Login = () => {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck="false"
               />
               <button type="button" onClick={() => setShowPassword(s => !s)} className="absolute right-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition">
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
