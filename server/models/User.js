@@ -38,7 +38,17 @@ const UserSchema = new mongoose.Schema({
     type: String,
     enum: ['free', 'pro'],
     default: 'free'
+  },
+  isVerified: {
+    type: Boolean,
+    default: false
+  },
+  otp: {
+    type: String
+  },
+  otpExpires: {
+    type: Date
   }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'users' });
 
 module.exports = mongoose.model('User', UserSchema);

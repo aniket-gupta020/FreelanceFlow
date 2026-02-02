@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../api';
 import { toast } from 'react-hot-toast';
 import { useNavigate, Link } from 'react-router-dom';
-import { LayoutDashboard, User, Mail, Lock, ArrowRight, Eye, EyeOff, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, User, Mail, Lock, ArrowRight, Eye, EyeOff, Sun, Moon, KeyRound } from 'lucide-react';
 
 const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
 const INPUT_GROUP = "relative flex items-center";
@@ -11,9 +11,11 @@ const INPUT_CLASSES = "w-full pl-10 p-3 bg-white/50 dark:bg-black/20 border bord
 const LABEL_CLASSES = "block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1";
 
 const Register = () => {
+  const [step, setStep] = useState(1);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -43,7 +45,7 @@ const Register = () => {
     });
   };
 
-  const handleSubmit = async (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
     setLoading(true);
     // Validation
@@ -55,12 +57,30 @@ const Register = () => {
 
     try {
       await api.post('/auth/register', { name, email, password });
-
-      toast.success("Account created successfully! Please login.");
-      navigate('/login');
-
+      toast.success("OTP Sent! Please check your email.");
+      setStep(2);
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Error registering user";
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const res = await api.post('/auth/verify-otp', { email, otp });
+
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('user', JSON.stringify(res.data.user));
+
+      toast.success("Registration Successful!");
+      navigate('/');
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || "Invalid or Expired OTP";
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -91,68 +111,111 @@ const Register = () => {
           <div className="inline-flex p-3 rounded-2xl bg-violet-100 dark:bg-white/10 text-violet-600 dark:text-yellow-400 mb-4 shadow-inner">
             <LayoutDashboard className="w-8 h-8" />
           </div>
-          <h1 className="text-3xl font-bold text-slate-800 dark:text-white">Get Started</h1>
-          <p className="text-slate-500 dark:text-gray-400 mt-2">Join FreelanceFlow today</p>
+          <h1 className="text-3xl font-bold text-slate-800 dark:text-white">
+            {step === 1 ? "Get Started" : "Verify Email"}
+          </h1>
+          <p className="text-slate-500 dark:text-gray-400 mt-2">
+            {step === 1 ? "Join FreelanceFlow today" : `Enter the OTP sent to ${email}`}
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
-          <div>
-            <label className={LABEL_CLASSES}>Full Name</label>
-            <div className={INPUT_GROUP}>
-              <User className={INPUT_ICON} />
-              <input
-                type="text"
-                required
-                className={INPUT_CLASSES}
-                placeholder="Mr. Aniket"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
+        {step === 1 ? (
+          <form onSubmit={handleRegister} className="space-y-5 relative z-10">
+            <div>
+              <label className={LABEL_CLASSES}>Full Name</label>
+              <div className={INPUT_GROUP}>
+                <User className={INPUT_ICON} />
+                <input
+                  type="text"
+                  required
+                  className={INPUT_CLASSES}
+                  placeholder="Mr. Aniket"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
             </div>
-          </div>
 
-          <div>
-            <label className={LABEL_CLASSES}>Email Address</label>
-            <div className={INPUT_GROUP}>
-              <Mail className={INPUT_ICON} />
-              <input
-                type="email"
-                required
-                className={INPUT_CLASSES}
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+            <div>
+              <label className={LABEL_CLASSES}>Email Address</label>
+              <div className={INPUT_GROUP}>
+                <Mail className={INPUT_ICON} />
+                <input
+                  type="email"
+                  required
+                  className={INPUT_CLASSES}
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
             </div>
-          </div>
 
-          <div>
-            <label className={LABEL_CLASSES}>Password</label>
-            <div className={INPUT_GROUP}>
-              <Lock className={INPUT_ICON} />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                required
-                className={INPUT_CLASSES}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <button type="button" onClick={() => setShowPassword(s => !s)} className="absolute right-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition">
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
+            <div>
+              <label className={LABEL_CLASSES}>Password</label>
+              <div className={INPUT_GROUP}>
+                <Lock className={INPUT_ICON} />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  className={INPUT_CLASSES}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <button type="button" onClick={() => setShowPassword(s => !s)} className="absolute right-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition">
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
             </div>
-          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3.5 bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black font-bold rounded-xl transition-all shadow-lg shadow-violet-500/30 flex items-center justify-center gap-2 mt-4"
-          >
-            {loading ? 'Creating Account...' : 'Create Account'}
-            {!loading && <ArrowRight className="w-5 h-5" />}
-          </button>
-        </form>
+
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black font-bold rounded-xl transition-all shadow-lg shadow-violet-500/30 flex items-center justify-center gap-2 mt-4"
+            >
+              {loading ? 'Sending OTP...' : 'Register & Verify'}
+              {!loading && <ArrowRight className="w-5 h-5" />}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleVerifyOtp} className="space-y-5 relative z-10">
+            <div>
+              <label className={LABEL_CLASSES}>One-Time Password (OTP)</label>
+              <div className={INPUT_GROUP}>
+                <KeyRound className={INPUT_ICON} />
+                <input
+                  type="text"
+                  required
+                  className={INPUT_CLASSES}
+                  placeholder="Enter 6-digit OTP"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  maxLength={6}
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black font-bold rounded-xl transition-all shadow-lg shadow-violet-500/30 flex items-center justify-center gap-2 mt-4"
+            >
+              {loading ? 'Verifying...' : 'Verify OTP'}
+              {!loading && <ArrowRight className="w-5 h-5" />}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setStep(1)}
+              className="w-full text-center text-sm text-slate-500 dark:text-gray-400 hover:underline"
+            >
+              Incorrect Email? Go Back
+            </button>
+          </form>
+        )}
 
         <p className="text-center mt-8 text-slate-600 dark:text-gray-400 relative z-10">
           Already have an account?{' '}
