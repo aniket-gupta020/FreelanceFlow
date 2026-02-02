@@ -15,7 +15,16 @@ const tasksRoute = require('./routes/tasks');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+// ✅ UPDATED CORS SETTINGS (The Handshake)
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "https://freelance-flow-omega.vercel.app",
+    "https://freelance-flow-omega.vercel.app/"
+  ],
+  credentials: true
+}));
+
 app.use(express.json());
 
 mongoose.connect(process.env.MONGO_URI)
@@ -34,4 +43,5 @@ app.use('/api/tasks', tasksRoute);
 app.get('/', (req, res) => {
   res.send('FreelanceFlow API is Running 🚀');
 });
+
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
