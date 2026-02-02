@@ -185,8 +185,17 @@ router.post('/send-otp', async (req, res) => {
     let { email } = req.body;
     if (email) email = email.trim().toLowerCase();
 
+    console.log("👉 HIT SEND-OTP for:", email);
+
+    // Check Main User DB
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (!user) {
+      console.log("❌ User NOT found in 'users' collection for:", email);
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    console.log(`✅ User found: ${user._id} (Verified: ${user.isVerified})`);
 
     // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -198,13 +207,13 @@ router.post('/send-otp', async (req, res) => {
 
     // Send Email
     const mailOptions = {
-      from: `"FreelanceFlow" <${process.env.EMAIL_USER}>`, // Must match Brevo
+      from: `"FreelanceFlow" <mail.akguptaji@gmail.com>`, // Explicitly set sender
       to: email,
       subject: 'FreelanceFlow - Access Code',
       text: `Your OTP is: ${otp}. It expires in 10 minutes. Use this to login or reset your password.`
     };
 
-    console.log(`📨 Sending Access OTP to ${email}...`);
+    console.log(`📨 Sending Access OTP to ${email} via Port 2525...`);
     await transporter.sendMail(mailOptions);
     console.log("✅ OTP Sent successfully!");
 
@@ -221,8 +230,13 @@ router.post('/login-via-otp', async (req, res) => {
     let { email, otp } = req.body;
     if (email) email = email.trim().toLowerCase();
 
+    console.log("👉 HIT LOGIN-VIA-OTP for:", email);
+
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!user) {
+      console.log("❌ User not found for Login OTP");
+      return res.status(404).json({ message: 'User not found' });
+    }
 
     if (user.otp !== otp || user.otpExpires < Date.now()) {
       return res.status(400).json({ message: 'Invalid or expired OTP' });
@@ -233,6 +247,7 @@ router.post('/login-via-otp', async (req, res) => {
     user.otpExpires = undefined;
     await user.save();
 
+    // Generate Token (Same logic as manual login)
     const userResponse = user.toObject();
     delete userResponse.password;
     delete userResponse.otp;
@@ -253,6 +268,8 @@ router.post('/reset-password', async (req, res) => {
   try {
     let { email, otp, newPassword } = req.body;
     if (email) email = email.trim().toLowerCase();
+
+    console.log("👉 HIT RESET-PASSWORD for:", email);
 
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
