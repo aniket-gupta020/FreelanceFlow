@@ -48,36 +48,24 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
 
-    alert(`Connecting to: ${BACKEND_URL}\nUser: ${email}`);
-
     try {
       const res = await axios.post(BACKEND_URL, {
         email: email.trim().toLowerCase(),
         password: password
       });
 
-      alert("LOGIN SUCCESS! Redirecting...");
-
       localStorage.setItem('user', JSON.stringify(res.data.user));
       if (res.data.token) {
         localStorage.setItem('token', res.data.token);
         axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
       }
-      navigate('/');
+
       toast.success(`Welcome back, ${res.data.user.name}! 🚀`);
+      navigate('/');
+
     } catch (err) {
       console.error("Login Error:", err);
-
-      if (err.response) {
-        alert(`SERVER REJECTED: ${err.response.status}\n${JSON.stringify(err.response.data)}`);
-        toast.error(err.response?.data?.message || "Invalid Credentials");
-      } else if (err.request) {
-        alert("NETWORK ERROR: Server not reachable.\nCheck internet connection.");
-        toast.error("Network Error: Can't reach server");
-      } else {
-        alert(`APP ERROR: ${err.message}`);
-        toast.error("An error occurred");
-      }
+      toast.error(err.response?.data?.message || "Invalid Credentials");
     } finally {
       setLoading(false);
     }
