@@ -5,19 +5,15 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 
-// 🔴 FINAL CONFIGURATION: Port 587 + IPv4 (The Firewall Buster)
+// 🔵 BREVO CONFIGURATION (Bypasses Render Block)
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
+  host: 'smtp-relay.brevo.com', // ✅ Brevo Server (Not Gmail)
   port: 587,
-  secure: false, // Use STARTTLS
+  secure: false, // STARTTLS
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  },
-  tls: {
-    rejectUnauthorized: false
-  },
-  family: 4 // Forces IPv4
+    user: process.env.EMAIL_USER, // Brevo Login (a15bfe001...)
+    pass: process.env.EMAIL_PASS  // Brevo Key (3WSBVdNn...)
+  }
 });
 
 // 1️⃣ REGISTER ROUTE (Uses TempUser)
@@ -28,14 +24,13 @@ router.post('/register', async (req, res) => {
 
     console.log("👉 HIT REGISTER for:", email);
 
-    // 1. Check if user already exists in MAIN database
+    // 1. Check if user already exists
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
       if (existingUser.isVerified) {
         return res.status(400).json({ message: 'User already exists! Please login.' });
       } else {
-        // Cleanup old unverified user
         console.log("♻️ Deleting old unverified user.");
         await User.deleteOne({ _id: existingUser._id });
       }
@@ -69,13 +64,13 @@ router.post('/register', async (req, res) => {
 
     // 5. Send Email
     const mailOptions = {
-      from: `"FreelanceFlow" <${process.env.EMAIL_USER}>`,
+      from: `"FreelanceFlow" <mail.akguptaji@gmail.com>`, // ✅ Use your REAL email here
       to: email,
       subject: 'FreelanceFlow - Email Verification OTP',
       text: `Your OTP for verification is: ${otp}. It expires in 10 minutes.`
     };
 
-    console.log("📨 Attempting to send email via Port 587...");
+    console.log("📨 Sending email via Brevo...");
     await transporter.sendMail(mailOptions);
     console.log("✅ OTP Sent successfully!");
 
