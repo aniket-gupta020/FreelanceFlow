@@ -3,6 +3,7 @@ import { Toaster, resolveValue, ToastIcon, toast } from 'react-hot-toast';
 import { X } from 'lucide-react';
 import Register from './pages/Register';
 import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
 import PostProject from './pages/PostProject';
 import EditProject from './pages/EditProject';
@@ -79,6 +80,7 @@ function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/post-project" element={<PostProject />} />
         <Route path="/edit-project/:id" element={<EditProject />} />
       </Routes>

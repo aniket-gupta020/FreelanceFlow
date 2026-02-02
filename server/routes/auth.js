@@ -179,4 +179,102 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// 4️⃣ SEND OTP (For Login OR Forgot Password)
+router.post('/send-otp', async (req, res) => {
+  try {
+    let { email } = req.body;
+    if (email) email = email.trim().toLowerCase();
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    user.otp = otp;
+    user.otpExpires = otpExpires;
+    await user.save();
+
+    // Send Email
+    const mailOptions = {
+      from: `"FreelanceFlow" <${process.env.EMAIL_USER}>`, // Must match Brevo
+      to: email,
+      subject: 'FreelanceFlow - Access Code',
+      text: `Your OTP is: ${otp}. It expires in 10 minutes. Use this to login or reset your password.`
+    };
+
+    console.log(`📨 Sending Access OTP to ${email}...`);
+    await transporter.sendMail(mailOptions);
+    console.log("✅ OTP Sent successfully!");
+
+    res.status(200).json({ message: 'OTP sent to your email.' });
+  } catch (err) {
+    console.log("❌ SEND OTP ERROR:", err);
+    res.status(500).json({ message: 'Email Error', error: err.message });
+  }
+});
+
+// 5️⃣ LOGIN VIA OTP
+router.post('/login-via-otp', async (req, res) => {
+  try {
+    let { email, otp } = req.body;
+    if (email) email = email.trim().toLowerCase();
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (user.otp !== otp || user.otpExpires < Date.now()) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+
+    // Clear OTP
+    user.otp = undefined;
+    user.otpExpires = undefined;
+    await user.save();
+
+    const userResponse = user.toObject();
+    delete userResponse.password;
+    delete userResponse.otp;
+    delete userResponse.otpExpires;
+
+    const secret = process.env.JWT_SECRET || 'devsecret';
+    const token = jwt.sign({ id: user._id, email: user.email, name: user.name, role: user.role }, secret, { expiresIn: '7d' });
+
+    res.status(200).json({ message: 'Login Successful!', user: userResponse, token });
+  } catch (err) {
+    console.log("❌ OTP LOGIN ERROR:", err);
+    res.status(500).json({ message: 'Server Error', error: err.message });
+  }
+});
+
+// 6️⃣ RESET PASSWORD
+router.post('/reset-password', async (req, res) => {
+  try {
+    let { email, otp, newPassword } = req.body;
+    if (email) email = email.trim().toLowerCase();
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (user.otp !== otp || user.otpExpires < Date.now()) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+
+    // Hash New Password
+    const salt = bcrypt.genSaltSync(10);
+    const hashed = bcrypt.hashSync(newPassword, salt);
+
+    user.password = hashed;
+    user.otp = undefined;
+    user.otpExpires = undefined;
+    await user.save();
+
+    res.status(200).json({ message: 'Password Reset Successful! You can now login.' });
+  } catch (err) {
+    console.log("❌ RESET PASSWORD ERROR:", err);
+    res.status(500).json({ message: 'Server Error', error: err.message });
+  }
+});
+
 module.exports = router;
