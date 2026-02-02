@@ -1,0 +1,438 @@
+import { useEffect, useState } from 'react';
+import api from '../api';
+import { toast } from 'react-hot-toast';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  LayoutDashboard, Clock, IndianRupee, Users, Plus,
+  Trash2, Pencil, Briefcase, Menu, X, Sun, Moon,
+  LogOut, Download, AlertTriangle, CheckSquare, User
+} from 'lucide-react';
+import FinancialDashboard from '../components/FinancialDashboard';
+import UpcomingDeadlines from '../components/UpcomingDeadlines';
+
+const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
+const CARD_HOVER = "hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-out";
+const BUTTON_BASE = "flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 shadow-lg active:scale-95";
+
+const TEXT_HEADLINE = "text-slate-800 dark:text-white";
+const TEXT_SUB = "text-slate-600 dark:text-gray-400";
+const ACCENT_COLOR = "text-violet-600 dark:text-yellow-400";
+const ACCENT_BG = "bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black";
+
+const StatCard = ({ title, value, subtext, type, icon: Icon }) => {
+  const styles = {
+    blue: "bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400",
+    emerald: "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400",
+    rose: "bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400",
+  };
+  const activeStyle = styles[type] || styles.blue;
+
+  return (
+    <div className={`${GLASS_CLASSES} p-6 rounded-2xl flex items-start space-x-4 ${CARD_HOVER}`}>
+      <div className={`p-3 rounded-xl ${activeStyle}`}>
+        <Icon className="w-6 h-6" />
+      </div>
+      <div>
+        <h3 className={`${TEXT_SUB} text-xs font-bold uppercase tracking-wider`}>{title}</h3>
+        <p className={`text-2xl font-bold ${TEXT_HEADLINE} my-1`}>{value}</p>
+        <p className={`text-xs ${TEXT_SUB} opacity-80`}>{subtext}</p>
+      </div>
+    </div>
+  );
+};
+
+const Sidebar = ({ mobile, closeMobile, darkMode, toggleTheme, handleLogout }) => (
+  <div className="flex flex-col h-full">
+    <div className="p-6 flex items-center justify-between">
+      <h1 className={`text-2xl font-bold ${ACCENT_COLOR} flex items-center gap-2`}>
+        <LayoutDashboard className="w-8 h-8" /> FreelanceFlow
+      </h1>
+      {mobile && <button onClick={closeMobile}><X className="w-6 h-6 dark:text-white" /></button>}
+    </div>
+
+    <nav className="mt-2 px-4 space-y-3 flex-1">
+      <div className={`flex items-center gap-3 px-4 py-3 ${ACCENT_BG} rounded-xl font-medium shadow-lg shadow-indigo-500/20`}>
+        <LayoutDashboard className="w-5 h-5" /> Dashboard
+      </div>
+      <Link to="/tasks" className={`flex items-center gap-3 px-4 py-3 ${TEXT_SUB} hover:bg-white/20 dark:hover:bg-white/5 rounded-xl font-medium transition-all duration-300`}>
+        <CheckSquare className="w-5 h-5" /> Tasks
+      </Link>
+      <Link to="/clients" className={`flex items-center gap-3 px-4 py-3 ${TEXT_SUB} hover:bg-white/20 dark:hover:bg-white/5 rounded-xl font-medium transition-all duration-300`}>
+        <Users className="w-5 h-5" /> Clients
+      </Link>
+      <Link to="/time" className={`flex items-center gap-3 px-4 py-3 ${TEXT_SUB} hover:bg-white/20 dark:hover:bg-white/5 rounded-xl font-medium transition-all duration-300`}>
+        <Clock className="w-5 h-5" /> Time Tracking
+      </Link>
+      <Link to="/invoices" className={`flex items-center gap-3 px-4 py-3 ${TEXT_SUB} hover:bg-white/20 dark:hover:bg-white/5 rounded-xl font-medium transition-all duration-300`}>
+        <IndianRupee className="w-5 h-5" /> Invoices
+      </Link>
+      <Link to="/profile" className={`flex items-center gap-3 px-4 py-3 ${TEXT_SUB} hover:bg-white/20 dark:hover:bg-white/5 rounded-xl font-medium transition-all duration-300`}>
+        <User className="w-5 h-5" /> Profile
+      </Link>
+    </nav>
+
+    <div className="p-4 border-t border-white/20 dark:border-white/5 space-y-3">
+      <button onClick={toggleTheme} className={`w-full flex items-center gap-3 px-4 py-3 ${TEXT_SUB} hover:bg-white/20 dark:hover:bg-white/5 rounded-xl font-medium transition-all duration-300`}>
+        {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />} {darkMode ? "Light Mode" : "Dark Mode"}
+      </button>
+      <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-500/10 rounded-xl font-medium transition-all duration-300">
+        <LogOut className="w-5 h-5" /> Log Out
+      </button>
+    </div>
+  </div>
+);
+
+const Dashboard = () => {
+  const [projects, setProjects] = useState([]);
+  const [user, setUser] = useState(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [expandedProjectId, setExpandedProjectId] = useState(null);
+  const [projectTimeLogs, setProjectTimeLogs] = useState({});
+  const navigate = useNavigate();
+
+  const [darkMode, setDarkMode] = useState(() => {
+    if (localStorage.getItem('theme')) return localStorage.getItem('theme') === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+
+  useEffect(() => {
+    if (darkMode) document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
+  }, [darkMode]);
+
+  const toggleTheme = () => {
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+    localStorage.setItem('theme', newMode ? 'dark' : 'light');
+    toast.success(`Switched to ${newMode ? 'Dark' : 'Light'} Mode`, {
+      icon: newMode ? <Moon className="w-4 h-4 text-white" /> : <Sun className="w-4 h-4 text-orange-500" />,
+      style: { borderRadius: '12px', background: newMode ? '#333' : '#fff', color: newMode ? '#fff' : '#000' }
+    });
+  };
+
+  useEffect(() => {
+    const storedUserStr = localStorage.getItem('user');
+    if (!storedUserStr) {
+      navigate('/login');
+      return;
+    }
+
+    const parsed = JSON.parse(storedUserStr);
+    const actualUser = parsed.user || parsed;
+    setUser(actualUser);
+
+    api.get('/projects')
+      .then(res => setProjects(res.data))
+      .catch(err => console.error("Error fetching projects:", err));
+
+    api.get('/timelogs/unbilled')
+      .then(res => {
+        const logsByProject = {};
+        res.data.forEach(log => {
+          logsByProject[log.project] = (logsByProject[log.project] || 0) + (log.durationHours || 0);
+        });
+        setProjectTimeLogs(logsByProject);
+      })
+      .catch(err => console.error("Error fetching timelogs:", err));
+  }, [navigate]);
+
+  const handleLoadSampleData = () => {
+    toast.custom((t) => (
+      <div className={`${GLASS_CLASSES} p-6 rounded-2xl max-w-md w-full animate-in fade-in zoom-in duration-300 border-l-4 border-l-amber-500`}>
+        <div className="flex items-start gap-4">
+          <div className="p-3 bg-amber-500/10 rounded-full">
+            <AlertTriangle className="w-6 h-6 text-amber-500" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-bold text-slate-800 dark:text-white mb-1">
+              Reset Database?
+            </h3>
+            <p className="text-sm text-slate-600 dark:text-gray-400 mb-4 whitespace-pre-line">
+              ⚠️ WARNING: This will RESET your database to the sample data.
+              Any projects or logs you created manually will be DELETED.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  toast.dismiss(t.id);
+                  performReset();
+                }}
+                className="flex-1 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium text-sm transition-colors shadow-lg shadow-amber-500/20"
+              >
+                Yes, Reset Data
+              </button>
+              <button
+                onClick={() => toast.dismiss(t.id)}
+                className="flex-1 px-4 py-2 bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-white/20 rounded-xl font-medium text-sm transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    ), { duration: Infinity });
+  };
+
+  const performReset = async () => {
+    try {
+      await api.post('/seed');
+      toast.success('✅ Sample data loaded successfully! The page will now refresh.', { duration: 2000 });
+      setTimeout(() => window.location.reload(), 2000);
+    } catch (err) {
+      console.error(err);
+      toast.error('❌ Error loading sample data.');
+    }
+  };
+
+  const calculateBurnRate = (projectId, budget, clientRate) => {
+    const hours = projectTimeLogs[projectId] || 0;
+    const cost = hours * (clientRate || 0);
+    return { hours, cost, remaining: Math.max(0, budget - cost) };
+  };
+
+  const handleApply = async (projectId) => {
+    try {
+      await api.post(`/projects/${projectId}/apply`, { userId: user._id });
+      toast.success("Applied Successfully! 🚀");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Error applying");
+    }
+  };
+
+  const handleDelete = (id) => {
+    toast((t) => (
+      <div className="flex flex-col gap-3 items-center p-2">
+        <p className="font-medium text-slate-800 dark:text-white">Delete this project?</p>
+        <div className="flex gap-3">
+          <button
+            onClick={() => {
+              toast.dismiss(t.id);
+            }}
+            className="px-4 py-1.5 text-sm bg-gray-200 dark:bg-white/10 rounded-lg hover:bg-gray-300 dark:hover:bg-white/20 transition text-slate-700 dark:text-gray-200"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={async () => {
+              toast.dismiss(t.id);
+              try {
+                await api.delete(`/projects/${id}`);
+                setProjects(prev => prev.filter(project => project._id !== id));
+                toast.success("Project deleted successfully");
+              } catch (err) {
+                console.error("Error deleting:", err);
+                toast.error("Failed to delete project");
+              }
+            }}
+            className="px-4 py-1.5 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 shadow-red-500/30 shadow-lg transition"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    ), { duration: 5000, style: { minWidth: '300px' } });
+  };
+
+  const handleLogout = () => {
+    toast.custom((t) => (
+      <div className={`${GLASS_CLASSES} p-6 rounded-2xl max-w-sm w-full animate-in fade-in zoom-in duration-300`}>
+        <div className="flex items-start gap-4">
+          <div className="p-3 bg-red-500/10 rounded-full">
+            <LogOut className="w-6 h-6 text-red-500" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-bold text-slate-800 dark:text-white mb-1">Log Out?</h3>
+            <p className="text-sm text-slate-600 dark:text-gray-400 mb-4">Really want to log out?</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  toast.dismiss(t.id);
+                  localStorage.removeItem('user');
+                  localStorage.removeItem('token');
+                  try { delete api.defaults.headers.common['Authorization']; } catch (e) { }
+                  toast.success("Logged out successfully");
+                  navigate('/login');
+                }}
+                className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium text-sm transition-colors"
+              >
+                Log Out
+              </button>
+              <button
+                onClick={() => toast.dismiss(t.id)}
+                className="flex-1 px-4 py-2 bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-white/20 rounded-xl font-medium text-sm transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    ));
+  };
+
+  return (
+    <div className={`min-h-screen transition-colors duration-500 ease-in-out bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-gray-900 dark:via-black dark:to-gray-900 select-none`}>
+      <div className="flex h-screen overflow-hidden">
+
+        {/* Mobile Menu Overlay */}
+        <div className={`fixed inset-0 z-50 md:hidden pointer-events-none`}>
+          <div className={`absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0'}`} onClick={() => setIsMobileMenuOpen(false)} />
+          <div className={`absolute top-0 left-0 w-72 h-full ${GLASS_CLASSES} transform transition-transform duration-300 ease-out pointer-events-auto ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <Sidebar mobile={true} closeMobile={() => setIsMobileMenuOpen(false)} darkMode={darkMode} toggleTheme={toggleTheme} handleLogout={handleLogout} />
+          </div>
+        </div>
+
+        <aside className={`w-72 hidden md:block border-r border-white/20 dark:border-white/5 ${GLASS_CLASSES} z-10`}>
+          <Sidebar mobile={false} darkMode={darkMode} toggleTheme={toggleTheme} handleLogout={handleLogout} />
+        </aside>
+
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 relative">
+          <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div className="md:hidden flex items-center justify-between w-full mb-4">
+              <div className={`font-bold text-xl flex items-center gap-2 ${ACCENT_COLOR}`}>
+                <LayoutDashboard className="w-6 h-6" /> FreelanceFlow
+              </div>
+              <button onClick={() => setIsMobileMenuOpen(true)} className={`${GLASS_CLASSES} p-2 rounded-lg text-gray-600 dark:text-gray-300`}><Menu className="w-6 h-6" /></button>
+            </div>
+
+            <div>
+              <h2 className={`text-3xl font-bold ${TEXT_HEADLINE} tracking-tight`}>Overview</h2>
+              <p className={`${TEXT_SUB} mt-1`}>Welcome back, {user?.name}</p>
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={handleLoadSampleData} className={`${BUTTON_BASE} bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white`}>
+                <Download className="w-5 h-5" /> Load Sample Data
+              </button>
+              <Link to="/post-project" className={`${BUTTON_BASE} ${ACCENT_BG}`}>
+                <Plus className="w-5 h-5" /> New Project
+              </Link>
+            </div>
+          </header>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <StatCard title="Total Projects" value={projects.length} subtext="Posted projects" type="blue" icon={LayoutDashboard} />
+            <StatCard title="Total Budget" value={`₹${projects.reduce((acc, curr) => acc + (curr.budget || 0), 0)}`} subtext="Across all jobs" type="emerald" icon={IndianRupee} />
+            <StatCard title="Status" value="Active" subtext="System Online" type="rose" icon={Clock} />
+          </div>
+
+          <div className={`${GLASS_CLASSES} rounded-3xl p-6 md:p-8`}>
+            <h3 className={`text-xl font-bold ${TEXT_HEADLINE} mb-6`}>Recent Projects</h3>
+
+            {projects.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="bg-gray-100 dark:bg-white/5 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4 animate-pulse">
+                  <LayoutDashboard className="w-10 h-10 text-gray-400" />
+                </div>
+                <h3 className={`text-lg font-bold ${TEXT_HEADLINE}`}>No projects yet</h3>
+                <p className={`${TEXT_SUB} mt-2`}>Create your first project to see it here.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {projects.map((project) => {
+                  const clientId = project.client?._id ?? project.client;
+                  const userId = user?._id ?? user;
+                  const isOwner = user && String(clientId) === String(userId);
+
+                  return (
+                    <div key={project._id} className={`bg-white/40 dark:bg-white/5 border border-white/50 dark:border-white/10 rounded-2xl p-6 relative group ${CARD_HOVER}`}>
+                      <div className="absolute top-4 right-4 flex gap-2 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        {isOwner ? (
+                          <>
+                            <Link to={`/edit-project/${project._id}`} className="p-2 bg-white dark:bg-black/50 text-blue-500 rounded-full shadow-md hover:scale-110 transition"><Pencil className="w-4 h-4" /></Link>
+                            <button onClick={() => handleDelete(project._id)} className="p-2 bg-white dark:bg-black/50 text-red-500 rounded-full shadow-md hover:scale-110 transition"><Trash2 className="w-4 h-4" /></button>
+                          </>
+                        ) : (
+                          <button onClick={() => handleApply(project._id)} className={`p-2 ${ACCENT_BG} rounded-full shadow-md hover:scale-110 transition`}><Briefcase className="w-4 h-4" /></button>
+                        )}
+                      </div>
+                      <h4 className={`font-bold text-lg ${ACCENT_COLOR} mb-2 pr-16 truncate`}>{project.title}</h4>
+                      <p className={`text-sm ${TEXT_SUB} mb-4 line-clamp-2 leading-relaxed`}>{project.description}</p>
+
+                      {(() => {
+                        const clientRate = project.client?.defaultHourlyRate || 0;
+                        const burn = calculateBurnRate(project._id, project.budget, clientRate);
+                        const burnPercent = project.budget > 0 ? Math.round((burn.cost / project.budget) * 100) : 0;
+                        return (
+                          <div className="mb-4 p-4 bg-gray-50 dark:bg-black/40 rounded-xl border border-gray-100 dark:border-white/5">
+                            <div className="text-xs font-bold text-slate-700 dark:text-white mb-2 flex justify-between">
+                              <span>Budget Burn</span>
+                              <span>{burnPercent}%</span>
+                            </div>
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                              <div className={`h-2.5 rounded-full ${burnPercent > 80 ? 'bg-red-500' : burnPercent > 50 ? 'bg-yellow-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min(burnPercent, 100)}%` }}></div>
+                            </div>
+                            <div className="text-xs mt-3 space-y-1.5 font-medium text-slate-600 dark:text-slate-300">
+                              <div className="flex justify-between">
+                                <span>Hours Logged:</span><span className="font-bold text-slate-800 dark:text-white">{burn.hours.toFixed(1)}h</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Cost:</span><span className="font-bold text-slate-800 dark:text-white">₹{burn.cost.toFixed(2)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      <div className="flex justify-between items-center pt-4 border-t border-gray-200/50 dark:border-white/10">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-500/20">
+                            <IndianRupee className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                          </div>
+                          <span className={`font-bold ${TEXT_HEADLINE}`}>₹{project.budget}</span>
+                        </div>
+                        <span className={`text-xs font-medium px-3 py-1 rounded-full bg-gray-100 dark:bg-white/10 ${TEXT_SUB}`}>
+                          {new Date(project.deadline).toLocaleDateString()}
+                        </span>
+                      </div>
+
+                      {isOwner && project.applicants && project.applicants.length > 0 && (
+                        <div className="mt-4">
+                          <button
+                            onClick={() => setExpandedProjectId(prev => String(prev) === String(project._id) ? null : project._id)}
+                            className="text-sm px-3 py-1 rounded-full bg-white/50 dark:bg-black/30 border border-gray-200 dark:border-white/10 text-slate-700 dark:text-gray-200 hover:bg-white/80 transition"
+                          >
+                            {project.applicants.length} Applicant{project.applicants.length > 1 ? 's' : ''}
+                          </button>
+                        </div>
+                      )}
+
+                      {String(expandedProjectId) === String(project._id) && project.applicants && project.applicants.length > 0 && (
+                        <div className="mt-4 p-3 rounded-lg bg-white/50 dark:bg-black/40 backdrop-blur-md border border-gray-200 dark:border-white/10">
+                          {project.applicants.map((app) => {
+                            const applicant = app.name ? app : { _id: app, name: 'Unknown', email: '' };
+                            return (
+                              <div key={applicant._id} className="py-2 border-b border-gray-200 dark:border-white/10 last:border-b-0">
+                                <div className="font-medium text-sm text-slate-800 dark:text-white">{applicant.name}</div>
+                                <div className="text-xs text-slate-600 dark:text-gray-400">{applicant.email || applicant._id}</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {isOwner && (
+                        <div className="mt-4 flex items-center gap-2 text-xs font-bold text-indigo-500 dark:text-yellow-500 uppercase tracking-wider">
+                          <div className="w-2 h-2 rounded-full bg-current animate-pulse" /> Your Project
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-8 flex flex-col gap-8 pb-8">
+            <FinancialDashboard />
+            <UpcomingDeadlines />
+          </div>
+
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;
