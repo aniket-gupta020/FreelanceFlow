@@ -331,9 +331,16 @@ const Dashboard = () => {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {projects.map((project) => {
-                  const clientId = project.client?._id || project.client?.id || project.client;
-                  const userId = user?._id || user?.id || user;
-                  const isOwner = user && String(clientId) === String(userId);
+                  // 🛡️ ANTIGRAVITY FIX: UNIVERSAL OWNER CHECK
+                  // Helper to safely get ID from string OR object
+                  const getSafeId = (id) => id?._id || id?.id || id;
+
+                  const currentUserId = getSafeId(user);
+                  const projectOwnerId = getSafeId(project.owner); // The Creator
+                  const projectClientId = getSafeId(project.client); // The Assigned Client
+
+                  // You are owner if you CREATED it -OR- if it is ASSIGNED to you
+                  const isOwner = user && (String(currentUserId) === String(projectOwnerId) || String(currentUserId) === String(projectClientId));
 
                   return (
                     <div key={project._id} className={`bg-white/40 dark:bg-white/5 border border-white/50 dark:border-white/10 rounded-2xl p-6 relative group ${CARD_HOVER}`}>
