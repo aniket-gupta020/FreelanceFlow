@@ -5,18 +5,22 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 
-// 🔵 BREVO CONFIGURATION (Bypasses Render Block)
+// 🔵 BREVO CONFIGURATION (With IPv4 Fix)
 const transporter = nodemailer.createTransport({
-  host: 'smtp-relay.brevo.com', // ✅ Brevo Server (Not Gmail)
-  port: 587,
+  host: 'smtp-relay.brevo.com',
+  port: 587, // Standard Port
   secure: false, // STARTTLS
   auth: {
-    user: process.env.EMAIL_USER, // Brevo Login (a15bfe001...)
-    pass: process.env.EMAIL_PASS  // Brevo Key (3WSBVdNn...)
-  }
+    user: process.env.EMAIL_USER, // a15bfe001@smtp-brevo.com
+    pass: process.env.EMAIL_PASS  // 3WSBVdNn7yGPh6jU
+  },
+  tls: {
+    rejectUnauthorized: false
+  },
+  family: 4 // ⚠️ CRITICAL: Forces IPv4. Prevents Render Timeouts.
 });
 
-// 1️⃣ REGISTER ROUTE (Uses TempUser)
+// 1️⃣ REGISTER ROUTE
 router.post('/register', async (req, res) => {
   try {
     let { name, email, password, role, defaultHourlyRate, subscription } = req.body;
@@ -31,7 +35,6 @@ router.post('/register', async (req, res) => {
       if (existingUser.isVerified) {
         return res.status(400).json({ message: 'User already exists! Please login.' });
       } else {
-        console.log("♻️ Deleting old unverified user.");
         await User.deleteOne({ _id: existingUser._id });
       }
     }
@@ -39,11 +42,10 @@ router.post('/register', async (req, res) => {
     // 2. Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // 3. Hash Password
+    // 3. Hash Password & Save to TempUser
     const salt = bcrypt.genSaltSync(10);
     const hashed = bcrypt.hashSync(password, salt);
 
-    // 4. Save to TempUser
     const tempUserData = {
       email,
       otp,
@@ -62,15 +64,15 @@ router.post('/register', async (req, res) => {
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
-    // 5. Send Email
+    // 4. Send Email
     const mailOptions = {
-      from: `"FreelanceFlow" <mail.akguptaji@gmail.com>`, // ✅ Use your REAL email here
+      from: `"FreelanceFlow" <mail.akguptaji@gmail.com>`, // Your Real Gmail
       to: email,
       subject: 'FreelanceFlow - Email Verification OTP',
       text: `Your OTP for verification is: ${otp}. It expires in 10 minutes.`
     };
 
-    console.log("📨 Sending email via Brevo...");
+    console.log("📨 Sending email via Brevo (IPv4)...");
     await transporter.sendMail(mailOptions);
     console.log("✅ OTP Sent successfully!");
 
