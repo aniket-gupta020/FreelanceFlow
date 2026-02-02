@@ -5,10 +5,10 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 
-// 🔴 DEBUG CONFIGURATION (Fail Fast + Log Everything)
+// 🔵 BREVO BACKUP CONFIGURATION (Port 2525 - The Firewall Buster)
 const transporter = nodemailer.createTransport({
   host: 'smtp-relay.brevo.com',
-  port: 587,
+  port: 2525, // ⚠️ CRITICAL CHANGE: Using Port 2525 to bypass Render blocking 587
   secure: false, // STARTTLS
   auth: {
     user: process.env.EMAIL_USER,
@@ -18,11 +18,9 @@ const transporter = nodemailer.createTransport({
     rejectUnauthorized: false
   },
   family: 4, // Forces IPv4
-  logger: true, // 🔍 PRINTS DEBUG LOGS TO CONSOLE
-  debug: true,  // 🔍 ENABLES DEBUGGING
-  connectionTimeout: 5000, // 5 Seconds (Stop hanging!)
-  greetingTimeout: 5000,   // 5 Seconds
-  socketTimeout: 5000      // 5 Seconds
+  logger: true, // Keep logs on so we can see it work
+  debug: true,
+  connectionTimeout: 5000 // 5 Seconds fail-safe
 });
 
 // 1️⃣ REGISTER ROUTE
@@ -79,7 +77,7 @@ router.post('/register', async (req, res) => {
       text: `Your OTP for verification is: ${otp}. It expires in 10 minutes.`
     };
 
-    console.log("📨 Connecting to Brevo...");
+    console.log("📨 Connecting to Brevo via Port 2525...");
     await transporter.sendMail(mailOptions);
     console.log("✅ OTP Sent successfully!");
 
@@ -95,5 +93,90 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// ... (Keep the rest of the file same) ...
+// 2️⃣ VERIFY OTP ROUTE
+router.post('/verify-otp', async (req, res) => {
+  try {
+    let { email, otp } = req.body;
+    if (email) email = email.trim().toLowerCase();
+
+    const tempUser = await TempUser.findOne({ email });
+
+    if (!tempUser) {
+      const existingUser = await User.findOne({ email });
+      if (existingUser) return res.status(400).json({ message: 'User already registered. Please login.' });
+      return res.status(400).json({ message: 'OTP expired or invalid. Please register again.' });
+    }
+
+    if (tempUser.otp !== otp) {
+      return res.status(400).json({ message: 'Invalid OTP' });
+    }
+
+    const newUser = new User({
+      name: tempUser.registrationData.name,
+      email: tempUser.email,
+      password: tempUser.registrationData.password,
+      role: tempUser.registrationData.role,
+      defaultHourlyRate: tempUser.registrationData.defaultHourlyRate,
+      subscription: tempUser.registrationData.subscription,
+      isVerified: true
+    });
+
+    const savedUser = await newUser.save();
+    await TempUser.deleteOne({ email });
+
+    const userResponse = savedUser.toObject();
+    delete userResponse.password;
+
+    const secret = process.env.JWT_SECRET || 'devsecret';
+    const token = jwt.sign({ id: savedUser._id, email: savedUser.email, name: savedUser.name, role: savedUser.role }, secret, { expiresIn: '7d' });
+
+    res.status(200).json({ message: 'Email Verified Successfully!', user: userResponse, token });
+
+  } catch (err) {
+    console.log("❌ VERIFY OTP ERROR:", err);
+    res.status(500).json({ message: 'Server Error', error: err.message });
+  }
+});
+
+// 3️⃣ LOGIN ROUTE
+router.post('/login', async (req, res) => {
+  try {
+    let { email, password } = req.body;
+    if (email) email = email.trim().toLowerCase();
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (user.isVerified === false) {
+      return res.status(403).json({ message: 'Please verify your email first.' });
+    }
+
+    let match = false;
+    try {
+      match = bcrypt.compareSync(password, user.password);
+    } catch (e) { match = false; }
+
+    if (!match && user.password === password) {
+      match = true;
+      try {
+        user.password = bcrypt.hashSync(password, 10);
+        await user.save();
+      } catch (e) { }
+    }
+
+    if (!match) return res.status(400).json({ message: 'Wrong Password!' });
+
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
+    const secret = process.env.JWT_SECRET || 'devsecret';
+    const token = jwt.sign({ id: user._id, email: user.email, name: user.name, role: user.role }, secret, { expiresIn: '7d' });
+
+    res.status(200).json({ message: 'Login Successful!', user: userResponse, token });
+  } catch (err) {
+    console.log("❌ LOGIN ERROR:", err);
+    res.status(500).json({ message: 'Server Error', error: err.message });
+  }
+});
+
 module.exports = router;
