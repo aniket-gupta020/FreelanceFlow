@@ -48,7 +48,7 @@ const Register = () => {
     setLoading(true);
     // Validation
     if (password.length < 6) {
-      alert("Password must be at least 6 characters long.");
+      toast.error("Password must be at least 6 characters long.");
       setLoading(false);
       return;
     }
@@ -56,12 +56,12 @@ const Register = () => {
     try {
       await api.post('/auth/register', { name, email, password });
 
-      alert("Account created successfully! Please login.");
+      toast.success("Account created successfully! Please login.");
       navigate('/login');
 
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Error registering user";
-      alert(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
