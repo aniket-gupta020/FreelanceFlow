@@ -331,8 +331,8 @@ const Dashboard = () => {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {projects.map((project) => {
-                  const clientId = project.client?._id ?? project.client;
-                  const userId = user?._id ?? user;
+                  const clientId = project.client?._id || project.client?.id || project.client;
+                  const userId = user?._id || user?.id || user;
                   const isOwner = user && String(clientId) === String(userId);
 
                   return (
