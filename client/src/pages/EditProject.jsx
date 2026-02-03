@@ -191,7 +191,7 @@ const EditProject = () => {
               </button>
               <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Edit Project</h2>
             </div>
-            <button onClick={() => setIsMobileMenuOpen(true)} className={`${GLASS_CLASSES} p-2 rounded-lg text-gray-600 dark:text-gray-300`}><Menu className="w-6 h-6" /></button>
+            <button onClick={() => setIsMobileMenuOpen(true)} className={`${GLASS_CLASSES} p-2 rounded-lg text-gray-600 dark:text-gray-300 md:hidden`}><Menu className="w-6 h-6" /></button>
           </header>
 
           <div className={`max-w-3xl mx-auto ${GLASS_CLASSES} rounded-3xl p-8`}>

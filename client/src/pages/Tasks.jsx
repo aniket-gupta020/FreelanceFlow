@@ -236,7 +236,7 @@ const Tasks = () => {
               <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Project Tasks</h2>
               <p className="text-slate-600 dark:text-gray-400">Manage your to-do list</p>
             </div>
-            <button onClick={() => setIsMobileMenuOpen(true)} className={`${GLASS_CLASSES} p-2 rounded-lg text-gray-600 dark:text-gray-300`}><Menu className="w-6 h-6" /></button>
+            <button onClick={() => setIsMobileMenuOpen(true)} className={`${GLASS_CLASSES} p-2 rounded-lg text-gray-600 dark:text-gray-300 md:hidden`}><Menu className="w-6 h-6" /></button>
           </header>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">

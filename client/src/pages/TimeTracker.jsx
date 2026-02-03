@@ -259,7 +259,7 @@ export default function TimeTracker() {
                 <Clock className="w-5 h-5" />
                 <span>{totalHours.toFixed(2)} Hrs Total</span>
               </div>
-              <button onClick={() => setIsMobileMenuOpen(true)} className={`${GLASS_CLASSES} p-2 rounded-lg text-gray-600 dark:text-gray-300`}>
+              <button onClick={() => setIsMobileMenuOpen(true)} className={`${GLASS_CLASSES} p-2 rounded-lg text-gray-600 dark:text-gray-300 md:hidden`}>
                 <Menu className="w-6 h-6" />
               </button>
             </div>

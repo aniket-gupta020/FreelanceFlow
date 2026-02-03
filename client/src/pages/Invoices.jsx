@@ -218,7 +218,7 @@ export default function Invoices() {
               <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Invoices</h2>
               <p className="text-slate-600 dark:text-gray-400">Manage billing and payments</p>
             </div>
-            <button onClick={() => setIsMobileMenuOpen(true)} className={`${GLASS_CLASSES} p-2 rounded-lg text-gray-600 dark:text-gray-300`}><Menu className="w-6 h-6" /></button>
+            <button onClick={() => setIsMobileMenuOpen(true)} className={`${GLASS_CLASSES} p-2 rounded-lg text-gray-600 dark:text-gray-300 md:hidden`}><Menu className="w-6 h-6" /></button>
           </header>
 
           <div className="max-w-7xl mx-auto">
