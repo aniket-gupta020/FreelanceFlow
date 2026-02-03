@@ -48,11 +48,6 @@ const UserSchema = new mongoose.Schema({
   },
   otpExpires: {
     type: Date
-  },
-  tempEmailChange: {
-    newEmail: { type: String, lowercase: true, trim: true },
-    otp: { type: String },
-    otpExpires: { type: Date }
   }
 }, { timestamps: true, collection: 'users' });
 
