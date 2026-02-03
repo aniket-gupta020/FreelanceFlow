@@ -74,7 +74,22 @@ router.post('/register', async (req, res) => {
       from: `"FreelanceFlow" <mail.akguptaji@gmail.com>`, // Must match your Brevo account email
       to: email,
       subject: 'FreelanceFlow - Email Verification OTP',
-      text: `Your OTP for verification is: ${otp}. It expires in 10 minutes.`
+      html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); background-color: #0f0c29; padding: 50px 20px; text-align: center;">
+          <div style="max-width: 500px; margin: 0 auto; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 16px; padding: 40px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+            <h2 style="color: #ffffff; margin-bottom: 20px; font-size: 24px; font-weight: 600;">FreelanceFlow</h2>
+            <p style="color: #e0e0e0; font-size: 16px; margin-bottom: 30px; line-height: 1.6;">
+              Welcome to the future. Use the code below to verify your account.
+            </p>
+            <div style="font-size: 40px; font-weight: 800; color: #ffffff; letter-spacing: 5px; text-shadow: 0 0 15px rgba(255, 255, 255, 0.7); margin: 30px 0;">
+              ${otp}
+            </div>
+            <p style="color: #a0a0a0; font-size: 12px; margin-top: 40px;">
+              This code expires in 10 minutes.
+            </p>
+          </div>
+        </div>
+      `
     };
 
     console.log("📨 Connecting to Brevo via Port 2525...");
