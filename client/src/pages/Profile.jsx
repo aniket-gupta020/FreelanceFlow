@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import {
   LayoutDashboard, Users, Clock, IndianRupee, Menu, X,
-  Sun, Moon, LogOut, User, Mail, Briefcase, Save, Trash2, CheckSquare
+  Sun, Moon, LogOut, User, Mail, Briefcase, Save, Trash2, CheckSquare, Lock, Key
 } from 'lucide-react';
 
 const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
@@ -61,6 +61,13 @@ const Profile = () => {
     name: '', email: '', bio: '', skills: '', defaultHourlyRate: 0
   });
 
+  // OTP & Security State
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isSensitiveChange, setIsSensitiveChange] = useState(false);
+
   const [darkMode, setDarkMode] = useState(() => {
     if (localStorage.getItem('theme')) return localStorage.getItem('theme') === 'dark';
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -108,13 +115,62 @@ const Profile = () => {
       const skillsArray = formData.skills.split(',').map(s => s.trim()).filter(s => s);
       const payload = { ...formData, skills: skillsArray };
 
+      // Check for sensitive changes
+      const isEmailChanged = user.email.toLowerCase() !== formData.email.toLowerCase();
+      const isPasswordChanged = newPassword.length > 0;
+
+      if (isPasswordChanged && newPassword !== confirmPassword) {
+        return toast.error("Passwords do not match!");
+      }
+
+      if (isEmailChanged || isPasswordChanged) {
+        setIsSensitiveChange(true);
+        setShowOtpModal(true);
+        // Send OTP immediately
+        await api.post('/auth/send-otp', { email: user.email });
+        toast.success(`OTP sent to ${user.email} for verification`);
+        return;
+      }
+
+      // Standard Update
       const res = await api.put(`/users/${user._id}`, payload);
       toast.success("Profile Updated Successfully!");
 
       const lsUser = JSON.parse(localStorage.getItem('user'));
       lsUser.name = res.data.name;
+      lsUser.email = res.data.email; // Update email in local storage
       localStorage.setItem('user', JSON.stringify(lsUser));
-    } catch (err) { toast.error("Failed to update profile"); }
+      setUser(res.data);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update profile");
+    }
+  };
+
+  const handleVerifyAndSave = async () => {
+    try {
+      const skillsArray = formData.skills.split(',').map(s => s.trim()).filter(s => s);
+      const payload = { ...formData, skills: skillsArray, otp };
+
+      if (newPassword) payload.password = newPassword;
+
+      const res = await api.put(`/users/${user._id}`, payload);
+      toast.success("Profile Updated Securely!");
+
+      const lsUser = JSON.parse(localStorage.getItem('user'));
+      lsUser.name = res.data.name;
+      lsUser.email = res.data.email;
+      localStorage.setItem('user', JSON.stringify(lsUser));
+      setUser(res.data);
+
+      // Reset State
+      setShowOtpModal(false);
+      setOtp('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setIsSensitiveChange(false);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Invalid OTP or Update Failed");
+    }
   };
 
   const handleDeleteAccount = () => {
@@ -315,10 +371,42 @@ const Profile = () => {
                     <div className="relative">
                       <Mail className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
                       <input
+
                         type="email"
-                        className={`${INPUT_CLASSES} opacity-60 cursor-not-allowed`}
+                        className={INPUT_CLASSES}
                         value={formData.email}
-                        readOnly
+                        onChange={e => setFormData({ ...formData, email: e.target.value })}
+                      />
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1 pl-1">Changing email requires OTP verification.</p>
+                  </div>
+                </div>
+
+                {/* Password Change Section */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-white/20 pt-4">
+                  <div>
+                    <label className={LABEL_CLASSES}>New Password</label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
+                      <input
+                        type="password"
+                        className={INPUT_CLASSES}
+                        placeholder="Leave blank to keep current"
+                        value={newPassword}
+                        onChange={e => setNewPassword(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className={LABEL_CLASSES}>Confirm New Password</label>
+                    <div className="relative">
+                      <Key className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
+                      <input
+                        type="password"
+                        className={INPUT_CLASSES}
+                        placeholder="Confirm new password"
+                        value={confirmPassword}
+                        onChange={e => setConfirmPassword(e.target.value)}
                       />
                     </div>
                   </div>
@@ -385,6 +473,53 @@ const Profile = () => {
           </div>
         </main>
       </div>
+      {/* OTP Verification Modal */}
+      {
+        showOtpModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className={`${GLASS_CLASSES} w-full max-w-md p-6 rounded-2xl shadow-2xl scale-100 animate-in zoom-in-95 duration-200`}>
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-violet-100 dark:bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Lock className="w-8 h-8 text-violet-600 dark:text-yellow-400" />
+                </div>
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Security Verification</h2>
+                <p className="text-slate-600 dark:text-gray-400 mt-2">
+                  We sent a code to <b>{user.email}</b>. <br />Enter it below to confirm changes.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className={LABEL_CLASSES}>Enter OTP</label>
+                  <input
+                    type="text"
+                    className={`${INPUT_CLASSES} text-center text-2xl tracking-widest font-mono`}
+                    placeholder="000000"
+                    maxLength={6}
+                    value={otp}
+                    onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={handleVerifyAndSave}
+                    className="flex-1 py-3 bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black rounded-xl font-bold shadow-lg transition-transform active:scale-95"
+                  >
+                    Verify & Save
+                  </button>
+                  <button
+                    onClick={() => setShowOtpModal(false)}
+                    className="px-6 py-3 bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/20 text-slate-700 dark:text-white rounded-xl font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      }
     </div>
   );
 };
