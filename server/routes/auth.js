@@ -3,25 +3,9 @@ const User = require('../models/User');
 const TempUser = require('../models/TempUser');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
 
-// 🔵 BREVO BACKUP CONFIGURATION (Port 2525 - The Firewall Buster)
-const transporter = nodemailer.createTransport({
-  host: 'smtp-relay.brevo.com',
-  port: 2525, // ⚠️ CRITICAL CHANGE: Using Port 2525 to bypass Render blocking 587
-  secure: false, // STARTTLS
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  },
-  tls: {
-    rejectUnauthorized: false
-  },
-  family: 4, // Forces IPv4
-  logger: true, // Keep logs on so we can see it work
-  debug: true,
-  connectionTimeout: 5000 // 5 Seconds fail-safe
-});
+// 👇 THIS IS THE KEY: Import your new Glassmorphism Service
+const { sendEmail } = require('../utils/emailService');
 
 // 1️⃣ REGISTER ROUTE
 router.post('/register', async (req, res) => {
@@ -30,12 +14,10 @@ router.post('/register', async (req, res) => {
     if (email) email = email.trim().toLowerCase();
 
     console.log("👉 HIT REGISTER for:", email);
-    console.log("Checking Environment Variables...");
-    console.log("EMAIL_USER Length:", process.env.EMAIL_USER ? process.env.EMAIL_USER.length : "MISSING");
-    console.log("EMAIL_PASS Length:", process.env.EMAIL_PASS ? process.env.EMAIL_PASS.length : "MISSING");
 
     // 1. Check if user already exists
     const existingUser = await User.findOne({ email });
+
     if (existingUser) {
       if (existingUser.isVerified) {
         return res.status(400).json({ message: 'User already exists! Please login.' });
@@ -69,32 +51,9 @@ router.post('/register', async (req, res) => {
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
-    // 4. Send Email
-    const mailOptions = {
-      from: `"FreelanceFlow" <mail.akguptaji@gmail.com>`, // Must match your Brevo account email
-      to: email,
-      subject: 'FreelanceFlow - Email Verification OTP',
-      html: `
-        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); background-color: #0f0c29; padding: 50px 20px; text-align: center;">
-          <div style="max-width: 500px; margin: 0 auto; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 16px; padding: 40px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-            <h2 style="color: #ffffff; margin-bottom: 20px; font-size: 24px; font-weight: 600;">FreelanceFlow</h2>
-            <p style="color: #e0e0e0; font-size: 16px; margin-bottom: 30px; line-height: 1.6;">
-              Welcome to the future. Use the code below to verify your account.
-            </p>
-            <div style="font-size: 40px; font-weight: 800; color: #ffffff; letter-spacing: 5px; text-shadow: 0 0 15px rgba(255, 255, 255, 0.7); margin: 30px 0;">
-              ${otp}
-            </div>
-            <p style="color: #a0a0a0; font-size: 12px; margin-top: 40px;">
-              This code expires in 10 minutes.
-            </p>
-          </div>
-        </div>
-      `
-    };
-
-    console.log("📨 Connecting to Brevo via Port 2525...");
-    await transporter.sendMail(mailOptions);
-    console.log("✅ OTP Sent successfully!");
+    // 4. Send Email (USING THE NEW SERVICE) 🎨
+    // This connects to emailService.js and grabs the glass design
+    await sendEmail(email, otp, 'register');
 
     res.status(200).json({
       message: 'OTP sent to your email. Please verify to complete registration.',
@@ -103,8 +62,7 @@ router.post('/register', async (req, res) => {
 
   } catch (err) {
     console.log("❌ REGISTER ERROR:", err);
-    // Return the specific error message to the frontend so we can see it
-    res.status(500).json({ message: 'Email Error', error: err.message, code: err.code });
+    res.status(500).json({ message: 'Server Error', error: err.message });
   }
 });
 
@@ -200,19 +158,13 @@ router.post('/send-otp', async (req, res) => {
     let { email } = req.body;
     if (email) email = email.trim().toLowerCase();
 
-    console.log("👉 HIT SEND-OTP for:", email);
+    console.log("👉 HIT SEND-OTP (GLASS MODE) for:", email);
 
-    // Check Main User DB
     const user = await User.findOne({ email });
-
     if (!user) {
-      console.log("❌ User NOT found in 'users' collection for:", email);
       return res.status(404).json({ message: 'User not found' });
     }
 
-    console.log(`✅ User found: ${user._id} (Verified: ${user.isVerified})`);
-
-    // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
@@ -220,17 +172,8 @@ router.post('/send-otp', async (req, res) => {
     user.otpExpires = otpExpires;
     await user.save();
 
-    // Send Email
-    const mailOptions = {
-      from: `"FreelanceFlow" <mail.akguptaji@gmail.com>`, // Explicitly set sender
-      to: email,
-      subject: 'FreelanceFlow - Access Code',
-      text: `Your OTP is: ${otp}. It expires in 10 minutes. Use this to login or reset your password.`
-    };
-
-    console.log(`📨 Sending Access OTP to ${email} via Port 2525...`);
-    await transporter.sendMail(mailOptions);
-    console.log("✅ OTP Sent successfully!");
+    // Send Email (Using Glass Template) 🎨
+    await sendEmail(email, otp, 'passwordless');
 
     res.status(200).json({ message: 'OTP sent to your email.' });
   } catch (err) {
@@ -239,19 +182,14 @@ router.post('/send-otp', async (req, res) => {
   }
 });
 
-// 5️⃣ LOGIN VIA OTP
+// 5️⃣ LOGIN VIA OTP / RESET PASSWORD VERIFY
 router.post('/login-via-otp', async (req, res) => {
   try {
     let { email, otp } = req.body;
     if (email) email = email.trim().toLowerCase();
 
-    console.log("👉 HIT LOGIN-VIA-OTP for:", email);
-
     const user = await User.findOne({ email });
-    if (!user) {
-      console.log("❌ User not found for Login OTP");
-      return res.status(404).json({ message: 'User not found' });
-    }
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
     if (user.otp !== otp || user.otpExpires < Date.now()) {
       return res.status(400).json({ message: 'Invalid or expired OTP' });
@@ -262,7 +200,6 @@ router.post('/login-via-otp', async (req, res) => {
     user.otpExpires = undefined;
     await user.save();
 
-    // Generate Token (Same logic as manual login)
     const userResponse = user.toObject();
     delete userResponse.password;
     delete userResponse.otp;
@@ -278,13 +215,11 @@ router.post('/login-via-otp', async (req, res) => {
   }
 });
 
-// 6️⃣ RESET PASSWORD
+// 6️⃣ RESET PASSWORD (Uses OTP implicitly verified by flow or requires OTP in body)
 router.post('/reset-password', async (req, res) => {
   try {
     let { email, otp, newPassword } = req.body;
     if (email) email = email.trim().toLowerCase();
-
-    console.log("👉 HIT RESET-PASSWORD for:", email);
 
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
