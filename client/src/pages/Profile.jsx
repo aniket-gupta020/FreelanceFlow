@@ -57,6 +57,12 @@ const Profile = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [securityModal, setSecurityModal] = useState({ isOpen: false, type: 'email', step: 1, loading: false });
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [newEmail, setNewEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
   const [formData, setFormData] = useState({
     name: '', email: '', bio: '', skills: '', defaultHourlyRate: 0
   });
@@ -250,6 +256,70 @@ const Profile = () => {
 
   if (loading) return <div className="p-10 text-center">Loading...</div>;
 
+  const handleSendOtp = async (e) => {
+    e.preventDefault();
+    setSecurityModal(prev => ({ ...prev, loading: true }));
+    try {
+      if (securityModal.type === 'email') {
+        if (!newEmail) { toast.error("Enter new email"); return; }
+        await api.post(`/users/${user._id}/request-email-change-otp`, { newEmail });
+        toast.success(`OTP sent to ${newEmail}`);
+        setSecurityModal(prev => ({ ...prev, step: 2 }));
+      } else {
+        await api.post(`/users/${user._id}/request-password-change-otp`);
+        toast.success(`OTP sent to ${user.email}`);
+        setSecurityModal(prev => ({ ...prev, step: 2 }));
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || "Failed to send OTP");
+    } finally {
+      setSecurityModal(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setSecurityModal(prev => ({ ...prev, loading: true }));
+    const otpValue = otp.join('');
+    try {
+      if (securityModal.type === 'email') {
+        const res = await api.post(`/users/${user._id}/update-email-otp`, { otp: otpValue });
+        toast.success("Email updated successfully!");
+        setUser(prev => ({ ...prev, email: res.data.newEmail }));
+        setFormData(prev => ({ ...prev, email: res.data.newEmail }));
+      } else {
+        if (newPassword !== confirmPassword) { toast.error("Passwords do not match"); return; }
+        await api.post(`/users/${user._id}/update-password-otp`, { otp: otpValue, newPassword });
+        toast.success("Password updated successfully!");
+      }
+      setSecurityModal({ isOpen: false, type: null, step: 0, loading: false });
+      resetForm();
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || "Verification failed");
+    } finally {
+      setSecurityModal(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const resetForm = () => {
+    setOtp(['', '', '', '', '', '']);
+    setNewEmail('');
+    setNewPassword('');
+    setConfirmPassword('');
+  };
+
+  const handleOtpChange = (index, value) => {
+    if (isNaN(value)) return;
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+    if (value && index < 5) {
+      document.getElementById(`otp-${index + 1}`).focus();
+    }
+  };
+
   return (
     <div className="min-h-screen transition-colors duration-500 bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-gray-900 dark:via-black dark:to-gray-900 select-none">
       <div className="flex h-screen overflow-hidden">
@@ -310,82 +380,191 @@ const Profile = () => {
                       />
                     </div>
                   </div>
-                  <div>
-                    <label className={LABEL_CLASSES}>Email</label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
-                      <input
-                        type="email"
-                        className={`${INPUT_CLASSES} opacity-60 cursor-not-allowed`}
-                        value={formData.email}
-                        readOnly
-                      />
-                    </div>
-                  </div>
                 </div>
-
                 <div>
-                  <label className={LABEL_CLASSES}>Bio</label>
-                  <textarea
-                    className={`${INPUT_CLASSES} pl-4`}
-                    rows="4"
-                    placeholder="Tell clients about yourself..."
-                    value={formData.bio}
-                    onChange={e => setFormData({ ...formData, bio: e.target.value })}
-                  ></textarea>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className={LABEL_CLASSES}>Skills (comma separated)</label>
-                    <div className="relative">
-                      <Briefcase className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
-                      <input
-                        type="text"
-                        className={INPUT_CLASSES}
-                        placeholder="React, Node.js..."
-                        value={formData.skills}
-                        onChange={e => setFormData({ ...formData, skills: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className={LABEL_CLASSES}>Hourly Rate (₹)</label>
-                    <div className="relative">
-                      <IndianRupee className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
-                      <input
-                        type="number"
-                        className={INPUT_CLASSES}
-                        value={formData.defaultHourlyRate}
-                        onChange={e => setFormData({ ...formData, defaultHourlyRate: e.target.value })}
-                      />
-                    </div>
+                  <label className={LABEL_CLASSES}>Email</label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
+                    <input
+                      type="email"
+                      className={`${INPUT_CLASSES} opacity-60 cursor-not-allowed`}
+                      value={formData.email}
+                      readOnly
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setSecurityModal({ ...securityModal, type: 'email', isOpen: true, step: 1 })}
+                      className="absolute right-2 top-2 px-3 py-1.5 bg-violet-100 text-violet-600 dark:bg-yellow-500/20 dark:text-yellow-400 rounded-lg text-xs font-bold hover:bg-violet-200 dark:hover:bg-yellow-500/30 transition-colors"
+                    >
+                      Change
+                    </button>
                   </div>
                 </div>
-
-                <div className="flex justify-between items-center pt-6 border-t border-white/20">
-                  <button
-                    type="button"
-                    onClick={handleDeleteAccount}
-                    className="flex items-center gap-2 text-red-500 hover:text-red-600 text-sm font-medium transition"
-                  >
-                    <Trash2 className="w-4 h-4" /> Delete Account
-                  </button>
-
-                  <button
-                    type="submit"
-                    className={`${BUTTON_BASE} bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black`}
-                  >
-                    <Save className="w-5 h-5" /> Save Changes
-                  </button>
-                </div>
-              </form>
             </div>
 
-          </div>
-        </main>
+            {/* Password Change Button */}
+            <div className="flex justify-start">
+              <button
+                type="button"
+                onClick={() => setSecurityModal({ ...securityModal, type: 'password', isOpen: true, step: 1 })}
+                className={`${BUTTON_BASE} bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white text-sm`}
+              >
+                <Briefcase className="w-4 h-4" /> Change Password
+              </button>
+            </div>
+
+            <div>
+              <label className={LABEL_CLASSES}>Bio</label>
+              <textarea
+                className={`${INPUT_CLASSES} pl-4`}
+                rows="4"
+                placeholder="Tell clients about yourself..."
+                value={formData.bio}
+                onChange={e => setFormData({ ...formData, bio: e.target.value })}
+              ></textarea>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className={LABEL_CLASSES}>Skills (comma separated)</label>
+                <div className="relative">
+                  <Briefcase className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    className={INPUT_CLASSES}
+                    placeholder="React, Node.js..."
+                    value={formData.skills}
+                    onChange={e => setFormData({ ...formData, skills: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className={LABEL_CLASSES}>Hourly Rate (₹)</label>
+                <div className="relative">
+                  <IndianRupee className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
+                  <input
+                    type="number"
+                    className={INPUT_CLASSES}
+                    value={formData.defaultHourlyRate}
+                    onChange={e => setFormData({ ...formData, defaultHourlyRate: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center pt-6 border-t border-white/20">
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                className="flex items-center gap-2 text-red-500 hover:text-red-600 text-sm font-medium transition"
+              >
+                <Trash2 className="w-4 h-4" /> Delete Account
+              </button>
+
+              <button
+                type="submit"
+                className={`${BUTTON_BASE} bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black`}
+              >
+                <Save className="w-5 h-5" /> Save Changes
+              </button>
+            </div>
+          </form>
       </div>
+
     </div>
+          {
+    securityModal.isOpen && (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className={`${GLASS_CLASSES} w-full max-w-md p-8 rounded-3xl animate-in fade-in zoom-in duration-300`}>
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-bold text-slate-800 dark:text-white">
+              {securityModal.type === 'email' ? 'Change Email' : 'Change Password'}
+            </h3>
+            <button onClick={() => setSecurityModal({ isOpen: false })} className="p-2 hover:bg-black/5 rounded-full"><X className="w-5 h-5 dark:text-white" /></button>
+          </div>
+
+          {securityModal.step === 1 ? (
+            <form onSubmit={handleSendOtp} className="space-y-4">
+              {securityModal.type === 'email' ? (
+                <div>
+                  <label className={LABEL_CLASSES}>New Email Address</label>
+                  <input
+                    type="email"
+                    required
+                    className={INPUT_CLASSES}
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="Enter new email"
+                  />
+                </div>
+              ) : (
+                <p className="text-slate-600 dark:text-gray-300">
+                  We will send a One-Time Password (OTP) to your current email address (<b>{user.email}</b>) to verify this request.
+                </p>
+              )}
+              <button type="submit" disabled={securityModal.loading} className={`${BUTTON_BASE} w-full justify-center bg-violet-600 text-white`}>
+                {securityModal.loading ? 'Sending...' : 'Send OTP'}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleVerifyOtp} className="space-y-6">
+              <div className="space-y-2">
+                <label className={LABEL_CLASSES}>Enter OTP</label>
+                <div className="flex justify-between gap-2">
+                  {otp.map((digit, index) => (
+                    <input
+                      key={index}
+                      id={`otp-${index}`}
+                      type="text"
+                      maxLength="1"
+                      value={digit}
+                      onChange={(e) => handleOtpChange(index, e.target.value)}
+                      className="w-12 h-12 text-center text-xl font-bold rounded-xl border border-gray-200 dark:border-white/10 bg-white/50 dark:bg-black/20 focus:ring-2 focus:ring-violet-500 outline-none dark:text-white"
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {securityModal.type === 'password' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className={LABEL_CLASSES}>New Password</label>
+                    <input
+                      type="password"
+                      required
+                      className={INPUT_CLASSES}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className={LABEL_CLASSES}>Confirm Password</label>
+                    <input
+                      type="password"
+                      required
+                      className={INPUT_CLASSES}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <button type="submit" disabled={securityModal.loading} className={`${BUTTON_BASE} w-full justify-center bg-violet-600 text-white`}>
+                {securityModal.loading ? 'Verifying...' : 'Verify & Update'}
+              </button>
+              <button type="button" onClick={() => setSecurityModal(prev => ({ ...prev, step: 1 }))} className="w-full text-center text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400">
+                Back
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    )
+  }
+        </main >
+      </div >
+    </div >
   );
 };
 
