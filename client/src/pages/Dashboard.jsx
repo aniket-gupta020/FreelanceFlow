@@ -43,26 +43,40 @@ const StatCard = ({ title, value, subtext, type, icon: Icon }) => {
   );
 };
 
-const ProjectCard = ({ project, user, isOwner, handleDelete, handleApply, handleMarkComplete, expandedProjectId, setExpandedProjectId, projectTimeLogs, calculateBurnRate }) => {
+const ProjectCard = ({ project, user, isOwner, handleDelete, handleApply, handleMarkComplete, expandedProjectId, setExpandedProjectId, projectTimeLogs, calculateBurnRate, onClick }) => {
   const isExpired = new Date(project.deadline) < new Date();
   const isCompleted = project.status === 'completed';
 
   return (
-    <div className={`bg-white/40 dark:bg-white/5 border border-white/50 dark:border-white/10 rounded-2xl p-6 relative group ${CARD_HOVER}`}>
+    <div
+      onClick={onClick}
+      className={`bg-white/40 dark:bg-white/5 border border-white/50 dark:border-white/10 rounded-2xl p-6 relative group ${CARD_HOVER} ${onClick ? 'cursor-pointer' : ''}`}
+    >
       <div className="absolute top-4 right-4 flex gap-2 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity duration-300">
         {isOwner ? (
           <>
             {!isCompleted && !isExpired && (
               <>
                 <button
-                  onClick={() => handleMarkComplete(project._id)}
+                  onClick={(e) => { e.stopPropagation(); handleMarkComplete(project._id); }}
                   className="p-2 bg-white dark:bg-black/50 text-emerald-500 rounded-full shadow-md hover:scale-110 transition"
                   title="Mark as Complete"
                 >
                   <CheckSquare className="w-4 h-4" />
                 </button>
-                <Link to={`/edit-project/${project._id}`} className="p-2 bg-white dark:bg-black/50 text-blue-500 rounded-full shadow-md hover:scale-110 transition"><Pencil className="w-4 h-4" /></Link>
-                <button onClick={() => handleDelete(project._id)} className="p-2 bg-white dark:bg-black/50 text-red-500 rounded-full shadow-md hover:scale-110 transition"><Trash2 className="w-4 h-4" /></button>
+                <Link
+                  to={`/edit-project/${project._id}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="p-2 bg-white dark:bg-black/50 text-blue-500 rounded-full shadow-md hover:scale-110 transition"
+                >
+                  <Pencil className="w-4 h-4" />
+                </Link>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleDelete(project._id); }}
+                  className="p-2 bg-white dark:bg-black/50 text-red-500 rounded-full shadow-md hover:scale-110 transition"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </>
             )}
             {isCompleted && (
@@ -88,7 +102,12 @@ const ProjectCard = ({ project, user, isOwner, handleDelete, handleApply, handle
                 Deadline Exceeded
               </span>
             ) : (
-              <button onClick={() => handleApply(project._id)} className={`p-2 ${ACCENT_BG} rounded-full shadow-md hover:scale-110 transition`}><Briefcase className="w-4 h-4" /></button>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleApply(project._id); }}
+                className={`p-2 ${ACCENT_BG} rounded-full shadow-md hover:scale-110 transition`}
+              >
+                <Briefcase className="w-4 h-4" />
+              </button>
             )}
           </>
         )}
@@ -145,7 +164,7 @@ const ProjectCard = ({ project, user, isOwner, handleDelete, handleApply, handle
       {isOwner && project.applicants && project.applicants.length > 0 && (
         <div className="mt-4">
           <button
-            onClick={() => setExpandedProjectId(prev => String(prev) === String(project._id) ? null : project._id)}
+            onClick={(e) => { e.stopPropagation(); setExpandedProjectId(prev => String(prev) === String(project._id) ? null : project._id); }}
             className="text-sm px-3 py-1 rounded-full bg-white/50 dark:bg-black/30 border border-gray-200 dark:border-white/10 text-slate-700 dark:text-gray-200 hover:bg-white/80 transition"
           >
             {project.applicants.length} Applicant{project.applicants.length > 1 ? 's' : ''}
@@ -154,7 +173,7 @@ const ProjectCard = ({ project, user, isOwner, handleDelete, handleApply, handle
       )}
 
       {String(expandedProjectId) === String(project._id) && project.applicants && project.applicants.length > 0 && (
-        <div className="mt-4 p-3 rounded-lg bg-white/50 dark:bg-black/40 backdrop-blur-md border border-gray-200 dark:border-white/10">
+        <div onClick={(e) => e.stopPropagation()} className="mt-4 p-3 rounded-lg bg-white/50 dark:bg-black/40 backdrop-blur-md border border-gray-200 dark:border-white/10">
           {project.applicants.map((app) => {
             const applicant = app.name ? app : { _id: app, name: 'Unknown', email: '' };
             return (
@@ -512,6 +531,7 @@ const Dashboard = () => {
                       setExpandedProjectId={setExpandedProjectId}
                       projectTimeLogs={projectTimeLogs}
                       calculateBurnRate={calculateBurnRate}
+                      onClick={checkIsOwner(project) ? () => navigate(`/projects/${project._id}`) : undefined}
                     />
                   ))}
                 </div>
@@ -544,6 +564,7 @@ const Dashboard = () => {
                     setExpandedProjectId={setExpandedProjectId}
                     projectTimeLogs={projectTimeLogs}
                     calculateBurnRate={calculateBurnRate}
+                    onClick={() => navigate(`/projects/${project._id}`)}
                   />
                 ))}
               </div>

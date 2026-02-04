@@ -9,6 +9,7 @@ import {
 import { toast } from 'react-hot-toast';
 import Stopwatch from '../components/Stopwatch';
 import AutoTimeTracker from '../components/AutoTimeTracker';
+import ProjectReportGenerator from '../components/ProjectReportGenerator';
 
 const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
 const INPUT_CLASSES = "w-full p-3 bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none transition-all dark:text-white";
@@ -291,6 +292,22 @@ const ProjectDetails = () => {
                             </div>
                         </div>
                     </div>
+
+                    {/* Project Report Generator - Only for Creator */}
+                    {(() => {
+                        const user = JSON.parse(localStorage.getItem('user'));
+                        const isCreator = user && (user._id === project.createdBy || user._id === project.createdBy?._id);
+                        if (isCreator) {
+                            return (
+                                <ProjectReportGenerator
+                                    project={project}
+                                    timeLogs={timeLogs}
+                                    clientName={project.client?.name || 'Unknown Client'}
+                                />
+                            );
+                        }
+                        return null;
+                    })()}
 
                     {/* Tasks List */}
                     <div className="flex justify-between items-center mb-6">
