@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Toaster, resolveValue, ToastIcon, toast } from 'react-hot-toast';
 import { X } from 'lucide-react';
 import Register from './pages/Register';
@@ -17,6 +18,7 @@ import Profile from './pages/Profile';
 function App() {
   return (
     <BrowserRouter>
+      <SpeedInsights />
       <Toaster position="top-center">
         {(t) => (
           <div
