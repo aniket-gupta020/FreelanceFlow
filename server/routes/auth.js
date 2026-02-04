@@ -10,7 +10,7 @@ const { sendEmail } = require('../utils/emailService');
 // 1️⃣ REGISTER ROUTE
 router.post('/register', async (req, res) => {
   try {
-    let { name, email, password, role, defaultHourlyRate, subscription } = req.body;
+    let { name, email, password, role, mobile, defaultHourlyRate, subscription } = req.body;
     if (email) email = email.trim().toLowerCase();
 
     console.log("👉 HIT REGISTER for:", email);
@@ -40,6 +40,7 @@ router.post('/register', async (req, res) => {
         name,
         password: hashed,
         role: role || 'freelancer',
+        mobile: mobile || '',
         defaultHourlyRate: defaultHourlyRate || 0,
         subscription: subscription || 'free'
       }
@@ -89,6 +90,7 @@ router.post('/verify-otp', async (req, res) => {
       email: tempUser.email,
       password: tempUser.registrationData.password,
       role: tempUser.registrationData.role,
+      mobile: tempUser.registrationData.mobile,
       defaultHourlyRate: tempUser.registrationData.defaultHourlyRate,
       subscription: tempUser.registrationData.subscription,
       isVerified: true

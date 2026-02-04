@@ -9,10 +9,12 @@ import Dashboard from './pages/Dashboard';
 import PostProject from './pages/PostProject';
 import EditProject from './pages/EditProject';
 import Clients from './pages/Clients';
+import ClientDetails from './pages/ClientDetails';
+import ProjectDetails from './pages/ProjectDetails';
 import TimeTracker from './pages/TimeTracker';
 import Invoices from './pages/Invoices';
 import InvoiceGenerator from './pages/InvoiceGenerator';
-import Tasks from './pages/Tasks';
+// import Tasks from './pages/Tasks';
 import Profile from './pages/Profile';
 
 function App() {
@@ -74,11 +76,13 @@ function App() {
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/clients" element={<Clients />} />
+        <Route path="/clients/:clientId" element={<ClientDetails />} />
+        <Route path="/projects/:projectId" element={<ProjectDetails />} />
         <Route path="/time" element={<TimeTracker />} />
         <Route path="/invoices" element={<Invoices />} />
         <Route path="/invoices/create" element={<InvoiceGenerator />} />
         <Route path="/invoices/edit/:id" element={<InvoiceGenerator />} />
-        <Route path="/tasks" element={<Tasks />} />
+        {/* <Route path="/tasks" element={<Tasks />} />  <-- Removed global tasks route */}
         <Route path="/profile" element={<Profile />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />

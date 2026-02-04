@@ -22,6 +22,15 @@ const UserSchema = new mongoose.Schema({
     enum: ['freelancer', 'client'],
     default: 'freelancer'
   },
+  mobile: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  defaultHourlyRate: {
+    type: Number,
+    default: 0
+  },
   bio: {
     type: String,
     default: ''
@@ -29,10 +38,6 @@ const UserSchema = new mongoose.Schema({
   skills: {
     type: [String],
     default: []
-  },
-  defaultHourlyRate: {
-    type: Number,
-    default: 0
   },
   subscription: {
     type: String,

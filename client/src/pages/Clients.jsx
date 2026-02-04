@@ -9,51 +9,7 @@ import {
 
 const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
 
-const Sidebar = ({ mobile, closeMobile, darkMode, toggleTheme, handleLogout }) => (
-  <div className="flex flex-col h-full">
-    <div className="p-6 flex items-center justify-between">
-      <h1 className="text-2xl font-bold text-violet-600 dark:text-yellow-400 flex items-center gap-2">
-        <LayoutDashboard className="w-8 h-8" /> FreelanceFlow
-      </h1>
-      {mobile && <button onClick={closeMobile}><X className="w-6 h-6 dark:text-white" /></button>}
-    </div>
-
-    <nav className="mt-2 px-4 space-y-3 flex-1">
-      <Link to="/" className="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-gray-400 hover:bg-white/20 dark:hover:bg-white/5 rounded-xl font-medium transition-all">
-        <LayoutDashboard className="w-5 h-5" /> Dashboard
-      </Link>
-
-      <Link to="/tasks" className="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-gray-400 hover:bg-white/20 dark:hover:bg-white/5 rounded-xl font-medium transition-all">
-        <CheckSquare className="w-5 h-5" /> Tasks
-      </Link>
-
-      <div className="flex items-center gap-3 px-4 py-3 bg-violet-600 dark:bg-yellow-500 text-white dark:text-black rounded-xl font-medium shadow-lg shadow-indigo-500/20">
-        <Users className="w-5 h-5" /> Clients
-      </div>
-
-      <Link to="/time" className="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-gray-400 hover:bg-white/20 dark:hover:bg-white/5 rounded-xl font-medium transition-all">
-        <Clock className="w-5 h-5" /> Time Tracking
-      </Link>
-
-      <Link to="/invoices" className="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-gray-400 hover:bg-white/20 dark:hover:bg-white/5 rounded-xl font-medium transition-all">
-        <IndianRupee className="w-5 h-5" /> Invoices
-      </Link>
-
-      <Link to="/profile" className="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-gray-400 hover:bg-white/20 dark:hover:bg-white/5 rounded-xl font-medium transition-all">
-        <User className="w-5 h-5" /> Profile
-      </Link>
-    </nav>
-
-    <div className="p-4 border-t border-white/20 dark:border-white/5 space-y-3">
-      <button onClick={toggleTheme} className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-gray-400 hover:bg-white/20 dark:hover:bg-white/5 rounded-xl font-medium transition-all">
-        {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />} {darkMode ? "Light Mode" : "Dark Mode"}
-      </button>
-      <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-500/10 rounded-xl font-medium transition-all">
-        <LogOut className="w-5 h-5" /> Log Out
-      </button>
-    </div>
-  </div>
-);
+import Sidebar from '../components/Sidebar';
 
 const Clients = () => {
   const [clients, setClients] = useState([]);
@@ -174,20 +130,43 @@ const Clients = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {clients.map((client) => (
-                <div key={client._id} className={`${GLASS_CLASSES} p-6 rounded-2xl flex items-center gap-4 hover:scale-[1.02] transition-all`}>
-                  <div className="bg-violet-100 dark:bg-yellow-500/20 p-4 rounded-full text-violet-600 dark:text-yellow-400">
-                    <User className="w-6 h-6" />
-                  </div>
-                  <div className="overflow-hidden">
-                    <h3 className="font-bold text-slate-900 dark:text-white truncate">{client.name}</h3>
-                    <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-gray-400 mt-1 truncate">
-                      <Mail className="w-4 h-4 flex-shrink-0" />
-                      <span className="truncate">{client.email}</span>
+              {clients.map((client) => {
+                const getSafeId = (id) => id?._id || id?.id || id;
+                return (
+                  <div
+                    key={client._id}
+                    onClick={() => navigate(`/clients/${client._id}`)}
+                    className={`${GLASS_CLASSES} p-6 rounded-2xl flex flex-col gap-4 hover:scale-[1.02] transition-all cursor-pointer group`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="bg-violet-100 dark:bg-yellow-500/20 p-4 rounded-full text-violet-600 dark:text-yellow-400 group-hover:rotate-12 transition-transform">
+                        <User className="w-6 h-6" />
+                      </div>
+                      <div className="overflow-hidden">
+                        <h3 className="font-bold text-slate-900 dark:text-white truncate text-lg">{client.name}</h3>
+                        <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-gray-400 mt-1 truncate">
+                          <Mail className="w-4 h-4 flex-shrink-0" />
+                          <span className="truncate">{client.email}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-2 pt-4 border-t border-white/20 dark:border-white/5 flex justify-between items-center">
+                      <div className="flex flex-col">
+                        <span className="text-xs text-slate-500 dark:text-gray-500 uppercase font-bold tracking-wider">Mobile</span>
+                        <span className="text-sm font-medium text-slate-700 dark:text-gray-300">{client.mobile || 'N/A'}</span>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <span className="text-xs text-slate-500 dark:text-gray-500 uppercase font-bold tracking-wider">Hourly Rate</span>
+                        <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
+                          <IndianRupee className="w-3 h-3" />
+                          <span>{client.defaultHourlyRate || 0}/hr</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </main>

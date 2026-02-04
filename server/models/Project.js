@@ -9,6 +9,11 @@ const ProjectSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
   budget: {
     type: Number,
     required: true
@@ -35,6 +40,9 @@ const ProjectSchema = new mongoose.Schema({
     type: String,
     enum: ['open', 'in-progress', 'completed'],
     default: 'open'
+  },
+  completedAt: {
+    type: Date
   }
 }, { timestamps: true });
 module.exports = mongoose.model('Project', ProjectSchema);

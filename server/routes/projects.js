@@ -35,7 +35,8 @@ router.post('/', verifyToken, async (req, res) => {
 
     const payload = {
       ...req.body,
-      client: clientId
+      client: clientId,
+      createdBy: req.user.id
     };
 
     const newProject = new Project(payload);
@@ -68,9 +69,14 @@ router.put('/:id', verifyToken, async (req, res) => {
     const project = await Project.findById(req.params.id);
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
+    const updateData = { ...req.body };
+    if (req.body.status === 'completed' && project.status !== 'completed') {
+      updateData.completedAt = new Date();
+    }
+
     const updatedProject = await Project.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updateData,
       { new: true }
     );
     res.status(200).json(updatedProject);

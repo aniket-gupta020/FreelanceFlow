@@ -5,10 +5,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Clock, IndianRupee, Users, Plus,
   Trash2, Pencil, Briefcase, Menu, X, Sun, Moon,
-  LogOut, Download, AlertTriangle, CheckSquare, User
+  LogOut, Download, AlertTriangle, CheckSquare, User,
+  ChevronDown, ChevronRight
 } from 'lucide-react';
 import FinancialDashboard from '../components/FinancialDashboard';
 import UpcomingDeadlines from '../components/UpcomingDeadlines';
+import Sidebar from '../components/Sidebar';
 
 const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
 const CARD_HOVER = "hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-out";
@@ -41,46 +43,138 @@ const StatCard = ({ title, value, subtext, type, icon: Icon }) => {
   );
 };
 
-const Sidebar = ({ mobile, closeMobile, darkMode, toggleTheme, handleLogout }) => (
-  <div className="flex flex-col h-full">
-    <div className="p-6 flex items-center justify-between">
-      <h1 className={`text-2xl font-bold ${ACCENT_COLOR} flex items-center gap-2`}>
-        <LayoutDashboard className="w-8 h-8" /> FreelanceFlow
-      </h1>
-      {mobile && <button onClick={closeMobile}><X className="w-6 h-6 dark:text-white" /></button>}
-    </div>
+const ProjectCard = ({ project, user, isOwner, handleDelete, handleApply, handleMarkComplete, expandedProjectId, setExpandedProjectId, projectTimeLogs, calculateBurnRate }) => {
+  const isExpired = new Date(project.deadline) < new Date();
+  const isCompleted = project.status === 'completed';
 
-    <nav className="mt-2 px-4 space-y-3 flex-1">
-      <div className={`flex items-center gap-3 px-4 py-3 ${ACCENT_BG} rounded-xl font-medium shadow-lg shadow-indigo-500/20`}>
-        <LayoutDashboard className="w-5 h-5" /> Dashboard
+  return (
+    <div className={`bg-white/40 dark:bg-white/5 border border-white/50 dark:border-white/10 rounded-2xl p-6 relative group ${CARD_HOVER}`}>
+      <div className="absolute top-4 right-4 flex gap-2 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        {isOwner ? (
+          <>
+            {!isCompleted && !isExpired && (
+              <>
+                <button
+                  onClick={() => handleMarkComplete(project._id)}
+                  className="p-2 bg-white dark:bg-black/50 text-emerald-500 rounded-full shadow-md hover:scale-110 transition"
+                  title="Mark as Complete"
+                >
+                  <CheckSquare className="w-4 h-4" />
+                </button>
+                <Link to={`/edit-project/${project._id}`} className="p-2 bg-white dark:bg-black/50 text-blue-500 rounded-full shadow-md hover:scale-110 transition"><Pencil className="w-4 h-4" /></Link>
+                <button onClick={() => handleDelete(project._id)} className="p-2 bg-white dark:bg-black/50 text-red-500 rounded-full shadow-md hover:scale-110 transition"><Trash2 className="w-4 h-4" /></button>
+              </>
+            )}
+            {isCompleted && (
+              <span className="px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase tracking-wider">
+                Completed
+              </span>
+            )}
+            {!isCompleted && isExpired && (
+              <span className="px-3 py-1 rounded-full bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-bold uppercase tracking-wider">
+                Deadline Exceeded
+              </span>
+            )}
+          </>
+        ) : (
+          /* Status Indicators for Non-Owners */
+          <>
+            {isCompleted ? (
+              <span className="px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase tracking-wider">
+                Completed
+              </span>
+            ) : isExpired ? (
+              <span className="px-3 py-1 rounded-full bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-bold uppercase tracking-wider">
+                Deadline Exceeded
+              </span>
+            ) : (
+              <button onClick={() => handleApply(project._id)} className={`p-2 ${ACCENT_BG} rounded-full shadow-md hover:scale-110 transition`}><Briefcase className="w-4 h-4" /></button>
+            )}
+          </>
+        )}
       </div>
-      <Link to="/tasks" className={`flex items-center gap-3 px-4 py-3 ${TEXT_SUB} hover:bg-white/20 dark:hover:bg-white/5 rounded-xl font-medium transition-all duration-300`}>
-        <CheckSquare className="w-5 h-5" /> Tasks
-      </Link>
-      <Link to="/clients" className={`flex items-center gap-3 px-4 py-3 ${TEXT_SUB} hover:bg-white/20 dark:hover:bg-white/5 rounded-xl font-medium transition-all duration-300`}>
-        <Users className="w-5 h-5" /> Clients
-      </Link>
-      <Link to="/time" className={`flex items-center gap-3 px-4 py-3 ${TEXT_SUB} hover:bg-white/20 dark:hover:bg-white/5 rounded-xl font-medium transition-all duration-300`}>
-        <Clock className="w-5 h-5" /> Time Tracking
-      </Link>
-      <Link to="/invoices" className={`flex items-center gap-3 px-4 py-3 ${TEXT_SUB} hover:bg-white/20 dark:hover:bg-white/5 rounded-xl font-medium transition-all duration-300`}>
-        <IndianRupee className="w-5 h-5" /> Invoices
-      </Link>
-      <Link to="/profile" className={`flex items-center gap-3 px-4 py-3 ${TEXT_SUB} hover:bg-white/20 dark:hover:bg-white/5 rounded-xl font-medium transition-all duration-300`}>
-        <User className="w-5 h-5" /> Profile
-      </Link>
-    </nav>
+      <h4 className={`font-bold text-lg ${ACCENT_COLOR} mb-2 pr-16 truncate`}>{project.title}</h4>
+      <p className={`text-sm ${TEXT_SUB} mb-4 line-clamp-2 leading-relaxed`}>{project.description}</p>
 
-    <div className="p-4 border-t border-white/20 dark:border-white/5 space-y-3">
-      <button onClick={toggleTheme} className={`w-full flex items-center gap-3 px-4 py-3 ${TEXT_SUB} hover:bg-white/20 dark:hover:bg-white/5 rounded-xl font-medium transition-all duration-300`}>
-        {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />} {darkMode ? "Light Mode" : "Dark Mode"}
-      </button>
-      <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-500/10 rounded-xl font-medium transition-all duration-300">
-        <LogOut className="w-5 h-5" /> Log Out
-      </button>
+      {(() => {
+        const clientRate = project.client?.defaultHourlyRate || 0;
+        const burn = calculateBurnRate(project._id, project.budget, clientRate);
+        const burnPercent = project.budget > 0 ? Math.round((burn.cost / project.budget) * 100) : 0;
+        const displayProgress = Math.min(Math.max(burnPercent, 0), 100);
+
+        return (
+          <div className="mb-4 p-4 bg-gray-50 dark:bg-black/40 rounded-xl border border-gray-100 dark:border-white/5">
+            <div className="text-xs font-bold text-slate-700 dark:text-white mb-2 flex justify-between">
+              <span>Budget Burn</span>
+              <span>{displayProgress}%</span>
+            </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+              <div className={`h-2.5 rounded-full ${displayProgress > 80 ? 'bg-red-500' : displayProgress > 50 ? 'bg-yellow-500' : 'bg-emerald-500'}`} style={{ width: `${displayProgress}%` }}></div>
+            </div>
+            <div className="text-xs mt-3 space-y-1.5 font-medium text-slate-600 dark:text-slate-300">
+              <div className="flex justify-between">
+                <span>Hours Logged:</span><span className="font-bold text-slate-800 dark:text-white">{burn.hours.toFixed(1)}h</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Cost:</span><span className="font-bold text-slate-800 dark:text-white">₹{burn.cost.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      <div className="flex justify-between items-center pt-4 border-t border-gray-200/50 dark:border-white/10">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-500/20">
+            <IndianRupee className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <span className={`font-bold ${TEXT_HEADLINE}`}>₹{project.budget}</span>
+        </div>
+        <div className="flex flex-col items-end">
+          <span className={`text-xs font-medium px-3 py-1 rounded-full bg-gray-100 dark:bg-white/10 ${TEXT_SUB}`}>
+            {new Date(project.deadline).toLocaleDateString()}
+          </span>
+          {isCompleted && project.completedAt && (
+            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-1">
+              Completed: {new Date(project.completedAt).toLocaleDateString()}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {isOwner && project.applicants && project.applicants.length > 0 && (
+        <div className="mt-4">
+          <button
+            onClick={() => setExpandedProjectId(prev => String(prev) === String(project._id) ? null : project._id)}
+            className="text-sm px-3 py-1 rounded-full bg-white/50 dark:bg-black/30 border border-gray-200 dark:border-white/10 text-slate-700 dark:text-gray-200 hover:bg-white/80 transition"
+          >
+            {project.applicants.length} Applicant{project.applicants.length > 1 ? 's' : ''}
+          </button>
+        </div>
+      )}
+
+      {String(expandedProjectId) === String(project._id) && project.applicants && project.applicants.length > 0 && (
+        <div className="mt-4 p-3 rounded-lg bg-white/50 dark:bg-black/40 backdrop-blur-md border border-gray-200 dark:border-white/10">
+          {project.applicants.map((app) => {
+            const applicant = app.name ? app : { _id: app, name: 'Unknown', email: '' };
+            return (
+              <div key={applicant._id} className="py-2 border-b border-gray-200 dark:border-white/10 last:border-b-0">
+                <div className="font-medium text-sm text-slate-800 dark:text-white">{applicant.name}</div>
+                <div className="text-xs text-slate-600 dark:text-gray-400">{applicant.email || applicant._id}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {isOwner && (
+        <div className="mt-4 flex items-center gap-2 text-xs font-bold text-indigo-500 dark:text-yellow-500 uppercase tracking-wider">
+          <div className="w-2 h-2 rounded-full bg-current animate-pulse" /> Your Project
+        </div>
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 const Dashboard = () => {
   const [projects, setProjects] = useState([]);
@@ -88,6 +182,7 @@ const Dashboard = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [expandedProjectId, setExpandedProjectId] = useState(null);
   const [projectTimeLogs, setProjectTimeLogs] = useState({});
+  const [showPreviousProjects, setShowPreviousProjects] = useState(false);
   const navigate = useNavigate();
 
   const [darkMode, setDarkMode] = useState(() => {
@@ -234,6 +329,17 @@ const Dashboard = () => {
     ), { duration: 5000, style: { minWidth: '300px' } });
   };
 
+  const handleMarkComplete = async (id) => {
+    try {
+      await api.put(`/projects/${id}`, { status: 'completed' });
+      setProjects(prev => prev.map(p => p._id === id ? { ...p, status: 'completed' } : p));
+      toast.success("Project marked as complete! 🎉");
+    } catch (err) {
+      console.error("Error updating project:", err);
+      toast.error("Failed to update status");
+    }
+  };
+
   const handleLogout = () => {
     toast.custom((t) => (
       <div className={`${GLASS_CLASSES} p-6 rounded-2xl max-w-sm w-full animate-in fade-in zoom-in duration-300`}>
@@ -270,6 +376,37 @@ const Dashboard = () => {
       </div>
     ));
   };
+
+
+  const getSafeId = (id) => id?._id || id?.id || id;
+  const currentUserId = user ? getSafeId(user) : null;
+
+  const myProjects = projects.filter(project => {
+    const projectOwnerId = getSafeId(project.owner);
+    const projectClientId = getSafeId(project.client);
+    return String(currentUserId) === String(projectOwnerId) || String(currentUserId) === String(projectClientId);
+  });
+
+  const activeMyProjects = myProjects.filter(p => p.status !== 'completed' && new Date(p.deadline) >= new Date());
+  const pastMyProjects = myProjects.filter(p => p.status === 'completed' || new Date(p.deadline) < new Date());
+
+  const marketplaceProjects = projects.filter(project => {
+    const projectOwnerId = getSafeId(project.owner);
+    const projectClientId = getSafeId(project.client);
+    return String(currentUserId) !== String(projectOwnerId) && String(currentUserId) !== String(projectClientId);
+  });
+
+  const activeMarketplaceProjects = marketplaceProjects.filter(p => p.status !== 'completed' && new Date(p.deadline) >= new Date());
+  const pastMarketplaceProjects = marketplaceProjects.filter(p => p.status === 'completed' || new Date(p.deadline) < new Date());
+
+  const allPastProjects = [...pastMyProjects, ...pastMarketplaceProjects];
+
+  const checkIsOwner = (project) => {
+    const projectOwnerId = getSafeId(project.owner);
+    const projectClientId = getSafeId(project.client);
+    return String(currentUserId) === String(projectOwnerId) || String(currentUserId) === String(projectClientId);
+  };
+
 
   return (
     <div className={`min-h-screen transition-colors duration-500 ease-in-out bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-gray-900 dark:via-black dark:to-gray-900 select-none`}>
@@ -312,123 +449,103 @@ const Dashboard = () => {
           </header>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <StatCard title="Total Projects" value={projects.length} subtext="Posted projects" type="blue" icon={LayoutDashboard} />
-            <StatCard title="Total Budget" value={`₹${projects.reduce((acc, curr) => acc + (curr.budget || 0), 0)}`} subtext="Across all jobs" type="emerald" icon={IndianRupee} />
+            <StatCard title="Total Projects" value={projects.length} subtext="System wide" type="blue" icon={LayoutDashboard} />
+            <StatCard title="My Projects" value={myProjects.length} subtext="Active & Owned" type="emerald" icon={Briefcase} />
             <StatCard title="Status" value="Active" subtext="System Online" type="rose" icon={Clock} />
           </div>
 
-          <div className={`${GLASS_CLASSES} rounded-3xl p-6 md:p-8`}>
-            <h3 className={`text-xl font-bold ${TEXT_HEADLINE} mb-6`}>Recent Projects</h3>
-
-            {projects.length === 0 ? (
+          <div className={`${GLASS_CLASSES} rounded-3xl p-6 md:p-8 mb-8`}>
+            <h3 className={`text-xl font-bold ${TEXT_HEADLINE} mb-6`}>Recent Projects (Marketplace)</h3>
+            {activeMarketplaceProjects.length === 0 ? (
               <div className="text-center py-16">
                 <div className="bg-gray-100 dark:bg-white/5 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4 animate-pulse">
                   <LayoutDashboard className="w-10 h-10 text-gray-400" />
                 </div>
-                <h3 className={`text-lg font-bold ${TEXT_HEADLINE}`}>No projects yet</h3>
-                <p className={`${TEXT_SUB} mt-2`}>Create your first project to see it here.</p>
+                <h3 className={`text-lg font-bold ${TEXT_HEADLINE}`}>No marketplace projects</h3>
+                <p className={`${TEXT_SUB} mt-2`}>Be the first to post a project!</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {projects.map((project) => {
-                  // ✅ UNIVERSAL OWNER CHECK
-                  const getSafeId = (id) => id?._id || id?.id || id;
+                {activeMarketplaceProjects.map(project => (
+                  <ProjectCard
+                    key={project._id}
+                    project={project}
+                    user={user}
+                    isOwner={false}
+                    handleDelete={handleDelete}
+                    handleApply={handleApply}
+                    handleMarkComplete={handleMarkComplete}
+                    expandedProjectId={expandedProjectId}
+                    setExpandedProjectId={setExpandedProjectId}
+                    projectTimeLogs={projectTimeLogs}
+                    calculateBurnRate={calculateBurnRate}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
 
-                  const currentUserId = getSafeId(user);
-                  const projectOwnerId = getSafeId(project.owner); // The Creator
-                  const projectClientId = getSafeId(project.client); // The Assigned Client
+          {allPastProjects.length > 0 && (
+            <div className={`mb-8 ${GLASS_CLASSES} rounded-3xl transition-all duration-300 ${showPreviousProjects ? 'p-6 md:p-8 opacity-90' : 'p-4 opacity-75 hover:opacity-100'}`}>
+              <button
+                onClick={() => setShowPreviousProjects(!showPreviousProjects)}
+                className={`w-full flex items-center justify-between text-xl font-bold ${TEXT_HEADLINE} hover:opacity-80 transition-opacity`}
+              >
+                <div className="flex items-center gap-2">
+                  <Clock className="w-5 h-5" /> Previous Projects
+                </div>
+                {showPreviousProjects ? <ChevronDown className="w-6 h-6" /> : <ChevronRight className="w-6 h-6" />}
+              </button>
 
-                  // You are owner if you CREATED it -OR- if it is ASSIGNED to you
-                  const isOwner = user && (String(currentUserId) === String(projectOwnerId) || String(currentUserId) === String(projectClientId));
+              {showPreviousProjects && (
+                <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 animate-in slide-in-from-top-2 fade-in duration-300">
+                  {allPastProjects.map(project => (
+                    <ProjectCard
+                      key={project._id}
+                      project={project}
+                      user={user}
+                      isOwner={checkIsOwner(project)}
+                      handleDelete={handleDelete}
+                      handleApply={handleApply}
+                      handleMarkComplete={handleMarkComplete}
+                      expandedProjectId={expandedProjectId}
+                      setExpandedProjectId={setExpandedProjectId}
+                      projectTimeLogs={projectTimeLogs}
+                      calculateBurnRate={calculateBurnRate}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
-                  return (
-                    <div key={project._id} className={`bg-white/40 dark:bg-white/5 border border-white/50 dark:border-white/10 rounded-2xl p-6 relative group ${CARD_HOVER}`}>
-
-                      {/* X-Ray Debugger REMOVED - Clean UI restored */}
-
-                      <div className="absolute top-4 right-4 flex gap-2 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        {isOwner ? (
-                          <>
-                            <Link to={`/edit-project/${project._id}`} className="p-2 bg-white dark:bg-black/50 text-blue-500 rounded-full shadow-md hover:scale-110 transition"><Pencil className="w-4 h-4" /></Link>
-                            <button onClick={() => handleDelete(project._id)} className="p-2 bg-white dark:bg-black/50 text-red-500 rounded-full shadow-md hover:scale-110 transition"><Trash2 className="w-4 h-4" /></button>
-                          </>
-                        ) : (
-                          <button onClick={() => handleApply(project._id)} className={`p-2 ${ACCENT_BG} rounded-full shadow-md hover:scale-110 transition`}><Briefcase className="w-4 h-4" /></button>
-                        )}
-                      </div>
-                      <h4 className={`font-bold text-lg ${ACCENT_COLOR} mb-2 pr-16 truncate`}>{project.title}</h4>
-                      <p className={`text-sm ${TEXT_SUB} mb-4 line-clamp-2 leading-relaxed`}>{project.description}</p>
-
-                      {(() => {
-                        const clientRate = project.client?.defaultHourlyRate || 0;
-                        const burn = calculateBurnRate(project._id, project.budget, clientRate);
-                        const burnPercent = project.budget > 0 ? Math.round((burn.cost / project.budget) * 100) : 0;
-                        return (
-                          <div className="mb-4 p-4 bg-gray-50 dark:bg-black/40 rounded-xl border border-gray-100 dark:border-white/5">
-                            <div className="text-xs font-bold text-slate-700 dark:text-white mb-2 flex justify-between">
-                              <span>Budget Burn</span>
-                              <span>{burnPercent}%</span>
-                            </div>
-                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                              <div className={`h-2.5 rounded-full ${burnPercent > 80 ? 'bg-red-500' : burnPercent > 50 ? 'bg-yellow-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min(burnPercent, 100)}%` }}></div>
-                            </div>
-                            <div className="text-xs mt-3 space-y-1.5 font-medium text-slate-600 dark:text-slate-300">
-                              <div className="flex justify-between">
-                                <span>Hours Logged:</span><span className="font-bold text-slate-800 dark:text-white">{burn.hours.toFixed(1)}h</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span>Cost:</span><span className="font-bold text-slate-800 dark:text-white">₹{burn.cost.toFixed(2)}</span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })()}
-
-                      <div className="flex justify-between items-center pt-4 border-t border-gray-200/50 dark:border-white/10">
-                        <div className="flex items-center gap-2">
-                          <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-500/20">
-                            <IndianRupee className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                          </div>
-                          <span className={`font-bold ${TEXT_HEADLINE}`}>₹{project.budget}</span>
-                        </div>
-                        <span className={`text-xs font-medium px-3 py-1 rounded-full bg-gray-100 dark:bg-white/10 ${TEXT_SUB}`}>
-                          {new Date(project.deadline).toLocaleDateString()}
-                        </span>
-                      </div>
-
-                      {isOwner && project.applicants && project.applicants.length > 0 && (
-                        <div className="mt-4">
-                          <button
-                            onClick={() => setExpandedProjectId(prev => String(prev) === String(project._id) ? null : project._id)}
-                            className="text-sm px-3 py-1 rounded-full bg-white/50 dark:bg-black/30 border border-gray-200 dark:border-white/10 text-slate-700 dark:text-gray-200 hover:bg-white/80 transition"
-                          >
-                            {project.applicants.length} Applicant{project.applicants.length > 1 ? 's' : ''}
-                          </button>
-                        </div>
-                      )}
-
-                      {String(expandedProjectId) === String(project._id) && project.applicants && project.applicants.length > 0 && (
-                        <div className="mt-4 p-3 rounded-lg bg-white/50 dark:bg-black/40 backdrop-blur-md border border-gray-200 dark:border-white/10">
-                          {project.applicants.map((app) => {
-                            const applicant = app.name ? app : { _id: app, name: 'Unknown', email: '' };
-                            return (
-                              <div key={applicant._id} className="py-2 border-b border-gray-200 dark:border-white/10 last:border-b-0">
-                                <div className="font-medium text-sm text-slate-800 dark:text-white">{applicant.name}</div>
-                                <div className="text-xs text-slate-600 dark:text-gray-400">{applicant.email || applicant._id}</div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {isOwner && (
-                        <div className="mt-4 flex items-center gap-2 text-xs font-bold text-indigo-500 dark:text-yellow-500 uppercase tracking-wider">
-                          <div className="w-2 h-2 rounded-full bg-current animate-pulse" /> Your Project
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+          <div className={`${GLASS_CLASSES} rounded-3xl p-6 md:p-8`}>
+            <h3 className={`text-xl font-bold ${TEXT_HEADLINE} mb-6`}>My Active Projects</h3>
+            {activeMyProjects.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="bg-gray-100 dark:bg-white/5 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4 animate-pulse">
+                  <Briefcase className="w-10 h-10 text-gray-400" />
+                </div>
+                <h3 className={`text-lg font-bold ${TEXT_HEADLINE}`}>No active projects</h3>
+                <p className={`${TEXT_SUB} mt-2`}>Projects you create or work on will appear here.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {activeMyProjects.map(project => (
+                  <ProjectCard
+                    key={project._id}
+                    project={project}
+                    user={user}
+                    isOwner={true}
+                    handleDelete={handleDelete}
+                    handleApply={handleApply}
+                    handleMarkComplete={handleMarkComplete}
+                    expandedProjectId={expandedProjectId}
+                    setExpandedProjectId={setExpandedProjectId}
+                    projectTimeLogs={projectTimeLogs}
+                    calculateBurnRate={calculateBurnRate}
+                  />
+                ))}
               </div>
             )}
           </div>

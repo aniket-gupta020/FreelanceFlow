@@ -13,7 +13,7 @@ const TimeLogSchema = new mongoose.Schema({
   },
   description: {
     type: String,
-    default: ''
+    required: true
   },
   startTime: {
     type: Date,

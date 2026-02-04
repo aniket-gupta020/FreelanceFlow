@@ -15,6 +15,8 @@ const Register = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [mobile, setMobile] = useState('');
+  const [defaultHourlyRate, setDefaultHourlyRate] = useState('');
   const [otp, setOtp] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -56,7 +58,7 @@ const Register = () => {
     }
 
     try {
-      await api.post('/auth/register', { name, email, password });
+      await api.post('/auth/register', { name, email, password, mobile, defaultHourlyRate });
       toast.success("OTP Sent! Please check your email.");
       setStep(2);
     } catch (err) {
@@ -152,7 +154,6 @@ const Register = () => {
             </div>
 
             <div>
-              <label className={LABEL_CLASSES}>Password</label>
               <div className={INPUT_GROUP}>
                 <Lock className={INPUT_ICON} />
                 <input
@@ -166,6 +167,34 @@ const Register = () => {
                 <button type="button" onClick={() => setShowPassword(s => !s)} className="absolute right-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition">
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
+              </div>
+            </div>
+
+            <div>
+              <label className={LABEL_CLASSES}>Mobile Number</label>
+              <div className={INPUT_GROUP}>
+                <User className={INPUT_ICON} />
+                <input
+                  type="text"
+                  className={INPUT_CLASSES}
+                  placeholder="+1 234 567 890"
+                  value={mobile}
+                  onChange={(e) => setMobile(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className={LABEL_CLASSES}>Default Hourly Rate ($)</label>
+              <div className={INPUT_GROUP}>
+                <User className={INPUT_ICON} />
+                <input
+                  type="number"
+                  className={INPUT_CLASSES}
+                  placeholder="50"
+                  value={defaultHourlyRate}
+                  onChange={(e) => setDefaultHourlyRate(e.target.value)}
+                />
               </div>
             </div>
 

@@ -8,7 +8,6 @@ const projectRoute = require('./routes/projects');
 const timelogRoute = require('./routes/timelogs');
 const invoiceRoute = require('./routes/invoices');
 const seedRoute = require('./routes/seed');
-const clientsRoute = require('./routes/clients');
 const usersRoute = require('./routes/users');
 const tasksRoute = require('./routes/tasks');
 
@@ -36,7 +35,6 @@ app.use('/api/projects', projectRoute);
 app.use('/api/timelogs', timelogRoute);
 app.use('/api/invoices', invoiceRoute);
 app.use('/api/seed', seedRoute);
-app.use('/api/clients', clientsRoute);
 app.use('/api/users', usersRoute);
 app.use('/api/tasks', tasksRoute);
 

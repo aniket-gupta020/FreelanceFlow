@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
 import { toast } from 'react-hot-toast';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, ChevronLeft, Save, Menu, X,
   Sun, Moon, LogOut, Briefcase, Clock, IndianRupee,
@@ -64,6 +64,13 @@ const PostProject = () => {
   });
 
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.prefilledClientId) {
+      setFormData(prev => ({ ...prev, client: location.state.prefilledClientId }));
+    }
+  }, [location.state]);
 
   const userFromStorage = (() => {
     try { return JSON.parse(localStorage.getItem('user')); } catch (e) { return null; }
