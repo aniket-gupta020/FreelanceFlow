@@ -58,7 +58,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [formData, setFormData] = useState({
-    name: '', email: '', bio: '', skills: '', defaultHourlyRate: 0
+    name: '', email: '', bio: '', skills: '', defaultHourlyRate: 0, mobile: ''
   });
 
   // OTP & Security State
@@ -102,7 +102,8 @@ const Profile = () => {
           email: u.email,
           bio: u.bio || '',
           skills: u.skills ? u.skills.join(', ') : '',
-          defaultHourlyRate: u.defaultHourlyRate || 0
+          defaultHourlyRate: u.defaultHourlyRate || 0,
+          mobile: u.mobile || ''
         });
       } catch (err) { toast.error("Failed to load profile"); }
       finally { setLoading(false); }
@@ -460,6 +461,20 @@ const Profile = () => {
                         className={INPUT_CLASSES}
                         value={formData.defaultHourlyRate}
                         onChange={e => setFormData({ ...formData, defaultHourlyRate: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className={LABEL_CLASSES}>Mobile Number</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
+                      <input
+                        type="text"
+                        className={INPUT_CLASSES}
+                        placeholder="+91 9876543210"
+                        value={formData.mobile}
+                        onChange={e => setFormData({ ...formData, mobile: e.target.value })}
                       />
                     </div>
                   </div>

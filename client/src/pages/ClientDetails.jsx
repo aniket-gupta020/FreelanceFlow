@@ -40,6 +40,17 @@ const ClientDetails = () => {
     };
 
     useEffect(() => {
+        if (clientId) {
+            api.get(`/users/${clientId}`)
+                .then(res => setFreelancer(res.data))
+                .catch(err => {
+                    console.error("Error fetching user details:", err);
+                    toast.error("Failed to load client details");
+                });
+        }
+    }, [clientId]);
+
+    useEffect(() => {
         if (!storedUser?._id) return;
 
         api.get('/projects').then(res => {
@@ -51,25 +62,15 @@ const ClientDetails = () => {
                 p.client && (p.client._id === storedUser._id || p.client === storedUser._id)
             );
 
-            // Find the freelancer details from the applicants list in my projects
-            let foundFreelancer = null;
+            // Filter projects meant for THIS freelancer (clientId)
             const sharedProjects = myProjects.filter(p => {
                 if (!p.applicants) return false;
-                const isApplicant = p.applicants.find(app => {
+                return p.applicants.some(app => {
                     const appId = app._id || app;
-                    if (String(appId) === String(clientId)) {
-                        // Capture the full freelancer object if available
-                        if (typeof app === 'object' && !foundFreelancer) {
-                            foundFreelancer = app;
-                        }
-                        return true;
-                    }
-                    return false;
+                    return String(appId) === String(clientId);
                 });
-                return isApplicant;
             });
 
-            // Helper to check if project is active
             // Helper to check if project is active
             const isProjectActive = (p) => {
                 const status = p.status ? p.status.toLowerCase() : 'active';
@@ -97,30 +98,26 @@ const ClientDetails = () => {
                 return dateA - dateB;
             });
 
-            if (foundFreelancer) {
-                setFreelancer(foundFreelancer);
+            // Fetch Invoices for this freelancer
+            api.get('/invoices').then(invRes => {
+                const allInvoices = invRes.data.filter(inv =>
+                    inv.client?._id === storedUser._id &&
+                    inv.freelancer?._id === clientId // Use clientId directly
+                );
 
-                // Fetch Invoices for this freelancer
-                api.get('/invoices').then(invRes => {
-                    const allInvoices = invRes.data.filter(inv =>
-                        inv.client?._id === storedUser._id &&
-                        inv.freelancer?._id === foundFreelancer._id
-                    );
+                // Sort: Pending/Overdue/Sent first, then Paid
+                const sortedInvoices = allInvoices.sort((a, b) => {
+                    const score = (status) => {
+                        if (status === 'overdue') return 0;
+                        if (status === 'draft') return 1;
+                        if (status === 'sent') return 2;
+                        return 3; // paid
+                    };
+                    return score(a.status) - score(b.status);
+                });
 
-                    // Sort: Pending/Overdue/Sent first, then Paid
-                    const sortedInvoices = allInvoices.sort((a, b) => {
-                        const score = (status) => {
-                            if (status === 'overdue') return 0;
-                            if (status === 'draft') return 1;
-                            if (status === 'sent') return 2;
-                            return 3; // paid
-                        };
-                        return score(a.status) - score(b.status);
-                    });
-
-                    setInvoices(sortedInvoices);
-                }).catch(err => console.error("Error fetching invoices:", err));
-            }
+                setInvoices(sortedInvoices);
+            }).catch(err => console.error("Error fetching invoices:", err));
 
             setProjects(sortedProjects);
 
@@ -174,7 +171,7 @@ const ClientDetails = () => {
                         <div className="flex items-center gap-4">
                             <button onClick={() => setIsMobileMenuOpen(true)} className={`${GLASS_CLASSES} p-2 rounded-lg text-gray-600 dark:text-gray-300 md:hidden`}><Menu className="w-6 h-6" /></button>
                             <div>
-                                <h2 className="text-3xl font-bold text-slate-800 dark:text-white">Freelancer Details</h2>
+                                <h2 className="text-3xl font-bold text-slate-800 dark:text-white">Client Details</h2>
                                 <div className="flex items-center gap-2 text-slate-600 dark:text-gray-400 mt-1">
                                     <Link to="/clients" className="hover:underline">My Freelancers</Link>
                                     <span>/</span>

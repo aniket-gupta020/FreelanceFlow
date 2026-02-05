@@ -129,7 +129,7 @@ const Clients = () => {
         <main className="flex-1 overflow-y-auto p-4 md:p-8 relative">
           <header className="flex justify-between items-center mb-8">
             <div>
-              <h2 className="text-2xl font-bold text-slate-800 dark:text-white">My Freelancers</h2>
+              <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Clients</h2>
               <p className="text-slate-600 dark:text-gray-400">People working on your projects</p>
             </div>
             <button onClick={() => setIsMobileMenuOpen(true)} className={`${GLASS_CLASSES} p-2 rounded-lg text-gray-600 dark:text-gray-300 md:hidden`}><Menu className="w-6 h-6" /></button>
@@ -138,7 +138,7 @@ const Clients = () => {
           {clients.length === 0 ? (
             <div className={`text-center py-20 ${GLASS_CLASSES} rounded-3xl`}>
               <Users className="w-12 h-12 text-slate-300 dark:text-gray-600 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-900 dark:text-white">No Freelancers Found</h3>
+              <h3 className="text-lg font-medium text-slate-900 dark:text-white">No Clients Found</h3>
               <p className="text-slate-500 dark:text-gray-400">Once people apply to your projects, they will appear here.</p>
             </div>
           ) : (
