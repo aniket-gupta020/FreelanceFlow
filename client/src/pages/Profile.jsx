@@ -67,6 +67,7 @@ const Profile = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSensitiveChange, setIsSensitiveChange] = useState(false);
+  const [otpAction, setOtpAction] = useState('update'); // 'update' or 'delete'
 
   const [darkMode, setDarkMode] = useState(() => {
     if (localStorage.getItem('theme')) return localStorage.getItem('theme') === 'dark';
@@ -125,9 +126,11 @@ const Profile = () => {
 
       if (isEmailChanged || isPasswordChanged) {
         setIsSensitiveChange(true);
+        setOtpAction('update');
         setShowOtpModal(true);
         // Send OTP immediately
-        await api.post('/auth/send-otp', { email: user.email });
+        const type = isEmailChanged ? 'update_email' : 'profile_update';
+        await api.post('/auth/send-otp', { email: user.email, type });
         toast.success(`OTP sent to ${user.email} for verification`);
         return;
       }
@@ -170,6 +173,27 @@ const Profile = () => {
       setIsSensitiveChange(false);
     } catch (err) {
       toast.error(err.response?.data?.message || "Invalid OTP or Update Failed");
+    }
+  };
+
+  const verifyAndDelete = async () => {
+    try {
+      await api.delete(`/users/${user._id}`, { data: { otp } });
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      toast.success('Account deleted successfully');
+      setShowOtpModal(false);
+      setTimeout(() => navigate('/register'), 1000);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Invalid OTP or Delete Failed");
+    }
+  };
+
+  const handleVerifyAction = () => {
+    if (otpAction === 'delete') {
+      verifyAndDelete();
+    } else {
+      handleVerifyAndSave();
     }
   };
 
@@ -228,7 +252,7 @@ const Profile = () => {
               <button
                 onClick={() => {
                   toast.dismiss(t.id);
-                  performDelete();
+                  requestDeleteOtp();
                 }}
                 className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium text-sm transition-colors"
               >
@@ -247,25 +271,15 @@ const Profile = () => {
     ), { duration: Infinity });
   };
 
-  const performDelete = async () => {
-    const deletePromise = new Promise(async (resolve, reject) => {
-      try {
-        await api.delete(`/users/${user._id}`);
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        resolve();
-        // Small delay to let the toast show before navigating
-        setTimeout(() => navigate('/register'), 1000);
-      } catch (err) {
-        reject(err);
-      }
-    });
-
-    toast.promise(deletePromise, {
-      loading: 'Deleting account...',
-      success: 'Account deleted successfully',
-      error: 'Failed to delete account',
-    });
+  const requestDeleteOtp = async () => {
+    try {
+      await api.post('/auth/send-otp', { email: user.email, type: 'delete_account' });
+      setOtpAction('delete');
+      setShowOtpModal(true);
+      toast.success(`OTP sent to ${user.email} for deletion verification`);
+    } catch (err) {
+      toast.error("Failed to send OTP for deletion");
+    }
   };
 
   const handleLogout = () => {
@@ -482,9 +496,12 @@ const Profile = () => {
                 <div className="w-16 h-16 bg-violet-100 dark:bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Lock className="w-8 h-8 text-violet-600 dark:text-yellow-400" />
                 </div>
-                <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Security Verification</h2>
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
+                  {otpAction === 'delete' ? 'Confirm Deletion' : 'Security Verification'}
+                </h2>
                 <p className="text-slate-600 dark:text-gray-400 mt-2">
-                  We sent a code to <b>{user.email}</b>. <br />Enter it below to confirm changes.
+                  We sent a code to <b>{user.email}</b>. <br />
+                  {otpAction === 'delete' ? 'Enter it to permanently delete your account.' : 'Enter it below to confirm changes.'}
                 </p>
               </div>
 
@@ -503,10 +520,10 @@ const Profile = () => {
 
                 <div className="flex gap-3 pt-2">
                   <button
-                    onClick={handleVerifyAndSave}
-                    className="flex-1 py-3 bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black rounded-xl font-bold shadow-lg transition-transform active:scale-95"
+                    onClick={handleVerifyAction}
+                    className={`flex-1 py-3 ${otpAction === 'delete' ? 'bg-red-600 hover:bg-red-700' : 'bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600'} text-white dark:text-black rounded-xl font-bold shadow-lg transition-transform active:scale-95`}
                   >
-                    Verify & Save
+                    {otpAction === 'delete' ? 'Verify & Delete' : 'Verify & Save'}
                   </button>
                   <button
                     onClick={() => setShowOtpModal(false)}

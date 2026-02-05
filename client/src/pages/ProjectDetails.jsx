@@ -60,7 +60,7 @@ const ProjectDetails = () => {
         }).catch(console.error);
 
         // Fetch Tasks
-        api.get('/tasks').then(res => {
+        api.get(`/tasks?projectId=${projectId}`).then(res => {
             const projectTasks = res.data.filter(t => t.project === projectId || (t.project && t.project._id === projectId));
             setTasks(projectTasks);
         }).catch(console.error);

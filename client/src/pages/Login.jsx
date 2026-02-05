@@ -51,7 +51,7 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post(`${BACKEND_URL}/send-otp`, { email });
+      await axios.post(`${BACKEND_URL}/send-otp`, { email, type: 'login_otp' });
       toast.success("OTP Sent! Check your mail.");
       setStep(2);
     } catch (err) {
@@ -129,8 +129,8 @@ const Login = () => {
           <button
             type="button"
             className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${loginMethod === 'password'
-                ? 'bg-white dark:bg-gray-700 shadow text-violet-600 dark:text-white'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
+              ? 'bg-white dark:bg-gray-700 shadow text-violet-600 dark:text-white'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
               }`}
             onClick={() => { setLoginMethod('password'); setStep(1); }}
           >
@@ -139,8 +139,8 @@ const Login = () => {
           <button
             type="button"
             className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${loginMethod === 'otp'
-                ? 'bg-white dark:bg-gray-700 shadow text-violet-600 dark:text-white'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
+              ? 'bg-white dark:bg-gray-700 shadow text-violet-600 dark:text-white'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
               }`}
             onClick={() => setLoginMethod('otp')}
           >

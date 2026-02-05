@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../api';
 import { toast } from 'react-hot-toast';
 import { useNavigate, Link } from 'react-router-dom';
-import { LayoutDashboard, User, Mail, Lock, ArrowRight, Eye, EyeOff, Sun, Moon, KeyRound } from 'lucide-react';
+import { LayoutDashboard, User, Mail, Lock, ArrowRight, Eye, EyeOff, Sun, Moon, KeyRound, IndianRupee } from 'lucide-react';
 
 const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
 const INPUT_GROUP = "relative flex items-center";
@@ -185,9 +185,9 @@ const Register = () => {
             </div>
 
             <div>
-              <label className={LABEL_CLASSES}>Default Hourly Rate ($)</label>
+              <label className={LABEL_CLASSES}>Default Hourly Rate (₹)</label>
               <div className={INPUT_GROUP}>
-                <User className={INPUT_ICON} />
+                <IndianRupee className={INPUT_ICON} />
                 <input
                   type="number"
                   className={INPUT_CLASSES}

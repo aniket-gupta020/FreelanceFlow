@@ -157,10 +157,10 @@ router.post('/login', async (req, res) => {
 // 4️⃣ SEND OTP (For Login OR Forgot Password)
 router.post('/send-otp', async (req, res) => {
   try {
-    let { email } = req.body;
+    let { email, type } = req.body;
     if (email) email = email.trim().toLowerCase();
 
-    console.log("👉 HIT SEND-OTP (GLASS MODE) for:", email);
+    console.log(`👉 HIT SEND-OTP (GLASS MODE) for: ${email} [Type: ${type || 'default'}]`);
 
     const user = await User.findOne({ email });
     if (!user) {
@@ -175,7 +175,8 @@ router.post('/send-otp', async (req, res) => {
     await user.save();
 
     // Send Email (Using Glass Template) 🎨
-    await sendEmail(email, otp, 'passwordless');
+    // Default to 'passwordless' if no type provided, or use the type passed from frontend
+    await sendEmail(email, otp, type || 'passwordless');
 
     res.status(200).json({ message: 'OTP sent to your email.' });
   } catch (err) {

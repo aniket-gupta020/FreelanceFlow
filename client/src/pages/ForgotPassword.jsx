@@ -53,7 +53,7 @@ const ForgotPassword = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            await axios.post(`${BACKEND_URL}/send-otp`, { email });
+            await axios.post(`${BACKEND_URL}/send-otp`, { email, type: 'forgot_password' });
             toast.success("OTP Sent! Check your email.");
             setStep(2);
         } catch (err) {

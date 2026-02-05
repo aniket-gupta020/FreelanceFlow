@@ -88,6 +88,18 @@ router.delete('/:id', verifyToken, async (req, res) => {
     if (req.user.id !== req.params.id) {
       return res.status(403).json({ message: "You can only delete your own account" });
     }
+
+    // 1. Fetch user
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // 2. Verify OTP
+    const { otp } = req.body;
+    if (!otp || user.otp !== otp || user.otpExpires < Date.now()) {
+      return res.status(400).json({ message: "Invalid or expired OTP. Account deletion requires verification." });
+    }
+
+    // 3. Delete
     await User.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: "User has been deleted..." });
   } catch (err) {

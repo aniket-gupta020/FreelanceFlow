@@ -46,6 +46,7 @@ const StatCard = ({ title, value, subtext, type, icon: Icon }) => {
 const ProjectCard = ({ project, user, isOwner, handleDelete, handleApply, handleMarkComplete, expandedProjectId, setExpandedProjectId, projectTimeLogs, calculateBurnRate, onClick }) => {
   const isExpired = new Date(project.deadline) < new Date();
   const isCompleted = project.status === 'completed';
+  const hasApplied = project.applicants?.some(app => String(app._id || app) === String(user?._id));
 
   return (
     <div
@@ -100,6 +101,10 @@ const ProjectCard = ({ project, user, isOwner, handleDelete, handleApply, handle
             ) : isExpired ? (
               <span className="px-3 py-1 rounded-full bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-bold uppercase tracking-wider">
                 Deadline Exceeded
+              </span>
+            ) : hasApplied ? (
+              <span className="px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-bold uppercase tracking-wider">
+                Applied
               </span>
             ) : (
               <button
@@ -186,11 +191,7 @@ const ProjectCard = ({ project, user, isOwner, handleDelete, handleApply, handle
         </div>
       )}
 
-      {isOwner && (
-        <div className="mt-4 flex items-center gap-2 text-xs font-bold text-indigo-500 dark:text-yellow-500 uppercase tracking-wider">
-          <div className="w-2 h-2 rounded-full bg-current animate-pulse" /> Your Project
-        </div>
-      )}
+
     </div>
   );
 };
@@ -498,6 +499,46 @@ const Dashboard = () => {
                     setExpandedProjectId={setExpandedProjectId}
                     projectTimeLogs={projectTimeLogs}
                     calculateBurnRate={calculateBurnRate}
+                    onClick={() => {
+                      const hasApplied = project.applicants?.some(app => String(app._id || app) === String(user?._id));
+                      if (hasApplied) {
+                        navigate(`/projects/${project._id}`);
+                      } else {
+                        toast.error("Please apply to view details");
+                      }
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className={`${GLASS_CLASSES} rounded-3xl p-6 md:p-8 mb-8`}>
+            <h3 className={`text-xl font-bold ${TEXT_HEADLINE} mb-6`}>My Active Projects</h3>
+            {activeMyProjects.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="bg-gray-100 dark:bg-white/5 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4 animate-pulse">
+                  <Briefcase className="w-10 h-10 text-gray-400" />
+                </div>
+                <h3 className={`text-lg font-bold ${TEXT_HEADLINE}`}>No active projects</h3>
+                <p className={`${TEXT_SUB} mt-2`}>Projects you create or work on will appear here.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {activeMyProjects.map(project => (
+                  <ProjectCard
+                    key={project._id}
+                    project={project}
+                    user={user}
+                    isOwner={true}
+                    handleDelete={handleDelete}
+                    handleApply={handleApply}
+                    handleMarkComplete={handleMarkComplete}
+                    expandedProjectId={expandedProjectId}
+                    setExpandedProjectId={setExpandedProjectId}
+                    projectTimeLogs={projectTimeLogs}
+                    calculateBurnRate={calculateBurnRate}
+                    onClick={() => navigate(`/projects/${project._id}`)}
                   />
                 ))}
               </div>
@@ -538,38 +579,6 @@ const Dashboard = () => {
               )}
             </div>
           )}
-
-          <div className={`${GLASS_CLASSES} rounded-3xl p-6 md:p-8`}>
-            <h3 className={`text-xl font-bold ${TEXT_HEADLINE} mb-6`}>My Active Projects</h3>
-            {activeMyProjects.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="bg-gray-100 dark:bg-white/5 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4 animate-pulse">
-                  <Briefcase className="w-10 h-10 text-gray-400" />
-                </div>
-                <h3 className={`text-lg font-bold ${TEXT_HEADLINE}`}>No active projects</h3>
-                <p className={`${TEXT_SUB} mt-2`}>Projects you create or work on will appear here.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {activeMyProjects.map(project => (
-                  <ProjectCard
-                    key={project._id}
-                    project={project}
-                    user={user}
-                    isOwner={true}
-                    handleDelete={handleDelete}
-                    handleApply={handleApply}
-                    handleMarkComplete={handleMarkComplete}
-                    expandedProjectId={expandedProjectId}
-                    setExpandedProjectId={setExpandedProjectId}
-                    projectTimeLogs={projectTimeLogs}
-                    calculateBurnRate={calculateBurnRate}
-                    onClick={() => navigate(`/projects/${project._id}`)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
 
           <div className="mt-8 flex flex-col gap-8 pb-8">
             <FinancialDashboard />
