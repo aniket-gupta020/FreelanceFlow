@@ -15,7 +15,8 @@ export default function FinancialDashboard() {
   const fetchFinancialData = async () => {
     try {
       const res = await axios.get('http://localhost:5000/api/invoices');
-      const invoices = res.data;
+      // For financials, we care about what we received (income)
+      const invoices = res.data.received || [];
 
       const monthlyRevenue = {};
       invoices.forEach(inv => {

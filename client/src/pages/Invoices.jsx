@@ -4,9 +4,8 @@ import api from '../api';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   LayoutDashboard, Clock, IndianRupee, Users, Plus,
-  Trash2, Pencil, Briefcase, Menu, X, Sun, Moon,
-  LogOut, Download, AlertTriangle, Eye, FileText, DollarSign,
-  CheckCircle, AlertCircle, Send, CheckSquare, User
+  Trash2, Menu, X, Sun, Moon, LogOut, Download, AlertTriangle,
+  CheckCircle, AlertCircle, Send, CheckSquare, User, ArrowDownCircle, ArrowUpCircle
 } from 'lucide-react';
 
 const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
@@ -31,8 +30,109 @@ const InvoiceStatusBadge = ({ status }) => {
   );
 };
 
+const InvoiceItemRender = ({ invoice, isIncome, handleDelete, handleStatusChange, setSelectedInvoice, setShowDetails, handlePrint }) => (
+  <div
+    className={`${GLASS_CLASSES} p-6 rounded-2xl ${CARD_HOVER} cursor-pointer border-l-4 ${isIncome ? 'border-l-emerald-500' : 'border-l-orange-500'}`}
+    onClick={() => {
+      setSelectedInvoice(invoice);
+      setShowDetails(true);
+    }}
+  >
+    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex-1">
+        <div className="flex items-center gap-3 mb-2">
+          {isIncome ? (
+            <ArrowDownCircle className="w-6 h-6 text-emerald-500" />
+          ) : (
+            <ArrowUpCircle className="w-6 h-6 text-orange-500" />
+          )}
+          <h3 className={`text-lg font-bold ${TEXT_HEADLINE}`}>
+            {invoice.invoiceNumber || `INV-${invoice._id.substring(0, 6).toUpperCase()}`}
+          </h3>
+          <InvoiceStatusBadge status={invoice.status} />
+        </div>
+
+        <div className="flex flex-col gap-1 text-sm ml-9">
+          <p className={`${TEXT_SUB}`}>
+            <span className="font-semibold">{isIncome ? 'Project:' : 'Project:'}</span> {invoice.project?.title || 'Untitled Project'}
+          </p>
+          <p className={`${TEXT_SUB} flex items-center gap-2`}>
+            {isIncome ? (
+              <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                Received from {invoice.client?.name || 'Unknown'}
+              </span>
+            ) : (
+              <span className="text-orange-600 dark:text-orange-400 font-semibold flex items-center gap-1">
+                Paid to {invoice.freelancer?.name || 'Unknown'}
+              </span>
+            )}
+          </p>
+          <p className={`${TEXT_SUB} text-xs mt-1 opacity-70`}>
+            {new Date(invoice.createdAt).toLocaleDateString()}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex flex-col md:items-end gap-3 ml-9 md:ml-0">
+        <p className={`text-2xl font-bold ${isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-orange-600 dark:text-orange-400'}`}>
+          {isIncome ? '+' : '-'} ₹{invoice.totalAmount.toFixed(2)}
+        </p>
+
+        <div className="flex gap-2 flex-wrap justify-start md:justify-end">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handlePrint(invoice);
+            }}
+            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-slate-600 dark:text-white rounded-lg transition text-xs font-medium flex items-center gap-1"
+          >
+            <Download className="w-3 h-3" /> PDF
+          </button>
+
+          {invoice.status === 'draft' && isIncome && (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(invoice._id);
+                }}
+                className="p-2 bg-rose-100 hover:bg-rose-200 dark:bg-rose-900/30 text-rose-600 rounded-lg transition"
+                title="Delete"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleStatusChange(invoice._id, 'sent');
+                }}
+                className="px-3 py-1.5 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 text-blue-600 rounded-lg transition flex items-center gap-1 text-xs font-bold"
+              >
+                <Send className="w-3 h-3" /> Send
+              </button>
+            </>
+          )}
+
+          {!isIncome && (invoice.status === 'sent' || invoice.status === 'overdue') && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleStatusChange(invoice._id, 'paid');
+              }}
+              className="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/30 text-emerald-600 rounded-lg transition flex items-center gap-1 text-xs font-bold"
+            >
+              <CheckCircle className="w-3 h-3" /> Mark Paid
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 export default function Invoices() {
   const [invoices, setInvoices] = useState([]);
+  const [activeTab, setActiveTab] = useState('received'); // 'received' or 'paid'
   const [user, setUser] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -62,20 +162,19 @@ export default function Invoices() {
       navigate('/login');
       return;
     }
-
     const parsed = JSON.parse(storedUserStr);
     const actualUser = parsed.user || parsed;
     setUser(actualUser);
-
     fetchInvoices();
   }, [navigate]);
 
   const fetchInvoices = async () => {
     try {
       const res = await api.get('/invoices');
-      setInvoices(res.data);
+      setInvoices(res.data || []);
     } catch (err) {
       console.error('Error fetching invoices:', err);
+      toast.error("Failed to load invoices.");
     } finally {
       setLoading(false);
     }
@@ -85,7 +184,7 @@ export default function Invoices() {
     if (window.confirm('Are you sure you want to delete this invoice?')) {
       try {
         await api.delete(`/invoices/${id}`);
-        setInvoices(invoices.filter(inv => inv._id !== id));
+        setInvoices(prev => prev.filter(inv => inv._id !== id));
         toast.success('Invoice deleted successfully!');
       } catch (err) {
         console.error('Error deleting invoice:', err);
@@ -97,7 +196,7 @@ export default function Invoices() {
   const handleStatusChange = async (id, newStatus) => {
     try {
       const response = await api.put(`/invoices/${id}`, { status: newStatus });
-      setInvoices(invoices.map(inv => inv._id === id ? response.data : inv));
+      setInvoices(prev => prev.map(inv => inv._id === id ? response.data : inv));
       toast.success(`Invoice marked as ${newStatus}!`);
     } catch (err) {
       console.error('Error updating invoice:', err);
@@ -106,20 +205,11 @@ export default function Invoices() {
   };
 
   const handlePrint = (invoice) => {
+    // Determine who is printing
+    // If I'm the freelancer -> Invoice
+    // If I'm the client -> Receipt
     window.print();
   };
-
-  const calculateTotals = () => {
-    let paid = 0, pending = 0, overdue = 0;
-    invoices.forEach(inv => {
-      if (inv.status === 'paid') paid += inv.totalAmount;
-      else if (inv.status === 'overdue') overdue += inv.totalAmount;
-      else if (inv.status !== 'draft') pending += inv.totalAmount;
-    });
-    return { paid, pending, overdue };
-  };
-
-  const totals = calculateTotals();
 
   const handleLogout = () => {
     toast.custom((t) => (
@@ -157,6 +247,35 @@ export default function Invoices() {
       </div>
     ));
   };
+
+  const calculateTotals = () => {
+    // Total Income vs Total Expense
+    let totalIncome = 0;
+    let totalExpense = 0;
+
+    if (!user) return { totalIncome, totalExpense };
+
+    invoices.forEach(inv => {
+      // Income = I am the freelancer
+      if (inv.freelancer?._id === user._id) {
+        if (inv.status === 'paid') totalIncome += inv.totalAmount;
+      }
+      // Expense = I am the client
+      else if (inv.client?._id === user._id) {
+        if (inv.status === 'paid') totalExpense += inv.totalAmount;
+      }
+    });
+
+    return { totalIncome, totalExpense };
+  };
+
+  const totals = calculateTotals();
+
+  // Filter Invoices based on Tabs
+  const receivedInvoices = invoices.filter(inv => user && inv.freelancer?._id === user._id);
+  const paidInvoices = invoices.filter(inv => user && inv.client?._id === user._id);
+
+  const displayedInvoices = activeTab === 'received' ? receivedInvoices : paidInvoices;
 
   const NavContent = ({ mobile = false }) => (
     <div className="flex flex-col h-full">
@@ -215,144 +334,83 @@ export default function Invoices() {
         <main className="flex-1 overflow-y-auto p-4 md:p-8 relative">
           <header className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Invoices</h2>
-              <p className="text-slate-600 dark:text-gray-400">Manage billing and payments</p>
+              <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Transaction History</h2>
+              <p className="text-slate-600 dark:text-gray-400">Track your income and expenses</p>
             </div>
             <button onClick={() => setIsMobileMenuOpen(true)} className={`${GLASS_CLASSES} p-2 rounded-lg text-gray-600 dark:text-gray-300 md:hidden`}><Menu className="w-6 h-6" /></button>
           </header>
 
-          <div className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-              <div className={`${GLASS_CLASSES} p-6 rounded-2xl`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className={`${TEXT_SUB} text-sm font-bold uppercase tracking-wider`}>Total Paid</p>
-                    <p className={`text-2xl font-bold ${TEXT_HEADLINE} my-2`}>₹{totals.paid.toFixed(2)}</p>
-                  </div>
-                  <div className="bg-emerald-100 dark:bg-emerald-500/20 p-3 rounded-xl">
-                    <CheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-                  </div>
+          <div className="max-w-5xl mx-auto">
+
+            {/* Stats Overview */}
+            <div className="grid grid-cols-2 gap-4 mb-8">
+              <div className={`${GLASS_CLASSES} p-5 rounded-2xl flex items-center justify-between`}>
+                <div>
+                  <h3 className="text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Total Income</h3>
+                  <p className={`text-2xl font-bold ${TEXT_HEADLINE}`}>₹{totals.totalIncome.toFixed(2)}</p>
+                </div>
+                <div className="p-3 bg-emerald-100 dark:bg-emerald-500/20 rounded-xl text-emerald-600 dark:text-emerald-400">
+                  <ArrowDownCircle className="w-6 h-6" />
                 </div>
               </div>
-
-              <div className={`${GLASS_CLASSES} p-6 rounded-2xl`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className={`${TEXT_SUB} text-sm font-bold uppercase tracking-wider`}>Pending</p>
-                    <p className={`text-2xl font-bold ${TEXT_HEADLINE} my-2`}>₹{totals.pending.toFixed(2)}</p>
-                  </div>
-                  <div className="bg-blue-100 dark:bg-blue-500/20 p-3 rounded-xl">
-                    <AlertCircle className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                  </div>
+              <div className={`${GLASS_CLASSES} p-5 rounded-2xl flex items-center justify-between`}>
+                <div>
+                  <h3 className="text-sm font-bold text-orange-600 dark:text-orange-400 uppercase tracking-widest mb-1">Total Expenses</h3>
+                  <p className={`text-2xl font-bold ${TEXT_HEADLINE}`}>₹{totals.totalExpense.toFixed(2)}</p>
                 </div>
-              </div>
-
-              <div className={`${GLASS_CLASSES} p-6 rounded-2xl`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className={`${TEXT_SUB} text-sm font-bold uppercase tracking-wider`}>Overdue</p>
-                    <p className={`text-2xl font-bold ${TEXT_HEADLINE} my-2`}>₹{totals.overdue.toFixed(2)}</p>
-                  </div>
-                  <div className="bg-rose-100 dark:bg-rose-500/20 p-3 rounded-xl">
-                    <AlertTriangle className="w-6 h-6 text-rose-600 dark:text-rose-400" />
-                  </div>
+                <div className="p-3 bg-orange-100 dark:bg-orange-500/20 rounded-xl text-orange-600 dark:text-orange-400">
+                  <ArrowUpCircle className="w-6 h-6" />
                 </div>
               </div>
             </div>
 
-            <div className="mb-8 flex justify-end">
-              <Link to="/invoices/create" className={`${BUTTON_BASE} ${ACCENT_BG}`}>
-                <Plus className="w-5 h-5" />
-                Create Invoice
-              </Link>
+            <div className="flex justify-between items-center mb-6">
+              {/* TABS */}
+              <div className="flex bg-white/30 dark:bg-black/20 p-1.5 rounded-xl backdrop-blur-md">
+                <button
+                  onClick={() => setActiveTab('received')}
+                  className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'received' ? 'bg-white dark:bg-gray-800 shadow-md text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200'}`}
+                >
+                  Incoming Payments
+                </button>
+                <button
+                  onClick={() => setActiveTab('paid')}
+                  className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'paid' ? 'bg-white dark:bg-gray-800 shadow-md text-orange-600 dark:text-orange-400' : 'text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200'}`}
+                >
+                  Outgoing Payments
+                </button>
+              </div>
             </div>
 
             {loading ? (
-              <div className={`${GLASS_CLASSES} p-8 rounded-2xl text-center`}>
-                <p className={TEXT_SUB}>Loading invoices...</p>
-              </div>
-            ) : invoices.length === 0 ? (
               <div className={`${GLASS_CLASSES} p-12 rounded-2xl text-center`}>
-                <FileText className="w-16 h-16 mx-auto text-gray-400 mb-4 opacity-50" />
-                <p className={`${TEXT_SUB} mb-4`}>No invoices yet. Create your first invoice to get started!</p>
-                <Link to="/invoices/create" className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium ${ACCENT_BG}`}>
-                  <Plus className="w-5 h-5" />
-                  Create Invoice
-                </Link>
+                <div className="animate-spin w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+                <p className={TEXT_SUB}>Loading transactions...</p>
               </div>
             ) : (
               <div className="space-y-4">
-                {invoices.map((invoice) => (
-                  <div
-                    key={invoice._id}
-                    className={`${GLASS_CLASSES} p-6 rounded-2xl ${CARD_HOVER} cursor-pointer`}
-                    onClick={() => {
-                      setSelectedInvoice(invoice);
-                      setShowDetails(true);
-                    }}
-                  >
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className={`text-lg font-bold ${TEXT_HEADLINE}`}>
-                            {invoice.invoiceNumber || `INV-${invoice._id.substring(0, 6).toUpperCase()}`}
-                          </h3>
-                          <InvoiceStatusBadge status={invoice.status} />
-                        </div>
-                        <div className="flex flex-wrap gap-4 text-sm">
-                          <p className={`${TEXT_SUB}`}>
-                            <span className="font-semibold">Client:</span> {invoice.client?.name || 'Unknown'}
-                          </p>
-                          <p className={`${TEXT_SUB}`}>
-                            <span className="font-semibold">Due:</span> {new Date(invoice.dueDate || invoice.createdAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col md:items-end gap-2">
-                        <p className={`text-2xl font-bold ${TEXT_HEADLINE}`}>₹{invoice.totalAmount.toFixed(2)}</p>
-                        <div className="flex gap-2 flex-wrap justify-start md:justify-end">
-
-                          {invoice.status === 'draft' && (
-                            <>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDelete(invoice._id);
-                                }}
-                                className="p-2 bg-rose-100 hover:bg-rose-200 dark:bg-rose-900/30 text-rose-600 rounded-lg transition"
-                                title="Delete"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleStatusChange(invoice._id, 'sent');
-                                }}
-                                className="p-2 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 text-blue-600 rounded-lg transition flex items-center gap-1 text-xs font-bold"
-                              >
-                                <Send className="w-3 h-3" /> Send
-                              </button>
-                            </>
-                          )}
-
-                          {(invoice.status === 'sent' || invoice.status === 'overdue') && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleStatusChange(invoice._id, 'paid');
-                              }}
-                              className="p-2 bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/30 text-emerald-600 rounded-lg transition flex items-center gap-1 text-xs font-bold"
-                            >
-                              <CheckCircle className="w-3 h-3" /> Mark Paid
-                            </button>
-                          )}
-                        </div>
-                      </div>
+                {displayedInvoices.length === 0 ? (
+                  <div className={`${GLASS_CLASSES} p-12 rounded-2xl text-center`}>
+                    <div className="w-16 h-16 bg-slate-100 dark:bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <IndianRupee className="w-8 h-8 text-slate-400" />
                     </div>
+                    <h3 className={`text-lg font-bold ${TEXT_HEADLINE} mb-2`}>No transactions found</h3>
+                    <p className={TEXT_SUB}>You haven't {activeTab === 'received' ? 'received any payments' : 'paid any invoices'} yet.</p>
                   </div>
-                ))}
+                ) : (
+                  displayedInvoices.map((invoice) => (
+                    <InvoiceItemRender
+                      key={invoice._id}
+                      invoice={invoice}
+                      isIncome={activeTab === 'received'}
+                      handleDelete={handleDelete}
+                      handleStatusChange={handleStatusChange}
+                      setSelectedInvoice={setSelectedInvoice}
+                      setShowDetails={setShowDetails}
+                      handlePrint={handlePrint}
+                    />
+                  ))
+                )}
               </div>
             )}
           </div>
@@ -387,10 +445,8 @@ export default function Invoices() {
                     <p className={`${TEXT_HEADLINE} font-semibold`}>{selectedInvoice.client?.name}</p>
                   </div>
                   <div className="p-4 bg-white/30 dark:bg-white/5 rounded-xl">
-                    <p className={`${TEXT_SUB} text-xs font-bold uppercase mb-1`}>Issue Date</p>
-                    <p className={`${TEXT_HEADLINE} font-semibold`}>
-                      {new Date(selectedInvoice.createdAt).toLocaleDateString()}
-                    </p>
+                    <p className={`${TEXT_SUB} text-xs font-bold uppercase mb-1`}>Project</p>
+                    <p className={`${TEXT_HEADLINE} font-semibold truncate`}>{selectedInvoice.project?.title || 'N/A'}</p>
                   </div>
                   <div className="p-4 bg-white/30 dark:bg-white/5 rounded-xl">
                     <p className={`${TEXT_SUB} text-xs font-bold uppercase mb-1`}>Due Date</p>

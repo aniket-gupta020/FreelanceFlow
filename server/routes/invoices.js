@@ -13,10 +13,7 @@ const generateInvoiceNumber = async () => {
 router.get('/', verifyToken, async (req, res) => {
   try {
     const invoices = await Invoice.find({
-      $or: [
-        { freelancer: req.user.id },
-        { client: req.user.id }
-      ]
+      $or: [{ client: req.user.id }, { freelancer: req.user.id }]
     })
       .populate('project', 'title budget')
       .populate('client', 'name email')
