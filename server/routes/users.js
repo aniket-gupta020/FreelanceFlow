@@ -91,11 +91,17 @@ router.delete('/:id', verifyToken, async (req, res) => {
 
     // 1. Fetch user
     const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) {
+      console.log(`❌ DELETE FAILED: User ${req.params.id} not found`);
+      return res.status(404).json({ message: "User not found" });
+    }
 
     // 2. Verify OTP
     const { otp } = req.body;
+    console.log(`👉 DELETE ATTEMPT: User=${user.email}, DB_OTP=${user.otp}, REQ_OTP=${otp}, Expires=${user.otpExpires}`);
+
     if (!otp || user.otp !== otp || user.otpExpires < Date.now()) {
+      console.log("❌ DELETE FAILED: Invalid or Expired OTP");
       return res.status(400).json({ message: "Invalid or expired OTP. Account deletion requires verification." });
     }
 
