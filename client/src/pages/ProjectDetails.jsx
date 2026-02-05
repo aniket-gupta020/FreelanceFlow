@@ -303,6 +303,7 @@ const ProjectDetails = () => {
                                     project={project}
                                     timeLogs={timeLogs}
                                     clientName={project.client?.name || 'Unknown Client'}
+                                    applicants={project.applicants || []}
                                 />
                             );
                         }
@@ -371,111 +372,113 @@ const ProjectDetails = () => {
                         </div>
                     )}
 
-                    {/* Time Tracking Section */}
-                    <h3 className="text-xl font-bold text-slate-800 dark:text-white mt-8 mb-6 flex items-center gap-2">
-                        <Clock className="w-6 h-6 text-violet-600 dark:text-yellow-400" />
-                        Time Tracking
-                    </h3>
+                    {/* Time Tracking Section - Hidden for Creator */
+                        (() => {
+                            const user = JSON.parse(localStorage.getItem('user'));
+                            const isCreator = user && (user._id === project.createdBy || user._id === project.createdBy?._id);
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* Timer & Manual Entry */}
-                        <div className="space-y-6">
-                            <div className={`${GLASS_CLASSES} rounded-3xl p-6 border-t-4 border-t-violet-500 dark:border-t-yellow-500`}>
-                                <h3 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-                                    <PlayCircle className="w-5 h-5 text-violet-500 dark:text-yellow-500" /> Live Timer
-                                </h3>
-                                {(() => {
-                                    const user = JSON.parse(localStorage.getItem('user'));
-                                    const isCreator = user && (user._id === project.createdBy || user._id === project.createdBy?._id);
+                            if (isCreator) return null;
 
-                                    if (isCreator) {
-                                        return <Stopwatch defaultProjectId={projectId} onStop={fetchProjectData} />;
-                                    } else {
-                                        return <AutoTimeTracker projectId={projectId} onSave={fetchProjectData} />;
-                                    }
-                                })()}
-                            </div>
+                            return (
+                                <>
+                                    <h3 className="text-xl font-bold text-slate-800 dark:text-white mt-8 mb-6 flex items-center gap-2">
+                                        <Clock className="w-6 h-6 text-violet-600 dark:text-yellow-400" />
+                                        Time Tracking
+                                    </h3>
 
-                            <div className={`${GLASS_CLASSES} rounded-3xl p-6`}>
-                                <h3 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-                                    <FileText className="w-5 h-5 text-emerald-500" /> Manual Entry
-                                </h3>
-                                <form onSubmit={submitManual} className="space-y-4">
-                                    <div>
-                                        <label className={LABEL_CLASSES}>Description</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Details..."
-                                            value={manualForm.description}
-                                            onChange={e => setManualForm({ ...manualForm, description: e.target.value })}
-                                            className={INPUT_CLASSES}
-                                        />
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <label className={LABEL_CLASSES}>Hours</label>
-                                            <input
-                                                type="number" step="0.1"
-                                                value={manualForm.hours}
-                                                onChange={e => setManualForm({ ...manualForm, hours: e.target.value })}
-                                                className={INPUT_CLASSES}
-                                                placeholder="1.5"
-                                            />
+                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                        {/* Timer & Manual Entry */}
+                                        <div className="space-y-6">
+                                            <div className={`${GLASS_CLASSES} rounded-3xl p-6 border-t-4 border-t-violet-500 dark:border-t-yellow-500`}>
+                                                <h3 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                                                    <PlayCircle className="w-5 h-5 text-violet-500 dark:text-yellow-500" /> Live Timer
+                                                </h3>
+                                                <AutoTimeTracker projectId={projectId} onSave={fetchProjectData} />
+                                            </div>
+
+                                            <div className={`${GLASS_CLASSES} rounded-3xl p-6`}>
+                                                <h3 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                                                    <FileText className="w-5 h-5 text-emerald-500" /> Manual Entry
+                                                </h3>
+                                                <form onSubmit={submitManual} className="space-y-4">
+                                                    <div>
+                                                        <label className={LABEL_CLASSES}>Description</label>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Details..."
+                                                            value={manualForm.description}
+                                                            onChange={e => setManualForm({ ...manualForm, description: e.target.value })}
+                                                            className={INPUT_CLASSES}
+                                                        />
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div>
+                                                            <label className={LABEL_CLASSES}>Hours</label>
+                                                            <input
+                                                                type="number" step="0.1"
+                                                                value={manualForm.hours}
+                                                                onChange={e => setManualForm({ ...manualForm, hours: e.target.value })}
+                                                                className={INPUT_CLASSES}
+                                                                placeholder="1.5"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className={LABEL_CLASSES}>Date</label>
+                                                            <input
+                                                                type="date"
+                                                                value={manualForm.date}
+                                                                onChange={e => setManualForm({ ...manualForm, date: e.target.value })}
+                                                                className={`${INPUT_CLASSES} dark:[color-scheme:dark]`}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <button type="submit" className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium shadow-lg transition-all">
+                                                        Log Time
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <label className={LABEL_CLASSES}>Date</label>
-                                            <input
-                                                type="date"
-                                                value={manualForm.date}
-                                                onChange={e => setManualForm({ ...manualForm, date: e.target.value })}
-                                                className={`${INPUT_CLASSES} dark:[color-scheme:dark]`}
-                                            />
+
+                                        {/* Recent Logs List */}
+                                        <div className="lg:col-span-2">
+                                            <div className={`${GLASS_CLASSES} rounded-3xl overflow-hidden min-h-[400px] flex flex-col`}>
+                                                <div className="px-6 py-4 border-b border-white/20 dark:border-white/5 bg-white/20 dark:bg-white/5">
+                                                    <h3 className="font-bold text-slate-800 dark:text-white">Recent Activity</h3>
+                                                </div>
+                                                <div className="overflow-x-auto flex-1">
+                                                    <table className="w-full text-left">
+                                                        <thead className="text-slate-500 dark:text-gray-400 text-xs uppercase bg-white/30 dark:bg-black/20">
+                                                            <tr>
+                                                                <th className="p-4">Date</th>
+                                                                <th className="p-4">Description</th>
+                                                                <th className="p-4 text-right">Duration</th>
+                                                                <th className="p-4"></th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-white/20 dark:divide-white/5">
+                                                            {timeLogs.length === 0 ? (
+                                                                <tr><td colSpan="4" className="p-8 text-center opacity-50">No logs recorded.</td></tr>
+                                                            ) : (
+                                                                timeLogs.map(log => (
+                                                                    <tr key={log._id} className="hover:bg-white/30 dark:hover:bg-white/5">
+                                                                        <td className="p-4 text-sm text-slate-800 dark:text-gray-300">{new Date(log.startTime).toLocaleDateString()}</td>
+                                                                        <td className="p-4 text-sm text-slate-600 dark:text-gray-400">{log.description}</td>
+                                                                        <td className="p-4 text-right font-bold text-slate-800 dark:text-gray-300">{log.durationHours?.toFixed(2)} hrs</td>
+                                                                        <td className="p-4 text-right">
+                                                                            <button onClick={() => handleDeleteLog(log._id)} className="text-red-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                                                                        </td>
+                                                                    </tr>
+                                                                ))
+                                                            )}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                    <button type="submit" className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium shadow-lg transition-all">
-                                        Log Time
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-
-                        {/* Recent Logs List */}
-                        <div className="lg:col-span-2">
-                            <div className={`${GLASS_CLASSES} rounded-3xl overflow-hidden min-h-[400px] flex flex-col`}>
-                                <div className="px-6 py-4 border-b border-white/20 dark:border-white/5 bg-white/20 dark:bg-white/5">
-                                    <h3 className="font-bold text-slate-800 dark:text-white">Recent Activity</h3>
-                                </div>
-                                <div className="overflow-x-auto flex-1">
-                                    <table className="w-full text-left">
-                                        <thead className="text-slate-500 dark:text-gray-400 text-xs uppercase bg-white/30 dark:bg-black/20">
-                                            <tr>
-                                                <th className="p-4">Date</th>
-                                                <th className="p-4">Description</th>
-                                                <th className="p-4 text-right">Duration</th>
-                                                <th className="p-4"></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-white/20 dark:divide-white/5">
-                                            {timeLogs.length === 0 ? (
-                                                <tr><td colSpan="4" className="p-8 text-center opacity-50">No logs recorded.</td></tr>
-                                            ) : (
-                                                timeLogs.map(log => (
-                                                    <tr key={log._id} className="hover:bg-white/30 dark:hover:bg-white/5">
-                                                        <td className="p-4 text-sm text-slate-800 dark:text-gray-300">{new Date(log.startTime).toLocaleDateString()}</td>
-                                                        <td className="p-4 text-sm text-slate-600 dark:text-gray-400">{log.description}</td>
-                                                        <td className="p-4 text-right font-bold text-slate-800 dark:text-gray-300">{log.durationHours?.toFixed(2)} hrs</td>
-                                                        <td className="p-4 text-right">
-                                                            <button onClick={() => handleDeleteLog(log._id)} className="text-red-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
-                                                        </td>
-                                                    </tr>
-                                                ))
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                                </>
+                            );
+                        })()}
 
                 </main>
 

@@ -474,7 +474,7 @@ const Dashboard = () => {
           </div>
 
           <div className={`${GLASS_CLASSES} rounded-3xl p-6 md:p-8 mb-8`}>
-            <h3 className={`text-xl font-bold ${TEXT_HEADLINE} mb-6`}>Recent Projects (Marketplace)</h3>
+            <h3 className={`text-xl font-bold ${TEXT_HEADLINE} mb-6`}>Marketplace</h3>
             {activeMarketplaceProjects.length === 0 ? (
               <div className="text-center py-16">
                 <div className="bg-gray-100 dark:bg-white/5 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4 animate-pulse">
@@ -531,7 +531,7 @@ const Dashboard = () => {
                       setExpandedProjectId={setExpandedProjectId}
                       projectTimeLogs={projectTimeLogs}
                       calculateBurnRate={calculateBurnRate}
-                      onClick={checkIsOwner(project) ? () => navigate(`/projects/${project._id}`) : undefined}
+                      onClick={undefined}
                     />
                   ))}
                 </div>

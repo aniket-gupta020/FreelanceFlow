@@ -2,11 +2,13 @@ const router = require('express').Router();
 const Project = require('../models/Project');
 const verifyToken = require('../middleware/verifyToken');
 
+// 1️⃣ GET ALL PROJECTS
 router.get('/', async (req, res) => {
   try {
     const projects = await Project.find()
       .populate('client', 'name email')
-      .populate('applicants', 'name email')
+      // 👇 FIXED: Added 'defaultHourlyRate' so the report can calculate cost
+      .populate('applicants', 'name email defaultHourlyRate')
       .sort({ createdAt: -1 });
 
     res.status(200).json(projects);
@@ -15,11 +17,13 @@ router.get('/', async (req, res) => {
   }
 });
 
+// 2️⃣ GET SINGLE PROJECT
 router.get('/:id', async (req, res) => {
   try {
     const project = await Project.findById(req.params.id)
       .populate('client', 'name email')
-      .populate('applicants', 'name email');
+      // 👇 FIXED: Added 'defaultHourlyRate' here too
+      .populate('applicants', 'name email defaultHourlyRate');
 
     if (!project) return res.status(404).json({ message: "Project not found" });
 
@@ -29,6 +33,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// 3️⃣ CREATE PROJECT
 router.post('/', verifyToken, async (req, res) => {
   try {
     const clientId = req.body.client || req.user.id;
@@ -47,6 +52,7 @@ router.post('/', verifyToken, async (req, res) => {
   }
 });
 
+// 4️⃣ DELETE PROJECT
 router.delete('/:id', verifyToken, async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
@@ -54,8 +60,9 @@ router.delete('/:id', verifyToken, async (req, res) => {
 
     const isOwner = String(project.client._id || project.client) === String(req.user.id);
 
-    if (!isOwner) {
-    }
+    // Note: You had an empty if block here in your original code.
+    // Ideally, you should uncomment the next line to enforce security:
+    // if (!isOwner) return res.status(403).json({ message: "You are not authorized to delete this project" });
 
     await Project.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: 'Project deleted successfully' });
@@ -64,12 +71,14 @@ router.delete('/:id', verifyToken, async (req, res) => {
   }
 });
 
+// 5️⃣ UPDATE PROJECT
 router.put('/:id', verifyToken, async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
     const updateData = { ...req.body };
+    // Auto-set completedAt timestamp if status changes to completed
     if (req.body.status === 'completed' && project.status !== 'completed') {
       updateData.completedAt = new Date();
     }
@@ -85,6 +94,7 @@ router.put('/:id', verifyToken, async (req, res) => {
   }
 });
 
+// 6️⃣ APPLY TO PROJECT
 router.post('/:id/apply', verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;

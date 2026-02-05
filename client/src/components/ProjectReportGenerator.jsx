@@ -1,155 +1,154 @@
-import { useState } from 'react';
-import { jsPDF } from 'jspdf';
+import React, { useMemo, useState } from 'react';
+import { Download, PieChart, Calculator, FileText, Users } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { FileText, Download, Calculator, Calendar, IndianRupee } from 'lucide-react';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
 const INPUT_CLASSES = "w-full p-3 bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none transition-all dark:text-white";
 const LABEL_CLASSES = "block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1";
 
-const ProjectReportGenerator = ({ project, timeLogs, clientName }) => {
+const ProjectReportGenerator = ({ project, timeLogs }) => {
+    // 1. Date State
     const [startDate, setStartDate] = useState(() => {
         const d = new Date();
         d.setMonth(d.getMonth() - 1);
         return d.toISOString().split('T')[0];
     });
     const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
-    const [reportData, setReportData] = useState(null);
 
+    // State to store the calculated report
+    const [generatedReport, setGeneratedReport] = useState(null);
+
+    // 2. 🧮 CALCULATION LOGIC (Based on LOGS, not Applicants)
     const handleCalculate = () => {
         if (!startDate || !endDate) return toast.error("Please select a date range");
+        if (!timeLogs || timeLogs.length === 0) return toast("No time logs found for this project", { icon: 'ℹ️' });
 
         const start = new Date(startDate);
         start.setHours(0, 0, 0, 0);
         const end = new Date(endDate);
         end.setHours(23, 59, 59, 999);
 
-        const filteredLogs = timeLogs.filter(log => {
+        // Group logs by User ID
+        const userMap = {};
+
+        timeLogs.forEach(log => {
+            // Check Date Range
             const logDate = new Date(log.startTime);
-            return logDate >= start && logDate <= end;
+            if (logDate < start || logDate > end) return;
+
+            // Safety check: if user was deleted but log exists
+            if (!log.user) return;
+
+            const userId = log.user._id || log.user;
+            const userName = log.user.name || 'Unknown User';
+            const userEmail = log.user.email || 'No Email';
+
+            // 💰 GET RATE DIRECTLY FROM LOG (This fixes your 0 rate issue)
+            const rate = log.user.defaultHourlyRate || 0;
+            const hours = log.durationHours || 0;
+
+            if (!userMap[userId]) {
+                userMap[userId] = {
+                    id: userId,
+                    name: userName,
+                    email: userEmail,
+                    rate: rate,
+                    totalHours: 0,
+                    totalCost: 0,
+                    logsCount: 0,
+                    logs: [] // Store logs for the PDF
+                };
+            }
+
+            userMap[userId].totalHours += hours;
+            userMap[userId].totalCost += (hours * rate);
+            userMap[userId].logsCount += 1;
+            userMap[userId].logs.push(log);
         });
 
-        if (filteredLogs.length === 0) {
-            setReportData(null);
-            return toast("No logs found in this range", { icon: 'ℹ️' });
+        const reportArray = Object.values(userMap);
+
+        if (reportArray.length === 0) {
+            toast("No logs found in this date range", { icon: 'ℹ️' });
+            setGeneratedReport([]);
+        } else {
+            setGeneratedReport(reportArray);
+            toast.success("Reports generated!");
         }
-
-        const totalHours = filteredLogs.reduce((acc, log) => acc + (log.durationHours || 0), 0);
-        // Assuming project.client.defaultHourlyRate exists, or fallback to 0
-        const hourlyRate = project.client?.defaultHourlyRate || 0;
-        const totalCost = totalHours * hourlyRate;
-
-        setReportData({
-            logs: filteredLogs,
-            totalHours,
-            totalCost,
-            hourlyRate,
-            period: { start: startDate, end: endDate }
-        });
-        toast.success("Report calculated!");
     };
 
-    const generatePDF = () => {
-        if (!reportData) return;
-
+    // 3. 📄 PDF GENERATION
+    const generatePDF = (userData) => {
         const doc = new jsPDF();
 
         // Header
         doc.setFontSize(22);
-        doc.setTextColor(139, 92, 246); // Violet color
+        doc.setTextColor(139, 92, 246); // Violet
         doc.text("FreelanceFlow Project Report", 14, 20);
 
-        // Project Details
+        // Details
         doc.setFontSize(12);
         doc.setTextColor(0, 0, 0);
         doc.text(`Project: ${project.title}`, 14, 35);
-        doc.text(`Client: ${clientName || 'Unknown'}`, 14, 42);
-        doc.text(`Date Range: ${reportData.period.start} to ${reportData.period.end}`, 14, 49);
+        doc.text(`Freelancer: ${userData.name}`, 14, 42);
+        doc.text(`Period: ${startDate} to ${endDate}`, 14, 49);
 
         // Summary Box
-        doc.setDrawColor(200, 200, 200);
         doc.setFillColor(245, 245, 245);
-        doc.rect(14, 55, 180, 25, 'FD');
+        doc.rect(14, 55, 180, 25, 'F');
 
         doc.setFontSize(10);
         doc.text("Total Hours", 20, 62);
         doc.setFontSize(14);
-        doc.text(`${reportData.totalHours.toFixed(2)} hrs`, 20, 70);
+        doc.text(`${userData.totalHours.toFixed(2)} hrs`, 20, 70);
 
         doc.setFontSize(10);
         doc.text("Total Cost", 80, 62);
         doc.setFontSize(14);
-        doc.text(`Rs. ${reportData.totalCost.toFixed(2)}`, 80, 70);
+        doc.text(`Rs. ${userData.totalCost.toFixed(2)}`, 80, 70);
 
         doc.setFontSize(10);
         doc.text("Hourly Rate", 140, 62);
         doc.setFontSize(14);
-        doc.text(`Rs. ${reportData.hourlyRate}/hr`, 140, 70);
+        doc.text(`Rs. ${userData.rate}/hr`, 140, 70);
 
-        // Logs Table Header
-        let yPos = 95;
-        doc.setFontSize(12);
-        doc.setTextColor(0, 0, 0);
-        doc.text("Time Logs", 14, yPos);
-        yPos += 10;
+        // Table
+        const tableBody = userData.logs.map(log => [
+            new Date(log.startTime).toLocaleDateString(),
+            log.description || 'No description',
+            `${log.durationHours.toFixed(2)} hrs`
+        ]);
 
-        doc.setFontSize(10);
-        doc.setFillColor(230, 230, 230);
-        doc.rect(14, yPos - 5, 180, 8, 'F');
-        doc.setFont(undefined, 'bold');
-        doc.text("Date", 16, yPos);
-        doc.text("Description", 50, yPos);
-        doc.text("Hours", 170, yPos, { align: 'right' });
-        doc.setFont(undefined, 'normal');
-
-        yPos += 10;
-
-        // Logs
-        reportData.logs.forEach((log) => {
-            if (yPos > 280) {
-                doc.addPage();
-                yPos = 20;
-            }
-            const dateStr = new Date(log.startTime).toLocaleDateString();
-            const desc = log.description || 'No description';
-            const hours = log.durationHours?.toFixed(2) || '0.00';
-
-            doc.text(dateStr, 16, yPos);
-            // Truncate description if too long for simple list
-            const truncDesc = desc.length > 60 ? desc.substring(0, 57) + '...' : desc;
-            doc.text(truncDesc, 50, yPos);
-            doc.text(hours, 170, yPos, { align: 'right' });
-            yPos += 8;
+        doc.autoTable({
+            startY: 90,
+            head: [['Date', 'Description', 'Hours']],
+            body: tableBody,
+            theme: 'grid',
+            headStyles: { fillColor: [100, 100, 100] }
         });
 
-        // Footer
-        doc.setFontSize(8);
-        doc.setTextColor(150, 150, 150);
-        doc.text(`Generated on ${new Date().toLocaleString()}`, 14, 290);
-
-        doc.save(`Project_Report_${project.title.replace(/\s+/g, '_')}.pdf`);
+        doc.save(`Report_${userData.name}.pdf`);
         toast.success("PDF Downloaded!");
     };
 
     return (
-        <div className={`${GLASS_CLASSES} p-8 rounded-3xl mb-8`}>
+        <div className={`${GLASS_CLASSES} p-8 rounded-3xl mb-8 border-t-4 border-t-violet-500`}>
+
+            {/* Header Section */}
             <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 bg-violet-100 dark:bg-violet-900/30 rounded-lg text-violet-600 dark:text-violet-400">
-                    <FileText className="w-6 h-6" />
+                    <PieChart className="w-6 h-6" />
                 </div>
                 <div>
-                    <h3 className="text-xl font-bold text-slate-800 dark:text-white">Project Report</h3>
-                    <p className="text-sm text-slate-600 dark:text-gray-400">Generate PDF reports for client billing</p>
+                    <h3 className="text-xl font-bold text-slate-800 dark:text-white">Project Reports</h3>
+                    <p className="text-sm text-slate-600 dark:text-gray-400">Calculate costs based on logged time.</p>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end mb-6">
-                <div className="md:col-span-1">
-                    <label className={LABEL_CLASSES}>Client</label>
-                    <div className="p-3 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-gray-300 font-medium truncate">
-                        {clientName || 'No Client Assigned'}
-                    </div>
-                </div>
+            {/* Date Selection */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end mb-8">
                 <div>
                     <label className={LABEL_CLASSES}>Start Date</label>
                     <input
@@ -171,57 +170,72 @@ const ProjectReportGenerator = ({ project, timeLogs, clientName }) => {
                 <div>
                     <button
                         onClick={handleCalculate}
-                        disabled={!clientName}
-                        className="w-full flex items-center justify-center gap-2 py-3 bg-slate-800 hover:bg-slate-900 dark:bg-white dark:hover:bg-gray-200 text-white dark:text-black rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full flex items-center justify-center gap-2 py-3 bg-slate-800 hover:bg-slate-900 dark:bg-white dark:hover:bg-gray-200 text-white dark:text-black rounded-xl font-bold transition-all shadow-lg active:scale-95"
                     >
-                        <Calculator className="w-4 h-4" /> Calculate
+                        <Calculator className="w-4 h-4" /> Calculate Report
                     </button>
                 </div>
             </div>
 
-            {reportData && (
-                <div className="bg-white/50 dark:bg-black/20 rounded-2xl p-6 border border-white/50 dark:border-white/5 animate-in fade-in slide-in-from-top-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400">
-                                <Clock className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <p className="text-xs text-slate-500 dark:text-gray-400 font-bold uppercase">Total Hours</p>
-                                <p className="text-xl font-bold text-slate-800 dark:text-white">{reportData.totalHours.toFixed(2)}h</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg text-emerald-600 dark:text-emerald-400">
-                                <IndianRupee className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <p className="text-xs text-slate-500 dark:text-gray-400 font-bold uppercase">Total Cost</p>
-                                <p className="text-xl font-bold text-slate-800 dark:text-white">₹{reportData.totalCost.toFixed(2)}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center justify-end">
-                            <button
-                                onClick={generatePDF}
-                                className="flex items-center gap-2 px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-bold shadow-lg shadow-violet-500/20 transition-all hover:scale-105 active:scale-95"
-                            >
-                                <Download className="w-5 h-5" /> Download PDF
-                            </button>
-                        </div>
+            {/* Results Table */}
+            {generatedReport && (
+                <div className="animate-in fade-in slide-in-from-top-4">
+                    <div className="flex items-center gap-2 mb-3 text-slate-600 dark:text-gray-400">
+                        <Users className="w-5 h-5" />
+                        <span className="font-medium">Freelancer Breakdown</span>
                     </div>
 
-                    <div className="text-xs text-center text-slate-500 dark:text-gray-400">
-                        Showing {reportData.logs.length} logs from {new Date(reportData.period.start).toLocaleDateString()} to {new Date(reportData.period.end).toLocaleDateString()}
-                    </div>
+                    {generatedReport.length === 0 ? (
+                        <div className="text-center p-8 bg-white/30 dark:bg-white/5 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 text-slate-500">
+                            No logs found in this date range.
+                        </div>
+                    ) : (
+                        <div className="overflow-hidden rounded-2xl border border-white/20 dark:border-white/5 bg-white/20 dark:bg-black/20">
+                            <table className="w-full text-left border-collapse">
+                                <thead className="bg-white/40 dark:bg-white/5 text-slate-700 dark:text-gray-300">
+                                    <tr>
+                                        <th className="p-4 font-bold text-sm">Freelancer</th>
+                                        <th className="p-4 font-bold text-sm text-right">Hours</th>
+                                        <th className="p-4 font-bold text-sm text-right hidden sm:table-cell">Rate</th>
+                                        <th className="p-4 font-bold text-sm text-right">Cost</th>
+                                        <th className="p-4 font-bold text-sm text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/20 dark:divide-white/5">
+                                    {generatedReport.map((user) => (
+                                        <tr key={user.id} className="hover:bg-white/30 dark:hover:bg-white/5 transition-colors">
+                                            <td className="p-4">
+                                                <div className="font-bold text-slate-800 dark:text-white">{user.name}</div>
+                                                <div className="text-xs text-slate-500">{user.email}</div>
+                                            </td>
+                                            <td className="p-4 text-right font-mono text-slate-700 dark:text-gray-300">
+                                                {user.totalHours.toFixed(2)}h
+                                            </td>
+                                            <td className="p-4 text-right font-mono text-slate-500 dark:text-gray-400 text-sm hidden sm:table-cell">
+                                                ₹{user.rate}/h
+                                            </td>
+                                            <td className="p-4 text-right font-bold text-emerald-600 dark:text-emerald-400">
+                                                ₹{user.totalCost.toFixed(2)}
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                <button
+                                                    onClick={() => generatePDF(user)}
+                                                    className="inline-flex items-center justify-center p-2 bg-violet-100 hover:bg-violet-200 dark:bg-violet-900/30 dark:hover:bg-violet-900/50 text-violet-600 dark:text-violet-400 rounded-lg transition-colors shadow-sm"
+                                                    title="Download PDF"
+                                                >
+                                                    <Download className="w-5 h-5" />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
     );
 };
-
-// Helper icon if not imported above
-function Clock({ className }) {
-    return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>;
-}
 
 export default ProjectReportGenerator;
