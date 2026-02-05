@@ -11,6 +11,7 @@ import {
 import FinancialDashboard from '../components/FinancialDashboard';
 import UpcomingDeadlines from '../components/UpcomingDeadlines';
 import Sidebar from '../components/Sidebar';
+import ReceivedInvoices from '../components/ReceivedInvoices';
 
 const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
 const CARD_HOVER = "hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-out";
@@ -583,6 +584,7 @@ const Dashboard = () => {
           <div className="mt-8 flex flex-col gap-8 pb-8">
             <FinancialDashboard />
             <UpcomingDeadlines />
+            <ReceivedInvoices />
           </div>
 
         </main>

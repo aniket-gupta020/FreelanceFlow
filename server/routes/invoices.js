@@ -153,8 +153,12 @@ router.put('/:id', verifyToken, async (req, res) => {
     const invoice = await Invoice.findById(req.params.id);
     if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
 
-    // Check authorization (only freelancer can update)
-    if (String(invoice.freelancer) !== String(req.user.id)) {
+    // Check authorization (freelancer or client can update)
+    // Client needs to mark as paid, Freelancer needs to update details/status
+    if (
+      String(invoice.freelancer) !== String(req.user.id) &&
+      String(invoice.client) !== String(req.user.id)
+    ) {
       return res.status(403).json({ message: 'Not authorized' });
     }
 

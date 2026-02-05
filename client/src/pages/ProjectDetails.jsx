@@ -222,6 +222,9 @@ const ProjectDetails = () => {
 
     if (!project) return <div className="p-10 text-center">Loading Project...</div>;
 
+    const user = JSON.parse(localStorage.getItem('user'));
+    const isCreator = user && (user._id === project.createdBy || user._id === project.createdBy?._id);
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors duration-500">
             <div className="flex h-screen overflow-hidden">
@@ -245,10 +248,14 @@ const ProjectDetails = () => {
                             <div>
                                 <h2 className="text-3xl font-bold text-slate-800 dark:text-white">Project Details</h2>
                                 <div className="flex items-center gap-2 text-slate-600 dark:text-gray-400 mt-1">
-                                    <Link to={`/clients/${project.client?._id || project.client}`} className="hover:underline">
-                                        Client
-                                    </Link>
-                                    <span>/</span>
+                                    {!isCreator && (
+                                        <>
+                                            <Link to={`/clients/${project.client?._id || project.client}`} className="hover:underline">
+                                                Client
+                                            </Link>
+                                            <span>/</span>
+                                        </>
+                                    )}
                                     <span className="text-violet-600 dark:text-yellow-400">{project.title}</span>
                                 </div>
                             </div>

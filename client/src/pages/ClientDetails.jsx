@@ -3,7 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import Sidebar from '../components/Sidebar';
 import {
-    Menu, User, Mail, Phone, IndianRupee, Briefcase, ArrowRight, X, LayoutDashboard
+    Menu, User, Mail, Phone, IndianRupee, Briefcase, ArrowRight, X, LayoutDashboard,
+    FileText, Send, CheckCircle, AlertCircle, Clock, Download
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -14,6 +15,9 @@ const ClientDetails = () => {
     const navigate = useNavigate();
     const [freelancer, setFreelancer] = useState(null);
     const [projects, setProjects] = useState([]);
+    const [invoices, setInvoices] = useState([]);
+    const [selectedInvoice, setSelectedInvoice] = useState(null);
+    const [showInvoiceDetails, setShowInvoiceDetails] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
 
@@ -66,9 +70,11 @@ const ClientDetails = () => {
             });
 
             // Helper to check if project is active
+            // Helper to check if project is active
             const isProjectActive = (p) => {
+                const status = p.status ? p.status.toLowerCase() : 'active';
                 // Check if status is explicitly completed
-                if (p.status === 'Completed') return false;
+                if (status === 'completed') return false;
 
                 // Check if deadline has passed
                 if (p.deadline && new Date(p.deadline) < new Date()) return false;
@@ -81,24 +87,68 @@ const ClientDetails = () => {
                 const aActive = isProjectActive(a);
                 const bActive = isProjectActive(b);
 
-                if (aActive && !bActive) return -1; // a comes first
-                if (!aActive && bActive) return 1;  // b comes first
+                if (aActive && !bActive) return -1; // a (Active) comes first
+                if (!aActive && bActive) return 1;  // b (Inactive) comes first
 
-                // Secondary sort: Deadline (Ascending for active, Descending for past - optional preference)
-                // For now, let's just keep them in default order or sort by deadline
-                return new Date(a.deadline) - new Date(b.deadline);
+                // Secondary sort: Deadline (Ascending - urgent first)
+                const dateA = a.deadline ? new Date(a.deadline) : new Date('9999-12-31');
+                const dateB = b.deadline ? new Date(b.deadline) : new Date('9999-12-31');
+
+                return dateA - dateB;
             });
 
-            if (foundFreelancer) setFreelancer(foundFreelancer);
+            if (foundFreelancer) {
+                setFreelancer(foundFreelancer);
+
+                // Fetch Invoices for this freelancer
+                api.get('/invoices').then(invRes => {
+                    const allInvoices = invRes.data.filter(inv =>
+                        inv.client?._id === storedUser._id &&
+                        inv.freelancer?._id === foundFreelancer._id
+                    );
+
+                    // Sort: Pending/Overdue/Sent first, then Paid
+                    const sortedInvoices = allInvoices.sort((a, b) => {
+                        const score = (status) => {
+                            if (status === 'overdue') return 0;
+                            if (status === 'draft') return 1;
+                            if (status === 'sent') return 2;
+                            return 3; // paid
+                        };
+                        return score(a.status) - score(b.status);
+                    });
+
+                    setInvoices(sortedInvoices);
+                }).catch(err => console.error("Error fetching invoices:", err));
+            }
+
             setProjects(sortedProjects);
 
         }).catch(err => console.error(err));
     }, [clientId, storedUser._id]);
 
+    const handleInvoiceStatus = async (id, newStatus) => {
+        try {
+            const response = await api.put(`/invoices/${id}`, { status: newStatus });
+            // If satisfied (paid), remove from list. If just sent, update status.
+            if (newStatus === 'paid') {
+                setInvoices(prev => prev.filter(inv => inv._id !== id));
+                toast.success('Invoice marked as Paid!');
+            } else {
+                setInvoices(prev => prev.map(inv => inv._id === id ? response.data : inv));
+                toast.success(`Invoice marked as ${newStatus}!`);
+            }
+        } catch (err) {
+            console.error('Error updating invoice:', err);
+            toast.error('Failed to update invoice status');
+        }
+    };
+
     if (!freelancer && projects.length === 0) return <div className="p-10 text-center">Loading or Freelancer Not Found...</div>;
 
     const isCardActive = (project) => {
-        if (project.status === 'Completed') return false;
+        const status = project.status ? project.status.toLowerCase() : 'active';
+        if (status === 'completed') return false;
         if (project.deadline && new Date(project.deadline) < new Date()) return false;
         return true;
     };
@@ -167,30 +217,26 @@ const ClientDetails = () => {
                         </div>
                     </div>
 
-                    {/* Projects List */}
-                    <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
-                        <Briefcase className="w-6 h-6 text-violet-600 dark:text-yellow-400" />
-                        Projects Worked On
-                    </h3>
+                    {/* Projects Lists */}
 
-                    {projects.length === 0 ? (
-                        <div className="text-center py-10 opacity-60">No projects found for this client.</div>
-                    ) : (
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            {projects.map((project) => {
-                                const active = isCardActive(project);
-                                return (
+                    {/* Active Projects Section */}
+                    {projects.filter(p => isCardActive(p)).length > 0 && (
+                        <div className="mb-12">
+                            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+                                <Briefcase className="w-6 h-6 text-violet-600 dark:text-yellow-400" />
+                                Currently Working
+                            </h3>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {projects.filter(p => isCardActive(p)).map((project) => (
                                     <div
                                         key={project._id}
-                                        onClick={() => active && navigate(`/projects/${project._id}`)}
-                                        className={`${GLASS_CLASSES} p-6 rounded-2xl transition-all border-l-4 
-                                    ${active ? 'cursor-pointer group hover:scale-[1.01]' : 'cursor-default opacity-60 grayscale-[0.8]'}
-                                    ${project.status === 'Completed' ? 'border-l-emerald-500' : 'border-l-violet-500'}`}
+                                        onClick={() => navigate(`/projects/${project._id}`)}
+                                        className={`${GLASS_CLASSES} p-6 rounded-2xl group hover:scale-[1.01] transition-all cursor-pointer border-l-4 border-l-violet-500`}
                                     >
                                         <div className="flex justify-between items-start mb-4">
                                             <h4 className="text-lg font-bold text-slate-900 dark:text-white truncate pr-4">{project.title}</h4>
-                                            <span className={`text-xs px-2 py-1 rounded-md font-bold uppercase ${project.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-violet-100 text-violet-700'}`}>
-                                                {project.status || 'Active'}
+                                            <span className="text-xs px-2 py-1 rounded-md font-bold uppercase bg-violet-100 text-violet-700">
+                                                Active
                                             </span>
                                         </div>
                                         <p className="text-slate-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">{project.description}</p>
@@ -199,20 +245,224 @@ const ClientDetails = () => {
                                             <div className="font-bold text-slate-800 dark:text-white flex items-center">
                                                 <IndianRupee className="w-4 h-4 text-emerald-500" /> {project.budget}
                                             </div>
-                                            {active && (
-                                                <div className="flex items-center gap-1 text-violet-600 dark:text-yellow-400 text-sm font-medium group-hover:translate-x-1 transition-transform">
-                                                    Details <ArrowRight className="w-4 h-4" />
-                                                </div>
-                                            )}
+                                            <div className="flex items-center gap-1 text-violet-600 dark:text-yellow-400 text-sm font-medium group-hover:translate-x-1 transition-transform">
+                                                Details <ArrowRight className="w-4 h-4" />
+                                            </div>
                                         </div>
                                     </div>
-                                )
-                            })}
+                                ))}
+                            </div>
                         </div>
+                    )}
+
+                    {/* Past Projects Section */}
+                    {projects.filter(p => !isCardActive(p)).length > 0 && (
+                        <div className="mb-12">
+                            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2 opacity-80">
+                                <Briefcase className="w-6 h-6 text-slate-500" />
+                                Projects Worked On
+                            </h3>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {projects.filter(p => !isCardActive(p)).map((project) => (
+                                    <div
+                                        key={project._id}
+                                        className={`${GLASS_CLASSES} p-6 rounded-2xl transition-all cursor-default border-l-4 border-l-slate-400 opacity-60 grayscale-[0.8]`}
+                                    >
+                                        <div className="flex justify-between items-start mb-4">
+                                            <h4 className="text-lg font-bold text-slate-900 dark:text-white truncate pr-4">{project.title}</h4>
+                                            <span className="text-xs px-2 py-1 rounded-md font-bold uppercase bg-slate-100 text-slate-600">
+                                                {project.status === 'Completed' ? 'Completed' : 'Expired'}
+                                            </span>
+                                        </div>
+                                        <p className="text-slate-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">{project.description}</p>
+
+                                        <div className="flex justify-between items-center pt-4 border-t border-gray-200/50 dark:border-white/10">
+                                            <div className="font-bold text-slate-800 dark:text-white flex items-center">
+                                                <IndianRupee className="w-4 h-4 text-emerald-500" /> {project.budget}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Invoices Section (Pending & Paid) */}
+                    {invoices.length > 0 && (
+                        <div className="mb-8">
+                            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+                                <FileText className="w-6 h-6 text-rose-500" />
+                                Project Invoices
+                            </h3>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {invoices.map((inv) => {
+                                    const isPaid = inv.status === 'paid';
+                                    return (
+                                        <div
+                                            key={inv._id}
+                                            onClick={() => { setSelectedInvoice(inv); setShowInvoiceDetails(true); }}
+                                            className={`${GLASS_CLASSES} p-6 rounded-2xl relative group hover:scale-[1.01] transition-all cursor-pointer
+                                        ${isPaid ? 'opacity-60 grayscale-[0.8]' : ''}`}
+                                        >
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div>
+                                                    <h4 className="text-lg font-bold text-slate-900 dark:text-white">
+                                                        {inv.invoiceNumber || `INV-${inv._id.substring(0, 6).toUpperCase()}`}
+                                                    </h4>
+                                                    <p className="text-xs text-slate-500 font-mono">
+                                                        {new Date(inv.createdAt).toLocaleDateString()}
+                                                    </p>
+                                                </div>
+                                                <div className="flex flex-col items-end">
+                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase mb-1
+                                                    ${inv.status === 'sent' ? 'bg-blue-100 text-blue-700' :
+                                                            inv.status === 'overdue' ? 'bg-rose-100 text-rose-700' :
+                                                                inv.status === 'paid' ? 'bg-emerald-100 text-emerald-700' :
+                                                                    'bg-gray-100 text-gray-700'}`}>
+                                                        {inv.status}
+                                                    </span>
+                                                    <span className="text-xl font-bold text-slate-800 dark:text-white flex items-center">
+                                                        <IndianRupee className="w-4 h-4" />{inv.totalAmount}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-gray-200/50 dark:border-white/10">
+                                                {!isPaid && inv.status === 'draft' && (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleInvoiceStatus(inv._id, 'sent'); }}
+                                                        className="flex items-center gap-1 px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-xs font-bold transition-colors"
+                                                    >
+                                                        <Send className="w-3 h-3" /> Send
+                                                    </button>
+                                                )}
+                                                {!isPaid && (inv.status === 'sent' || inv.status === 'overdue') && (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleInvoiceStatus(inv._id, 'paid'); }}
+                                                        className="flex items-center gap-1 px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded-lg text-xs font-bold transition-colors"
+                                                    >
+                                                        <CheckCircle className="w-3 h-3" /> Mark Paid
+                                                    </button>
+                                                )}
+                                                {isPaid && (
+                                                    <span className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-500 rounded-lg text-xs font-bold">
+                                                        <CheckCircle className="w-3 h-3" /> Paid
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    {projects.length === 0 && (
+                        <div className="text-center py-10 opacity-60">No projects found for this client.</div>
                     )}
 
                 </main>
             </div>
+
+            {/* Invoice Details Modal */}
+            {showInvoiceDetails && selectedInvoice && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4" onClick={() => setShowInvoiceDetails(false)}>
+                    <div
+                        className={`${GLASS_CLASSES} rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto relative bg-white dark:bg-gray-900 shadow-2xl animate-in zoom-in-95 duration-200`}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
+                                {selectedInvoice.invoiceNumber || `INV-${selectedInvoice._id.substring(0, 6).toUpperCase()}`}
+                            </h2>
+                            <button
+                                onClick={() => setShowInvoiceDetails(false)}
+                                className="p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition"
+                            >
+                                <X className="w-5 h-5 dark:text-white" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="p-4 bg-white/30 dark:bg-white/5 rounded-xl">
+                                    <p className="text-slate-600 dark:text-gray-400 text-xs font-bold uppercase mb-1">Freelancer</p>
+                                    <p className="text-slate-800 dark:text-white font-semibold">{selectedInvoice.freelancer?.name}</p>
+                                </div>
+                                <div className="p-4 bg-white/30 dark:bg-white/5 rounded-xl">
+                                    <p className="text-slate-600 dark:text-gray-400 text-xs font-bold uppercase mb-1">Client</p>
+                                    <p className="text-slate-800 dark:text-white font-semibold">{selectedInvoice.client?.name}</p>
+                                </div>
+                                <div className="p-4 bg-white/30 dark:bg-white/5 rounded-xl">
+                                    <p className="text-slate-600 dark:text-gray-400 text-xs font-bold uppercase mb-1">Date</p>
+                                    <p className="text-slate-800 dark:text-white font-semibold">{new Date(selectedInvoice.createdAt).toLocaleDateString()}</p>
+                                </div>
+                                <div className="p-4 bg-white/30 dark:bg-white/5 rounded-xl">
+                                    <p className="text-slate-600 dark:text-gray-400 text-xs font-bold uppercase mb-1">Status</p>
+                                    <p className={`font-bold uppercase ${selectedInvoice.status === 'paid' ? 'text-emerald-500' : 'text-slate-800 dark:text-white'}`}>
+                                        {selectedInvoice.status}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {selectedInvoice.items && selectedInvoice.items.length > 0 ? (
+                                <div>
+                                    <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-3">Items</h3>
+                                    <div className="overflow-x-auto rounded-xl border border-white/20">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-black/5 dark:bg-white/10">
+                                                <tr>
+                                                    <th className="text-left py-3 px-4 text-slate-600 dark:text-gray-300 font-bold">Description</th>
+                                                    <th className="text-right py-3 px-4 text-slate-600 dark:text-gray-300 font-bold">Hours</th>
+                                                    <th className="text-right py-3 px-4 text-slate-600 dark:text-gray-300 font-bold">Rate</th>
+                                                    <th className="text-right py-3 px-4 text-slate-600 dark:text-gray-300 font-bold">Amount</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-white/10">
+                                                {selectedInvoice.items.map((item, idx) => (
+                                                    <tr key={idx}>
+                                                        <td className="py-3 px-4 text-slate-800 dark:text-white">{item.description}</td>
+                                                        <td className="text-right py-3 px-4 text-slate-800 dark:text-white">{item.hours?.toFixed(2)}</td>
+                                                        <td className="text-right py-3 px-4 text-slate-800 dark:text-white">₹{item.hourlyRate?.toFixed(2)}</td>
+                                                        <td className="text-right py-3 px-4 text-slate-800 dark:text-white font-bold">₹{item.amount?.toFixed(2)}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="p-6 bg-white/20 dark:bg-white/5 rounded-xl text-center">
+                                    <p className="text-slate-500">No line items detailed (Flat amount).</p>
+                                </div>
+                            )}
+
+                            <div className="bg-violet-50 dark:bg-white/5 p-6 rounded-xl space-y-3">
+                                <div className="flex justify-between items-center">
+                                    <p className="text-slate-800 dark:text-white font-bold text-lg">Total Amount</p>
+                                    <p className="text-2xl font-bold text-violet-600 dark:text-yellow-400">
+                                        ₹{selectedInvoice.totalAmount.toFixed(2)}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3 justify-end pt-4 border-t border-white/10">
+                                <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 shadow-lg active:scale-95 bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black"
+                                    onClick={() => window.print()}
+                                >
+                                    <Download className="w-5 h-5" /> Print / PDF
+                                </button>
+                                <button
+                                    onClick={() => setShowInvoiceDetails(false)}
+                                    className="flex-1 px-4 py-2 bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-white/20 rounded-xl font-medium text-sm transition-colors"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
