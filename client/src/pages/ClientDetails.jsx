@@ -12,10 +12,12 @@ const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border bord
 const ClientDetails = () => {
     const { clientId } = useParams();
     const navigate = useNavigate();
-    const [client, setClient] = useState(null);
+    const [freelancer, setFreelancer] = useState(null);
     const [projects, setProjects] = useState([]);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
+
+    const storedUser = (() => { try { return JSON.parse(localStorage.getItem('user')); } catch (e) { return null; } })();
 
     useEffect(() => {
         if (darkMode) document.documentElement.classList.add('dark');
@@ -34,53 +36,72 @@ const ClientDetails = () => {
     };
 
     useEffect(() => {
-        // 1. Fetch Client Details (We can use existing /users endpoint or filter from /projects if no direct endpoint)
-        // Assuming we have a /users/:id or we can get it from projects list essentially?
-        // Actually, usually in these apps we might not have a specific GET /users/:id for clients if they are just users.
-        // But let's assume we can fetch it. If not, we might need to rely on what we have.
-        // However, the best way given the constraints and existing code (which I haven't fully seen all API routes for)
-        // is to fetch projects and find the client info from there if possible, OR assume a route exists.
-        // Let's try to fetch user by ID if possible, or filter from projects.
-        // Wait, the "Clients" page fetched projects and deduced clients. I should probably do same or update backend.
-        // To be safe and fast: I will fetch projects and find the client there.
-        // Ideally I would add `router.get('/:id', ...)` to `auth.js` or `users.js` but I want to minimize backend changes if not requested.
-        // User requested "Registration Update" and "Client Hierarchy".
-        // I will try to fetch all projects and filter. It's not efficient but safe given constraints.
-        // Actually, I can use the same logic as Clients.jsx to find the client info.
+        if (!storedUser?._id) return;
 
         api.get('/projects').then(res => {
-            // Find client info from projects
-            const clientProject = res.data.find(p => (p.client?._id === clientId || p.client === clientId));
+            // We want to find projects where:
+            // 1. I am the client (Project Owner) -> storedUser._id
+            // 2. The person we are viewing (clientId) is an applicant/freelancer
 
-            if (clientProject && clientProject.client) {
-                // If p.client is populated object
-                if (typeof clientProject.client === 'object') {
-                    setClient(clientProject.client);
-                }
-            } else {
-                // Fallback: maybe the user exists but has no projects? 
-                // We really should have a `api.get('/users/' + clientId)` route.
-                // Let's try that, if it fails we show error. 
-                // Usually `auth.js` might not have it.
-                // Let's assume we can get it from the projects list logic for now as `Clients.jsx` did.
-                // If `Clients.jsx` deduced clients from projects, `ClientDetails` can too.
-                // But what if I want to see a client who has NO projects yet? `Clients.jsx` logic wouldn't show them!
-                // `Clients.jsx`: "res.data.forEach(p => ... uniqueClients.push(p.client))"
-                // So `Clients.jsx` ONLY shows clients with projects.
-                // So it is safe to assume I can find the client in the projects list if they came from `Clients.jsx`.
-                const foundClient = res.data.find(p => p.client && p.client._id === clientId)?.client;
-                if (foundClient) setClient(foundClient);
-            }
+            const myProjects = res.data.filter(p =>
+                p.client && (p.client._id === storedUser._id || p.client === storedUser._id)
+            );
 
-            // Filter projects for this client
-            const clientProjects = res.data.filter(p => p.client && (p.client._id === clientId || p.client === clientId));
-            setProjects(clientProjects);
+            // Find the freelancer details from the applicants list in my projects
+            let foundFreelancer = null;
+            const sharedProjects = myProjects.filter(p => {
+                if (!p.applicants) return false;
+                const isApplicant = p.applicants.find(app => {
+                    const appId = app._id || app;
+                    if (String(appId) === String(clientId)) {
+                        // Capture the full freelancer object if available
+                        if (typeof app === 'object' && !foundFreelancer) {
+                            foundFreelancer = app;
+                        }
+                        return true;
+                    }
+                    return false;
+                });
+                return isApplicant;
+            });
+
+            // Helper to check if project is active
+            const isProjectActive = (p) => {
+                // Check if status is explicitly completed
+                if (p.status === 'Completed') return false;
+
+                // Check if deadline has passed
+                if (p.deadline && new Date(p.deadline) < new Date()) return false;
+
+                return true;
+            };
+
+            // Sorting Logic: Active first, then completed/expired
+            const sortedProjects = [...sharedProjects].sort((a, b) => {
+                const aActive = isProjectActive(a);
+                const bActive = isProjectActive(b);
+
+                if (aActive && !bActive) return -1; // a comes first
+                if (!aActive && bActive) return 1;  // b comes first
+
+                // Secondary sort: Deadline (Ascending for active, Descending for past - optional preference)
+                // For now, let's just keep them in default order or sort by deadline
+                return new Date(a.deadline) - new Date(b.deadline);
+            });
+
+            if (foundFreelancer) setFreelancer(foundFreelancer);
+            setProjects(sortedProjects);
+
         }).catch(err => console.error(err));
-    }, [clientId]);
+    }, [clientId, storedUser._id]);
 
+    if (!freelancer && projects.length === 0) return <div className="p-10 text-center">Loading or Freelancer Not Found...</div>;
 
-
-    if (!client && projects.length === 0) return <div className="p-10 text-center">Loading or Client Not Found...</div>;
+    const isCardActive = (project) => {
+        if (project.status === 'Completed') return false;
+        if (project.deadline && new Date(project.deadline) < new Date()) return false;
+        return true;
+    };
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors duration-500">
@@ -103,11 +124,11 @@ const ClientDetails = () => {
                         <div className="flex items-center gap-4">
                             <button onClick={() => setIsMobileMenuOpen(true)} className={`${GLASS_CLASSES} p-2 rounded-lg text-gray-600 dark:text-gray-300 md:hidden`}><Menu className="w-6 h-6" /></button>
                             <div>
-                                <h2 className="text-3xl font-bold text-slate-800 dark:text-white">Client Details</h2>
+                                <h2 className="text-3xl font-bold text-slate-800 dark:text-white">Freelancer Details</h2>
                                 <div className="flex items-center gap-2 text-slate-600 dark:text-gray-400 mt-1">
-                                    <Link to="/clients" className="hover:underline">Clients</Link>
+                                    <Link to="/clients" className="hover:underline">My Freelancers</Link>
                                     <span>/</span>
-                                    <span className="text-violet-600 dark:text-yellow-400">{client?.name || 'Unknown'}</span>
+                                    <span className="text-violet-600 dark:text-yellow-400">{freelancer?.name || 'Unknown'}</span>
                                 </div>
                             </div>
                         </div>
@@ -126,20 +147,20 @@ const ClientDetails = () => {
                             </div>
                             <div className="flex-1 space-y-4">
                                 <div>
-                                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{client?.name}</h1>
+                                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{freelancer?.name}</h1>
                                     <div className="flex flex-wrap gap-4 mt-2">
                                         <div className="flex items-center gap-2 text-slate-600 dark:text-gray-400 bg-white/50 dark:bg-white/5 px-3 py-1 rounded-full text-sm">
-                                            <Mail className="w-4 h-4" /> {client?.email}
+                                            <Mail className="w-4 h-4" /> {freelancer?.email}
                                         </div>
                                         <div className="flex items-center gap-2 text-slate-600 dark:text-gray-400 bg-white/50 dark:bg-white/5 px-3 py-1 rounded-full text-sm">
-                                            <Phone className="w-4 h-4" /> {client?.mobile || 'No Mobile'}
+                                            <Phone className="w-4 h-4" /> {freelancer?.mobile || 'No Mobile'}
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="flex items-center gap-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                                     <IndianRupee className="w-6 h-6" />
-                                    <span>{client?.defaultHourlyRate || 0}</span>
+                                    <span>{freelancer?.defaultHourlyRate || 0}</span>
                                     <span className="text-sm text-slate-500 font-normal self-end mb-1">/ hour (default)</span>
                                 </div>
                             </div>
@@ -149,37 +170,44 @@ const ClientDetails = () => {
                     {/* Projects List */}
                     <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
                         <Briefcase className="w-6 h-6 text-violet-600 dark:text-yellow-400" />
-                        Active Projects
+                        Projects Worked On
                     </h3>
 
                     {projects.length === 0 ? (
                         <div className="text-center py-10 opacity-60">No projects found for this client.</div>
                     ) : (
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            {projects.map((project) => (
-                                <div
-                                    key={project._id}
-                                    onClick={() => navigate(`/projects/${project._id}`)}
-                                    className={`${GLASS_CLASSES} p-6 rounded-2xl group hover:scale-[1.01] transition-all cursor-pointer border-l-4 ${project.status === 'Completed' ? 'border-l-emerald-500' : 'border-l-violet-500'}`}
-                                >
-                                    <div className="flex justify-between items-start mb-4">
-                                        <h4 className="text-lg font-bold text-slate-900 dark:text-white truncate pr-4">{project.title}</h4>
-                                        <span className={`text-xs px-2 py-1 rounded-md font-bold uppercase ${project.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-violet-100 text-violet-700'}`}>
-                                            {project.status || 'Active'}
-                                        </span>
-                                    </div>
-                                    <p className="text-slate-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">{project.description}</p>
+                            {projects.map((project) => {
+                                const active = isCardActive(project);
+                                return (
+                                    <div
+                                        key={project._id}
+                                        onClick={() => active && navigate(`/projects/${project._id}`)}
+                                        className={`${GLASS_CLASSES} p-6 rounded-2xl transition-all border-l-4 
+                                    ${active ? 'cursor-pointer group hover:scale-[1.01]' : 'cursor-default opacity-60 grayscale-[0.8]'}
+                                    ${project.status === 'Completed' ? 'border-l-emerald-500' : 'border-l-violet-500'}`}
+                                    >
+                                        <div className="flex justify-between items-start mb-4">
+                                            <h4 className="text-lg font-bold text-slate-900 dark:text-white truncate pr-4">{project.title}</h4>
+                                            <span className={`text-xs px-2 py-1 rounded-md font-bold uppercase ${project.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-violet-100 text-violet-700'}`}>
+                                                {project.status || 'Active'}
+                                            </span>
+                                        </div>
+                                        <p className="text-slate-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">{project.description}</p>
 
-                                    <div className="flex justify-between items-center pt-4 border-t border-gray-200/50 dark:border-white/10">
-                                        <div className="font-bold text-slate-800 dark:text-white flex items-center">
-                                            <IndianRupee className="w-4 h-4 text-emerald-500" /> {project.budget}
-                                        </div>
-                                        <div className="flex items-center gap-1 text-violet-600 dark:text-yellow-400 text-sm font-medium group-hover:translate-x-1 transition-transform">
-                                            Details <ArrowRight className="w-4 h-4" />
+                                        <div className="flex justify-between items-center pt-4 border-t border-gray-200/50 dark:border-white/10">
+                                            <div className="font-bold text-slate-800 dark:text-white flex items-center">
+                                                <IndianRupee className="w-4 h-4 text-emerald-500" /> {project.budget}
+                                            </div>
+                                            {active && (
+                                                <div className="flex items-center gap-1 text-violet-600 dark:text-yellow-400 text-sm font-medium group-hover:translate-x-1 transition-transform">
+                                                    Details <ArrowRight className="w-4 h-4" />
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                )
+                            })}
                         </div>
                     )}
 

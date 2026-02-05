@@ -39,22 +39,35 @@ const Clients = () => {
   };
 
   useEffect(() => {
+    if (!storedUser?._id) return;
+
     api.get('/projects')
       .then(res => {
-        const uniqueClients = [];
+        const myFreelancers = [];
         const seenIds = new Set();
 
-        res.data.forEach(p => {
-          if (p.client && p.client._id && !seenIds.has(p.client._id)) {
-            seenIds.add(p.client._id);
-            uniqueClients.push(p.client);
+        // 1. Filter projects where I am the client
+        const myProjects = res.data.filter(p =>
+          p.client && (p.client._id === storedUser._id || p.client === storedUser._id)
+        );
+
+        // 2. Extract applicants from my projects
+        myProjects.forEach(p => {
+          if (p.applicants && p.applicants.length > 0) {
+            p.applicants.forEach(applicant => {
+              const appData = typeof applicant === 'object' ? applicant : null; // Handle if populate failed or it's just ID (though backend populates it)
+              if (appData && appData._id && !seenIds.has(appData._id)) {
+                seenIds.add(appData._id);
+                myFreelancers.push(appData);
+              }
+            });
           }
         });
 
-        setClients(uniqueClients);
+        setClients(myFreelancers);
       })
       .catch(err => console.error(err));
-  }, []);
+  }, [storedUser._id]); // Add dependency
 
   const handleLogout = () => {
     toast.custom((t) => (
@@ -116,8 +129,8 @@ const Clients = () => {
         <main className="flex-1 overflow-y-auto p-4 md:p-8 relative">
           <header className="flex justify-between items-center mb-8">
             <div>
-              <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Client Directory</h2>
-              <p className="text-slate-600 dark:text-gray-400">People hiring on FreelanceFlow</p>
+              <h2 className="text-2xl font-bold text-slate-800 dark:text-white">My Freelancers</h2>
+              <p className="text-slate-600 dark:text-gray-400">People working on your projects</p>
             </div>
             <button onClick={() => setIsMobileMenuOpen(true)} className={`${GLASS_CLASSES} p-2 rounded-lg text-gray-600 dark:text-gray-300 md:hidden`}><Menu className="w-6 h-6" /></button>
           </header>
@@ -125,8 +138,8 @@ const Clients = () => {
           {clients.length === 0 ? (
             <div className={`text-center py-20 ${GLASS_CLASSES} rounded-3xl`}>
               <Users className="w-12 h-12 text-slate-300 dark:text-gray-600 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-900 dark:text-white">No Clients Found</h3>
-              <p className="text-slate-500 dark:text-gray-400">Wait for users to post projects.</p>
+              <h3 className="text-lg font-medium text-slate-900 dark:text-white">No Freelancers Found</h3>
+              <p className="text-slate-500 dark:text-gray-400">Once people apply to your projects, they will appear here.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
