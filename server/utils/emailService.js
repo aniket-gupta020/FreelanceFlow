@@ -1,21 +1,12 @@
 const nodemailer = require('nodemailer');
 
-// 🔵 BREVO CONFIGURATION (Port 2525)
+// 🔵 GMAIL CONFIGURATION
 const transporter = nodemailer.createTransport({
-    host: 'smtp-relay.brevo.com',
-    port: 2525, // Using Port 2525 to bypass potential blocking
-    secure: false, // STARTTLS
+    service: 'gmail',
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
-    },
-    tls: {
-        rejectUnauthorized: false
-    },
-    family: 4, // Forces IPv4
-    logger: true,
-    debug: true,
-    connectionTimeout: 5000
+    }
 });
 
 /**
