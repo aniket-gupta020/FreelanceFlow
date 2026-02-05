@@ -53,8 +53,7 @@ const Sidebar = ({ mobile, closeMobile, darkMode, toggleTheme, handleLogout }) =
 );
 
 const PostProject = () => {
-  const [formData, setFormData] = useState({ title: '', description: '', budget: '', deadline: '', client: '' });
-  const [clients, setClients] = useState([]);
+  const [formData, setFormData] = useState({ title: '', description: '', budget: '', deadline: '' });
   const [loading, setLoading] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -65,12 +64,6 @@ const PostProject = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
-
-  useEffect(() => {
-    if (location.state?.prefilledClientId) {
-      setFormData(prev => ({ ...prev, client: location.state.prefilledClientId }));
-    }
-  }, [location.state]);
 
   const userFromStorage = (() => {
     try { return JSON.parse(localStorage.getItem('user')); } catch (e) { return null; }
@@ -94,29 +87,7 @@ const PostProject = () => {
     });
   };
 
-  useEffect(() => {
-    const fetchClients = async () => {
-      try {
-        const res = await api.get('/clients');
-        setClients(res.data);
-      } catch (err) {
-        console.error("Failed to load clients", err);
-        try {
-          const pRes = await api.get('/projects');
-          const unique = [];
-          const seen = new Set();
-          pRes.data.forEach(p => {
-            if (p.client && p.client._id && !seen.has(p.client._id)) {
-              seen.add(p.client._id);
-              unique.push(p.client);
-            }
-          });
-          if (unique.length > 0) setClients(unique);
-        } catch (e) { }
-      }
-    };
-    fetchClients();
-  }, []);
+
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -209,26 +180,7 @@ const PostProject = () => {
                 <input type="text" name="title" required className={INPUT_CLASSES} placeholder="e.g. E-commerce Website" onChange={handleChange} />
               </div>
 
-              <div>
-                <label className={LABEL_CLASSES}>Assign to Client (Optional)</label>
-                <div className="relative">
-                  <Briefcase className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
-                  <select
-                    name="client"
-                    className={INPUT_CLASSES}
-                    onChange={handleChange}
-                    defaultValue=""
-                  >
-                    <option value="" disabled>-- Select a Client --</option>
-                    {clients.map(client => (
-                      <option key={client._id} value={client._id}>
-                        {client.name} ({client.email})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <p className="text-xs text-gray-500 mt-1 dark:text-gray-400">If you leave this empty, the project will be assigned to YOU.</p>
-              </div>
+
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
