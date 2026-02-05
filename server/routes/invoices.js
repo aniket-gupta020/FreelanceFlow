@@ -101,6 +101,53 @@ router.post('/', verifyToken, async (req, res) => {
   }
 });
 
+
+// ✅ NEW: CREATE & RECORD INVOICE (Transaction-like)
+router.post('/create', verifyToken, async (req, res) => {
+  try {
+    const { projectId, freelancerId, logIds, amount, hours, date } = req.body;
+
+    if (!projectId || !freelancerId || !amount) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    const project = await Project.findById(projectId).populate('client');
+    if (!project) return res.status(404).json({ message: 'Project not found' });
+
+    const invoiceNumber = await generateInvoiceNumber();
+
+    // Create Invoice
+    const newInvoice = new Invoice({
+      invoiceNumber,
+      project: projectId,
+      client: project.client._id, // Bill From Project Owner
+      freelancer: freelancerId,   // Bill To Freelancer
+      totalAmount: amount,
+      subtotal: amount,           // For now assuming no tax logic in this flow unless specified
+      totalHours: hours,
+      logs: logIds,
+      dueDate: date || new Date(), // Immediate record
+      status: 'sent',              // It's a record of a generated statement
+      items: [],                   // Optional: could populate from logs if needed, but keeping simple for now
+    });
+
+    const savedInvoice = await newInvoice.save();
+
+    // Update TimeLogs
+    if (logIds && logIds.length > 0) {
+      await TimeLog.updateMany(
+        { _id: { $in: logIds } },
+        { $set: { billed: true } }
+      );
+    }
+
+    res.status(201).json(savedInvoice);
+  } catch (err) {
+    console.error("Error creating invoice:", err);
+    res.status(500).json(err);
+  }
+});
+
 router.put('/:id', verifyToken, async (req, res) => {
   try {
     const invoice = await Invoice.findById(req.params.id);

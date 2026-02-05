@@ -25,8 +25,17 @@ const InvoiceSchema = new mongoose.Schema({
     description: String,
     hours: Number,
     hourlyRate: Number,
+
     amount: Number
   }],
+  logs: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'TimeLog'
+  }],
+  totalHours: {
+    type: Number,
+    default: 0
+  },
   subtotal: {
     type: Number,
     required: true

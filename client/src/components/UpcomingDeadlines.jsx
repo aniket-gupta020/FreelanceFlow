@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { Calendar, AlertCircle } from 'lucide-react';
 
 const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
@@ -13,22 +13,8 @@ export default function UpcomingDeadlines() {
 
   const fetchUpcomingTasks = async () => {
     try {
-      const projRes = await axios.get('http://localhost:5000/api/projects');
-      const projects = projRes.data;
-
-      const allTasks = [];
-      for (const proj of projects) {
-        try {
-        } catch (e) {
-        }
-      }
-
-      const sorted = allTasks
-        .filter(t => new Date(t.dueDate) > new Date())
-        .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
-        .slice(0, 5);
-
-      setTasks(sorted);
+      const res = await api.get('/dashboard/deadlines'); // Use configured axios instance 'api'
+      setTasks(res.data);
     } catch (err) {
       console.error('Error fetching tasks:', err);
     }
@@ -54,7 +40,9 @@ export default function UpcomingDeadlines() {
           {tasks.map(task => (
             <div key={task._id} className="flex justify-between items-center p-3 bg-white/20 rounded-lg">
               <div>
-                <p className="font-semibold text-slate-800 dark:text-white">{task.title}</p>
+                <p className="font-semibold text-slate-800 dark:text-white">
+                  {task.title} <span className="text-slate-500 font-normal">- {task.project?.title}</span>
+                </p>
                 <p className="text-xs text-slate-600 dark:text-gray-400">{formatDate(task.dueDate)}</p>
               </div>
               <div className="text-right">

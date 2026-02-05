@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
     const ownedProjects = await Project.find({
       $or: [
         { client: req.user.id },
-        { createdBy: req.user.id } // 👈 THIS WAS MISSING!
+        { createdBy: req.user.id }
       ]
     }).select('_id');
 
@@ -21,7 +21,7 @@ router.get('/', async (req, res) => {
 
     // Fetch logs if:
     // 1. You created the log (Your own work)
-    // 2. OR the log belongs to a project you own/manage (Mahek's work)
+    // 2. OR the log belongs to a project you own/manage
     const logs = await TimeLog.find({
       $or: [
         { user: req.user.id },
@@ -29,7 +29,7 @@ router.get('/', async (req, res) => {
       ]
     })
       .populate('project', 'title')
-      .populate('user', 'name email defaultHourlyRate') // Populating user info for the report
+      .populate('user', 'name email defaultHourlyRate mobile') // ✅ Populating user info + mobile
       .sort({ startTime: -1 });
 
     res.status(200).json(logs);
@@ -75,10 +75,10 @@ router.post('/', async (req, res) => {
     const savedLog = await newLog.save();
     console.log("✅ Saved Log:", savedLog._id);
 
-    // Populate user details immediately so the frontend can display it without refresh
+    // ✅ FIXED: Correct syntax for multiple populate in an array
     const populatedLog = await savedLog.populate([
       { path: 'project', select: 'title' },
-      { path: 'user', select: 'name email defaultHourlyRate' }
+      { path: 'user', select: 'name email defaultHourlyRate mobile' }
     ]);
 
     res.status(200).json(populatedLog);

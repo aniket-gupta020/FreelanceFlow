@@ -179,6 +179,17 @@ const ProjectDetails = () => {
         }
     };
 
+    const handleToggleTaskStatus = async (task) => {
+        const newStatus = task.status === 'done' ? 'todo' : 'done';
+        try {
+            await api.put(`/tasks/${task._id}`, { status: newStatus });
+            setTasks(tasks.map(t => t._id === task._id ? { ...t, status: newStatus } : t));
+            toast.success(`Task marked as ${newStatus === 'done' ? 'Complete' : 'Active'}`);
+        } catch (err) {
+            toast.error("Failed to update task status");
+        }
+    };
+
     const handleDeleteTask = (id) => {
         toast.custom((t) => (
             <div className={`${GLASS_CLASSES} p-6 rounded-2xl max-w-sm w-full animate-in fade-in zoom-in duration-300`}>
@@ -355,6 +366,13 @@ const ProjectDetails = () => {
                                         <div className="text-xs font-mono text-slate-500 bg-white/50 dark:bg-black/30 px-2 py-1 rounded">
                                             {new Date(task.dueDate || task.deadline || task.createdAt).toLocaleDateString()}
                                         </div>
+                                        <button
+                                            onClick={() => handleToggleTaskStatus(task)}
+                                            className={`p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100 ${task.status === 'done' ? 'hover:bg-amber-100 dark:hover:bg-amber-900/30 text-amber-500' : 'hover:bg-emerald-100 dark:hover:bg-emerald-900/30 text-emerald-500'}`}
+                                            title={task.status === 'done' ? "Mark as Incomplete" : "Mark as Complete"}
+                                        >
+                                            {task.status === 'done' ? <AlertCircle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
+                                        </button>
                                         {/* Delete Task Button for Creator */}
                                         {(() => {
                                             const user = JSON.parse(localStorage.getItem('user'));
