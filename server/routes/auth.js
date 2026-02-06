@@ -23,9 +23,9 @@ const sendTokenResponse = (user, statusCode, res, message) => {
 
   // ✅ THE MAGIC COOKIE SETTINGS FOR VERCEL -> RENDER
   res.cookie("accessToken", token, {
-    httpOnly: true,   // Prevents JS theft
-    secure: true,     // REQUIRED for Vercel (HTTPS)
-    sameSite: "none", // REQUIRED for Cross-Origin
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000 // 7 Days
   })
     .status(statusCode)

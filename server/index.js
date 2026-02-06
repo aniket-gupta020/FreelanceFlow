@@ -22,9 +22,10 @@ app.set('trust proxy', 1);
 
 // ✅ 2. CORS SETTINGS
 app.use(cors({
-  origin: [
-    "http://localhost:5173",                    // Local Development
-    "https://freelance-flow-omega.vercel.app"   // Production Frontend
+  origin: process.env.CLIENT_URL ? [process.env.CLIENT_URL, "http://localhost:5173", "http://127.0.0.1:5173"] : [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://freelance-flow-omega.vercel.app"
   ],
   credentials: true, // Allow cookies to cross borders
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
