@@ -1,23 +1,31 @@
 const nodemailer = require('nodemailer');
 
-// 🔵 BREVO / SMTP CONFIGURATION (Cloud-Proof)
+// 🔵 BREVO / SMTP CONFIGURATION (Cloud-Proof - Nuclear Option ☢️)
 const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || 'smtp-relay.brevo.com',
-    port: Number(process.env.EMAIL_PORT) || 587,
-    secure: false, // true for 465, false for other ports
+    // 🛑 FORCE HOST & PORT (No more guessing)
+    host: 'smtp-relay.brevo.com',  // Hardcoded to ensure it hits Brevo
+    port: 587,                     // Hardcoded to Standard Port (Bypasses Render Block)
+    secure: false,                 // true for 465, false for other ports
     auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+        user: process.env.EMAIL_USER, // Your Brevo Login
+        pass: process.env.EMAIL_PASS  // Your Brevo API Key
     },
-    // 🛡️ NETWORK HARDENING (Fix for Render ETIMEDOUT)
-    family: 4, // Force IPv4 (Critical for Render)
+    // 🛡️ NETWORK HARDENING (The "IPv6 Bug" Fix)
+    family: 4,                // Force IPv4 (Critical for Render)
     connectionTimeout: 10000, // 10 seconds
     greetingTimeout: 5000,    // 5 seconds
     socketTimeout: 10000,     // 10 seconds
     dnsTimeout: 5000,         // 5 seconds
+
     // 🔍 DEBUGGING
     debug: true,
-    logger: true
+    logger: true,
+
+    // 🔒 TLS SETTINGS (Prevents "Self-Signed" errors)
+    tls: {
+        ciphers: 'SSLv3',
+        rejectUnauthorized: false
+    }
 });
 
 /**
@@ -127,19 +135,22 @@ const getEmailTemplate = (otp, type) => {
  * @param {string} type - 'register' | 'forgot_password' | 'update_email' | 'passwordless' | 'delete_account'
  */
 const sendEmail = async (email, otp, type = 'register') => {
+    // 🛑 UPDATED: Use the configured Brevo user as the sender
+    const SENDER_EMAIL = process.env.EMAIL_USER;
+
     const { subject, html } = getEmailTemplate(otp, type);
     console.log("🔑 DEBUG OTP:", otp);
     console.log(`📧 DEBUG EMAIL [${type}]: Subject="${subject}"`);
 
     const mailOptions = {
-        from: `"FreelanceFlow" <mail.akguptaji@gmail.com>`,
+        from: `"FreelanceFlow" <${SENDER_EMAIL}>`, // Use Env Var
         to: email,
         subject: subject,
         html: html
     };
 
     try {
-        console.log(`📨 Sending (${type}) email to ${email} via Port 2525...`);
+        console.log(`📨 Sending (${type}) email to ${email} via Port 587 (IPv4)...`);
         await transporter.sendMail(mailOptions);
         console.log("✅ Email sent successfully!");
         return true;
@@ -149,4 +160,5 @@ const sendEmail = async (email, otp, type = 'register') => {
     }
 };
 
-module.exports = { sendEmail };
+// 🛑 CHANGED EXPORT STYLE to match 'const sendEmail = require()' in auth.js
+module.exports = sendEmail;
