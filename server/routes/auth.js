@@ -3,9 +3,38 @@ const User = require('../models/User');
 const TempUser = require('../models/TempUser');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-
-// 👇 THIS IS THE KEY: Import your new Glassmorphism Service
 const { sendEmail } = require('../utils/emailService');
+
+// Helper to set the cookie (DRY Principle)
+const sendTokenResponse = (user, statusCode, res, message) => {
+  const secret = process.env.JWT_SECRET || 'devsecret';
+  const token = jwt.sign(
+    { id: user._id, email: user.email, name: user.name, role: user.role },
+    secret,
+    { expiresIn: '7d' }
+  );
+
+  const userResponse = user.toObject();
+  delete userResponse.password;
+  delete userResponse.otp;
+  delete userResponse.otpExpires;
+  delete userResponse.isDeleted;
+  delete userResponse.deletedAt;
+
+  // ✅ THE MAGIC COOKIE SETTINGS FOR VERCEL -> RENDER
+  res.cookie("accessToken", token, {
+    httpOnly: true,   // Prevents JS theft
+    secure: true,     // REQUIRED for Vercel (HTTPS)
+    sameSite: "none", // REQUIRED for Cross-Origin
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 Days
+  })
+    .status(statusCode)
+    .json({
+      message,
+      user: userResponse,
+      token // Optional: Keep sending it in body just in case frontend needs it immediately
+    });
+};
 
 // 1️⃣ REGISTER ROUTE
 router.post('/register', async (req, res) => {
@@ -19,49 +48,30 @@ router.post('/register', async (req, res) => {
     const nameRegex = /^[a-zA-Z\s]+$/;
     const mobileRegex = /^[0-9+\(\)\s-]+$/;
 
-    if (!name || !nameRegex.test(name) || name.length < 2) {
-      return res.status(400).json({ message: 'Invalid Name. Letters only, min 2 chars.' });
-    }
-    if (mobile && (!mobileRegex.test(mobile) || mobile.length < 10 || mobile.length > 15)) {
-      return res.status(400).json({ message: 'Invalid Mobile Number.' });
-    }
-    if (!password || password.length < 6) {
-      return res.status(400).json({ message: 'Password must be at least 6 chars.' });
-    }
+    if (!name || !nameRegex.test(name) || name.length < 2) return res.status(400).json({ message: 'Invalid Name.' });
+    if (mobile && (!mobileRegex.test(mobile) || mobile.length < 10)) return res.status(400).json({ message: 'Invalid Mobile.' });
+    if (!password || password.length < 6) return res.status(400).json({ message: 'Password too short.' });
 
     // 1. Check if user already exists
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
-      // 👻 RESTORATION LOGIC
+      // 👻 RESTORATION LOGIC (Ghost Mode)
       if (existingUser.isDeleted) {
         console.log("👻 RESTORING USER:", email);
 
-        // Hash New Password
         const salt = await bcrypt.genSalt(10);
         const hashed = await bcrypt.hash(password, salt);
 
         existingUser.isDeleted = false;
         existingUser.deletedAt = null;
         existingUser.password = hashed;
-        existingUser.role = role || existingUser.role; // Optional: Update role if provided
-
-        // Also ensure verification logic matches your flow
-        // If they were verified before deletion, they stay verified.
+        existingUser.role = role || existingUser.role;
 
         await existingUser.save();
 
-        const userResponse = existingUser.toObject();
-        delete userResponse.password;
-
-        const secret = process.env.JWT_SECRET || 'devsecret';
-        const token = jwt.sign({ id: existingUser._id, email: existingUser.email, name: existingUser.name, role: existingUser.role }, secret, { expiresIn: '7d' });
-
-        return res.status(200).json({
-          message: 'Account Restored Successfully! Welcome back.',
-          user: userResponse,
-          token
-        });
+        // ✅ Send Response with Cookie
+        return sendTokenResponse(existingUser, 200, res, 'Account Restored Successfully! Welcome back.');
       }
 
       if (existingUser.isVerified) {
@@ -97,8 +107,6 @@ router.post('/register', async (req, res) => {
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
-    // 4. Send Email (USING THE NEW SERVICE) 🎨
-    // This connects to emailService.js and grabs the glass design
     await sendEmail(email, otp, 'register');
 
     res.status(200).json({
@@ -123,7 +131,7 @@ router.post('/verify-otp', async (req, res) => {
     if (!tempUser) {
       const existingUser = await User.findOne({ email });
       if (existingUser) return res.status(400).json({ message: 'User already registered. Please login.' });
-      return res.status(400).json({ message: 'OTP expired or invalid. Please register again.' });
+      return res.status(400).json({ message: 'OTP expired or invalid.' });
     }
 
     if (tempUser.otp !== otp) {
@@ -144,13 +152,8 @@ router.post('/verify-otp', async (req, res) => {
     const savedUser = await newUser.save();
     await TempUser.deleteOne({ email });
 
-    const userResponse = savedUser.toObject();
-    delete userResponse.password;
-
-    const secret = process.env.JWT_SECRET || 'devsecret';
-    const token = jwt.sign({ id: savedUser._id, email: savedUser.email, name: savedUser.name, role: savedUser.role }, secret, { expiresIn: '7d' });
-
-    res.status(200).json({ message: 'Email Verified Successfully!', user: userResponse, token });
+    // ✅ Send Response with Cookie
+    sendTokenResponse(savedUser, 200, res, 'Email Verified Successfully!');
 
   } catch (err) {
     console.log("❌ VERIFY OTP ERROR:", err);
@@ -164,35 +167,26 @@ router.post('/login', async (req, res) => {
     let { email, password } = req.body;
     if (email) email = email.trim().toLowerCase();
 
+    // Find User (Ignore Deleted Users for normal login attempt, or handle gracefully)
+    // Note: If they are deleted, they should use Register to restore, or we can catch it here.
     const user = await User.findOne({ email });
+
     if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (user.isDeleted) {
+      return res.status(403).json({ message: 'Account is deactivated. Please Register again to restore it.' });
+    }
 
     if (user.isVerified === false) {
       return res.status(403).json({ message: 'Please verify your email first.' });
     }
 
-    let match = false;
-    try {
-      match = await bcrypt.compare(password, user.password);
-    } catch (e) { match = false; }
-
-    if (!match && user.password === password) {
-      match = true;
-      try {
-        user.password = await bcrypt.hash(password, 10);
-        await user.save();
-      } catch (e) { }
-    }
-
+    const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(400).json({ message: 'Wrong Password!' });
 
-    const userResponse = user.toObject();
-    delete userResponse.password;
+    // ✅ Send Response with Cookie
+    sendTokenResponse(user, 200, res, 'Login Successful!');
 
-    const secret = process.env.JWT_SECRET || 'devsecret';
-    const token = jwt.sign({ id: user._id, email: user.email, name: user.name, role: user.role }, secret, { expiresIn: '7d' });
-
-    res.status(200).json({ message: 'Login Successful!', user: userResponse, token });
   } catch (err) {
     console.log("❌ LOGIN ERROR:", err);
     res.status(500).json({ message: 'Server Error', error: err.message });
@@ -205,10 +199,8 @@ router.post('/send-otp', async (req, res) => {
     let { email, type } = req.body;
     if (email) email = email.trim().toLowerCase();
 
-    console.log(`👉 HIT SEND-OTP (GLASS MODE) for: ${email} [Type: ${type || 'default'}]`);
-
     const user = await User.findOne({ email });
-    if (!user) {
+    if (!user || user.isDeleted) {
       return res.status(404).json({ message: 'User not found' });
     }
 
@@ -219,8 +211,6 @@ router.post('/send-otp', async (req, res) => {
     user.otpExpires = otpExpires;
     await user.save();
 
-    // Send Email (Using Glass Template) 🎨
-    // Default to 'passwordless' if no type provided, or use the type passed from frontend
     await sendEmail(email, otp, type || 'passwordless');
 
     res.status(200).json({ message: 'OTP sent to your email.' });
@@ -230,40 +220,33 @@ router.post('/send-otp', async (req, res) => {
   }
 });
 
-// 5️⃣ LOGIN VIA OTP / RESET PASSWORD VERIFY
+// 5️⃣ LOGIN VIA OTP
 router.post('/login-via-otp', async (req, res) => {
   try {
     let { email, otp } = req.body;
     if (email) email = email.trim().toLowerCase();
 
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!user || user.isDeleted) return res.status(404).json({ message: 'User not found' });
 
     if (user.otp !== otp || user.otpExpires < Date.now()) {
       return res.status(400).json({ message: 'Invalid or expired OTP' });
     }
 
-    // Clear OTP
     user.otp = undefined;
     user.otpExpires = undefined;
     await user.save();
 
-    const userResponse = user.toObject();
-    delete userResponse.password;
-    delete userResponse.otp;
-    delete userResponse.otpExpires;
+    // ✅ Send Response with Cookie
+    sendTokenResponse(user, 200, res, 'Login Successful!');
 
-    const secret = process.env.JWT_SECRET || 'devsecret';
-    const token = jwt.sign({ id: user._id, email: user.email, name: user.name, role: user.role }, secret, { expiresIn: '7d' });
-
-    res.status(200).json({ message: 'Login Successful!', user: userResponse, token });
   } catch (err) {
     console.log("❌ OTP LOGIN ERROR:", err);
     res.status(500).json({ message: 'Server Error', error: err.message });
   }
 });
 
-// 6️⃣ RESET PASSWORD (Uses OTP implicitly verified by flow or requires OTP in body)
+// 6️⃣ RESET PASSWORD
 router.post('/reset-password', async (req, res) => {
   try {
     let { email, otp, newPassword } = req.body;
@@ -276,7 +259,6 @@ router.post('/reset-password', async (req, res) => {
       return res.status(400).json({ message: 'Invalid or expired OTP' });
     }
 
-    // Hash New Password
     const salt = await bcrypt.genSalt(10);
     const hashed = await bcrypt.hash(newPassword, salt);
 
