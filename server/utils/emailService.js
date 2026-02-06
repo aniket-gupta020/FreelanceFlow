@@ -1,29 +1,27 @@
 const nodemailer = require('nodemailer');
 
-// 🔵 BREVO / SMTP CONFIGURATION (Cloud-Proof - Nuclear Option ☢️)
+// 🔵 BREVO / SMTP CONFIGURATION (SSL - Nuclear Option ☢️)
 const transporter = nodemailer.createTransport({
-    // 🛑 FORCE HOST & PORT (No more guessing)
-    host: 'smtp-relay.brevo.com',  // Hardcoded to ensure it hits Brevo
-    port: 587,                     // Hardcoded to Standard Port (Bypasses Render Block)
-    secure: false,                 // true for 465, false for other ports
+    host: 'smtp-relay.brevo.com',  // Hardcoded Host
+    port: 465,                     // <--- CHANGED: Secure SSL Port
+    secure: true,                  // <--- CHANGED: Must be TRUE for Port 465
     auth: {
-        user: process.env.EMAIL_USER, // Your Brevo Login
-        pass: process.env.EMAIL_PASS  // Your Brevo API Key
+        // 🛑 HARDCODED CREDENTIALS (Bypasses .env issues)
+        user: 'a15bfe001@smtp-brevo.com',
+        pass: '3WSBVdNn7yGPh6jU'
     },
     // 🛡️ NETWORK HARDENING (The "IPv6 Bug" Fix)
-    family: 4,                // Force IPv4 (Critical for Render)
-    connectionTimeout: 10000, // 10 seconds
-    greetingTimeout: 5000,    // 5 seconds
-    socketTimeout: 10000,     // 10 seconds
-    dnsTimeout: 5000,         // 5 seconds
+    family: 4,                // Force IPv4
+    connectionTimeout: 10000, // 10s
+    greetingTimeout: 5000,    // 5s
+    socketTimeout: 10000,     // 10s
+    dnsTimeout: 5000,         // 5s
 
-    // 🔍 DEBUGGING
     debug: true,
     logger: true,
 
-    // 🔒 TLS SETTINGS (Prevents "Self-Signed" errors)
     tls: {
-        ciphers: 'SSLv3',
+        // Necessary for SSL connections on some clouds
         rejectUnauthorized: false
     }
 });
@@ -130,27 +128,24 @@ const getEmailTemplate = (otp, type) => {
 
 /**
  * Sends an OTP email
- * @param {string} email - Recipient email
- * @param {string} otp - OTP code
- * @param {string} type - 'register' | 'forgot_password' | 'update_email' | 'passwordless' | 'delete_account'
  */
 const sendEmail = async (email, otp, type = 'register') => {
-    // 🛑 UPDATED: Use the configured Brevo user as the sender
-    const SENDER_EMAIL = process.env.EMAIL_USER;
+    // 🛑 HARDCODED SENDER EMAIL to match the Auth User
+    const SENDER_EMAIL = 'a15bfe001@smtp-brevo.com';
 
     const { subject, html } = getEmailTemplate(otp, type);
     console.log("🔑 DEBUG OTP:", otp);
     console.log(`📧 DEBUG EMAIL [${type}]: Subject="${subject}"`);
 
     const mailOptions = {
-        from: `"FreelanceFlow" <${SENDER_EMAIL}>`, // Use Env Var
+        from: `"FreelanceFlow" <${SENDER_EMAIL}>`,
         to: email,
         subject: subject,
         html: html
     };
 
     try {
-        console.log(`📨 Sending (${type}) email to ${email} via Port 587 (IPv4)...`);
+        console.log(`📨 Sending (${type}) email to ${email} via Port 465 (SSL)...`);
         await transporter.sendMail(mailOptions);
         console.log("✅ Email sent successfully!");
         return true;
@@ -160,5 +155,5 @@ const sendEmail = async (email, otp, type = 'register') => {
     }
 };
 
-// ✅ THE FIX IS HERE: Use curly braces to export as an object
+// ✅ CORRECT EXPORT
 module.exports = { sendEmail };
