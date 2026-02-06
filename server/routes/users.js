@@ -106,8 +106,9 @@ router.delete('/:id', verifyToken, async (req, res) => {
     }
 
     // 3. Delete
-    await User.findByIdAndDelete(req.params.id);
-    res.status(200).json({ message: "User has been deleted..." });
+    // 3. Soft Delete
+    await User.findByIdAndUpdate(req.params.id, { isDeleted: true, deletedAt: new Date() });
+    res.status(200).json({ message: 'User account deactivated (Ghost Mode)...' });
   } catch (err) {
     res.status(500).json(err);
   }

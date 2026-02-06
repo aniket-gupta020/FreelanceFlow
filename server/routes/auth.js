@@ -15,10 +15,55 @@ router.post('/register', async (req, res) => {
 
     console.log("👉 HIT REGISTER for:", email);
 
+    // 0. STRICT VALIDATION 🛡️
+    const nameRegex = /^[a-zA-Z\s]+$/;
+    const mobileRegex = /^[0-9+\(\)\s-]+$/;
+
+    if (!name || !nameRegex.test(name) || name.length < 2) {
+      return res.status(400).json({ message: 'Invalid Name. Letters only, min 2 chars.' });
+    }
+    if (mobile && (!mobileRegex.test(mobile) || mobile.length < 10 || mobile.length > 15)) {
+      return res.status(400).json({ message: 'Invalid Mobile Number.' });
+    }
+    if (!password || password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 chars.' });
+    }
+
     // 1. Check if user already exists
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
+      // 👻 RESTORATION LOGIC
+      if (existingUser.isDeleted) {
+        console.log("👻 RESTORING USER:", email);
+
+        // Hash New Password
+        const salt = await bcrypt.genSalt(10);
+        const hashed = await bcrypt.hash(password, salt);
+
+        existingUser.isDeleted = false;
+        existingUser.deletedAt = null;
+        existingUser.password = hashed;
+        existingUser.role = role || existingUser.role; // Optional: Update role if provided
+
+        // Also ensure verification logic matches your flow
+        // If they were verified before deletion, they stay verified.
+
+        await existingUser.save();
+
+        const userResponse = existingUser.toObject();
+        delete userResponse.password;
+
+        const secret = process.env.JWT_SECRET || 'devsecret';
+        const token = jwt.sign({ id: existingUser._id, email: existingUser.email, name: existingUser.name, role: existingUser.role }, secret, { expiresIn: '7d' });
+
+        return res.status(200).json({
+          message: 'Account Restored Successfully! Welcome back.',
+          user: userResponse,
+          token
+        });
+      }
+
       if (existingUser.isVerified) {
         return res.status(400).json({ message: 'User already exists! Please login.' });
       } else {
@@ -30,8 +75,8 @@ router.post('/register', async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     // 3. Hash Password & Save to TempUser
-    const salt = bcrypt.genSaltSync(10);
-    const hashed = bcrypt.hashSync(password, salt);
+    const salt = await bcrypt.genSalt(10);
+    const hashed = await bcrypt.hash(password, salt);
 
     const tempUserData = {
       email,
@@ -128,13 +173,13 @@ router.post('/login', async (req, res) => {
 
     let match = false;
     try {
-      match = bcrypt.compareSync(password, user.password);
+      match = await bcrypt.compare(password, user.password);
     } catch (e) { match = false; }
 
     if (!match && user.password === password) {
       match = true;
       try {
-        user.password = bcrypt.hashSync(password, 10);
+        user.password = await bcrypt.hash(password, 10);
         await user.save();
       } catch (e) { }
     }
@@ -232,8 +277,8 @@ router.post('/reset-password', async (req, res) => {
     }
 
     // Hash New Password
-    const salt = bcrypt.genSaltSync(10);
-    const hashed = bcrypt.hashSync(newPassword, salt);
+    const salt = await bcrypt.genSalt(10);
+    const hashed = await bcrypt.hash(newPassword, salt);
 
     user.password = hashed;
     user.otp = undefined;

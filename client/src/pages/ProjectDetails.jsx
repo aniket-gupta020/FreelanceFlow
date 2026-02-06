@@ -256,9 +256,15 @@ const ProjectDetails = () => {
                                 <div className="flex items-center gap-2 text-slate-600 dark:text-gray-400 mt-1">
                                     {!isCreator && (
                                         <>
-                                            <Link to={`/clients/${project.client?._id || project.client}`} className="hover:underline">
-                                                Client
-                                            </Link>
+                                            {project.client?.isDeleted ? (
+                                                <span className="text-gray-400 italic cursor-not-allowed" title="Account Deactivated">
+                                                    {project.client?.name} (Deactivated)
+                                                </span>
+                                            ) : (
+                                                <Link to={`/clients/${project.client?._id || project.client}`} className="hover:underline">
+                                                    {project.client?.name || 'Client'}
+                                                </Link>
+                                            )}
                                             <span>/</span>
                                         </>
                                     )}
@@ -327,7 +333,7 @@ const ProjectDetails = () => {
                                 <ProjectReportGenerator
                                     project={project}
                                     timeLogs={timeLogs}
-                                    clientName={project.client?.name || 'Unknown Client'}
+                                    clientName={project.client?.isDeleted ? `${project.client.name} (Deactivated)` : (project.client?.name || 'Unknown Client')}
                                     applicants={project.applicants || []}
                                     onRefresh={fetchProjectData}
                                 />

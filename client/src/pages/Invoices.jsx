@@ -48,7 +48,7 @@ const InvoiceItemRender = ({ invoice, isIncome, handleDelete, handleStatusChange
           ) : (
             <ArrowUpCircle className="w-6 h-6 text-orange-500" />
           )}
-          <h3 className={`text-lg font-bold ${TEXT_HEADLINE}`}>
+          <h3 className={`select-text cursor-text text-lg font-bold ${TEXT_HEADLINE}`}>
             {invoice.invoiceNumber || `INV-${invoice._id.substring(0, 6).toUpperCase()}`}
           </h3>
           <InvoiceStatusBadge status={invoice.status} />
@@ -76,7 +76,7 @@ const InvoiceItemRender = ({ invoice, isIncome, handleDelete, handleStatusChange
       </div>
 
       <div className="flex flex-col md:items-end gap-3 ml-9 md:ml-0">
-        <p className={`text-2xl font-bold ${isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-orange-600 dark:text-orange-400'}`}>
+        <p className={`select-text cursor-text text-2xl font-bold ${isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-orange-600 dark:text-orange-400'}`}>
           {isIncome ? '+' : '-'} ₹{invoice.totalAmount.toFixed(2)}
         </p>
 
@@ -392,7 +392,7 @@ export default function Invoices() {
               onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-6">
-                <h2 className={`text-2xl font-bold ${TEXT_HEADLINE}`}>
+                <h2 className={`select-text cursor-text text-2xl font-bold ${TEXT_HEADLINE}`}>
                   {selectedInvoice.invoiceNumber || `INV-${selectedInvoice._id.substring(0, 6).toUpperCase()}`}
                 </h2>
                 <button
@@ -443,8 +443,8 @@ export default function Invoices() {
                             <tr key={idx}>
                               <td className={`py-3 px-4 ${TEXT_HEADLINE}`}>{item.description}</td>
                               <td className={`text-right py-3 px-4 ${TEXT_HEADLINE}`}>{item.hours?.toFixed(2)}</td>
-                              <td className={`text-right py-3 px-4 ${TEXT_HEADLINE}`}>₹{item.hourlyRate?.toFixed(2)}</td>
-                              <td className={`text-right py-3 px-4 ${TEXT_HEADLINE} font-bold`}>₹{item.amount?.toFixed(2)}</td>
+                              <td className={`text-right py-3 px-4 ${TEXT_HEADLINE}`}><span className="select-text cursor-text">₹{item.hourlyRate?.toFixed(2)}</span></td>
+                              <td className={`text-right py-3 px-4 ${TEXT_HEADLINE} font-bold`}><span className="select-text cursor-text">₹{item.amount?.toFixed(2)}</span></td>
                             </tr>
                           ))}
                         </tbody>
@@ -456,7 +456,7 @@ export default function Invoices() {
                 <div className="bg-violet-50 dark:bg-white/5 p-6 rounded-xl space-y-3">
                   <div className="flex justify-between items-center">
                     <p className={`${TEXT_HEADLINE} font-bold text-lg`}>Total Amount</p>
-                    <p className={`text-2xl font-bold text-violet-600 dark:text-yellow-400`}>
+                    <p className={`select-text cursor-text text-2xl font-bold text-violet-600 dark:text-yellow-400`}>
                       ₹{selectedInvoice.totalAmount.toFixed(2)}
                     </p>
                   </div>

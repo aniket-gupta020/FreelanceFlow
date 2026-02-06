@@ -202,10 +202,10 @@ const ClientDetails = () => {
                                 <div>
                                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{freelancer?.name}</h1>
                                     <div className="flex flex-wrap gap-4 mt-2">
-                                        <div className="flex items-center gap-2 text-slate-600 dark:text-gray-400 bg-white/50 dark:bg-white/5 px-3 py-1 rounded-full text-sm">
+                                        <div className="select-text cursor-text flex items-center gap-2 text-slate-600 dark:text-gray-400 bg-white/50 dark:bg-white/5 px-3 py-1 rounded-full text-sm">
                                             <Mail className="w-4 h-4" /> {freelancer?.email}
                                         </div>
-                                        <div className="flex items-center gap-2 text-slate-600 dark:text-gray-400 bg-white/50 dark:bg-white/5 px-3 py-1 rounded-full text-sm">
+                                        <div className="select-text cursor-text flex items-center gap-2 text-slate-600 dark:text-gray-400 bg-white/50 dark:bg-white/5 px-3 py-1 rounded-full text-sm">
                                             <Phone className="w-4 h-4" /> {freelancer?.mobile || 'No Mobile'}
                                         </div>
                                     </div>
@@ -213,7 +213,7 @@ const ClientDetails = () => {
 
                                 <div className="flex items-center gap-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                                     <IndianRupee className="w-6 h-6" />
-                                    <span>{freelancer?.defaultHourlyRate || 0}</span>
+                                    <span className="select-text cursor-text">{freelancer?.defaultHourlyRate || 0}</span>
                                     <span className="text-sm text-slate-500 font-normal self-end mb-1">/ hour (default)</span>
                                 </div>
                             </div>
@@ -246,7 +246,7 @@ const ClientDetails = () => {
 
                                         <div className="flex justify-between items-center pt-4 border-t border-gray-200/50 dark:border-white/10">
                                             <div className="font-bold text-slate-800 dark:text-white flex items-center">
-                                                <IndianRupee className="w-4 h-4 text-emerald-500" /> {project.budget}
+                                                <IndianRupee className="w-4 h-4 text-emerald-500" /> <span className="select-text cursor-text">{project.budget}</span>
                                             </div>
                                             <div className="flex items-center gap-1 text-violet-600 dark:text-yellow-400 text-sm font-medium group-hover:translate-x-1 transition-transform">
                                                 Details <ArrowRight className="w-4 h-4" />
@@ -309,7 +309,7 @@ const ClientDetails = () => {
                                         >
                                             <div className="flex justify-between items-start mb-2">
                                                 <div>
-                                                    <h4 className="text-lg font-bold text-slate-900 dark:text-white">
+                                                    <h4 className="select-text cursor-text text-lg font-bold text-slate-900 dark:text-white">
                                                         {inv.invoiceNumber || `INV-${inv._id.substring(0, 6).toUpperCase()}`}
                                                     </h4>
                                                     <p className="text-xs text-slate-500 font-mono">
@@ -325,7 +325,7 @@ const ClientDetails = () => {
                                                         {inv.status}
                                                     </span>
                                                     <span className="text-xl font-bold text-slate-800 dark:text-white flex items-center">
-                                                        <IndianRupee className="w-4 h-4" />{inv.totalAmount}
+                                                        <IndianRupee className="w-4 h-4" /><span className="select-text cursor-text">{inv.totalAmount}</span>
                                                     </span>
                                                 </div>
                                             </div>
@@ -376,7 +376,7 @@ const ClientDetails = () => {
                             onClick={e => e.stopPropagation()}
                         >
                             <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
+                                <h2 className="select-text cursor-text text-2xl font-bold text-slate-800 dark:text-white">
                                     {selectedInvoice.invoiceNumber || `INV-${selectedInvoice._id.substring(0, 6).toUpperCase()}`}
                                 </h2>
                                 <button
@@ -427,24 +427,20 @@ const ClientDetails = () => {
                                                         <tr key={idx}>
                                                             <td className="py-3 px-4 text-slate-800 dark:text-white">{item.description}</td>
                                                             <td className="text-right py-3 px-4 text-slate-800 dark:text-white">{item.hours?.toFixed(2)}</td>
-                                                            <td className="text-right py-3 px-4 text-slate-800 dark:text-white">₹{item.hourlyRate?.toFixed(2)}</td>
-                                                            <td className="text-right py-3 px-4 text-slate-800 dark:text-white font-bold">₹{item.amount?.toFixed(2)}</td>
+                                                            <td className="text-right py-3 px-4 text-slate-800 dark:text-white"><span className="select-text cursor-text">₹{item.hourlyRate?.toFixed(2)}</span></td>
+                                                            <td className="text-right py-3 px-4 text-slate-800 dark:text-white font-bold"><span className="select-text cursor-text">₹{item.amount?.toFixed(2)}</span></td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
                                             </table>
                                         </div>
                                     </div>
-                                ) : (
-                                    <div className="p-6 bg-white/20 dark:bg-white/5 rounded-xl text-center">
-                                        <p className="text-slate-500">No line items detailed (Flat amount).</p>
-                                    </div>
-                                )}
+                                ) : null}
 
                                 <div className="bg-violet-50 dark:bg-white/5 p-6 rounded-xl space-y-3">
                                     <div className="flex justify-between items-center">
                                         <p className="text-slate-800 dark:text-white font-bold text-lg">Total Amount</p>
-                                        <p className="text-2xl font-bold text-violet-600 dark:text-yellow-400">
+                                        <p className="select-text cursor-text text-2xl font-bold text-violet-600 dark:text-yellow-400">
                                             ₹{selectedInvoice.totalAmount.toFixed(2)}
                                         </p>
                                     </div>

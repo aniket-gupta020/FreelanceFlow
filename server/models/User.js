@@ -53,6 +53,14 @@ const UserSchema = new mongoose.Schema({
   },
   otpExpires: {
     type: Date
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false
+  },
+  deletedAt: {
+    type: Date,
+    default: null
   }
 }, { timestamps: true, collection: 'users' });
 

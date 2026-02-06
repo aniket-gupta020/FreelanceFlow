@@ -51,6 +51,21 @@ const Register = () => {
     e.preventDefault();
     setLoading(true);
     // Validation
+    const nameRegex = /^[a-zA-Z\s]+$/;
+    const mobileRegex = /^[0-9+\(\)\s-]+$/;
+
+    if (!nameRegex.test(name) || name.length < 2) {
+      toast.error("Invalid Name. Please use letters only.");
+      setLoading(false);
+      return;
+    }
+
+    if (mobile && (!mobileRegex.test(mobile) || mobile.length < 10 || mobile.length > 15)) {
+      toast.error("Invalid Mobile Number.");
+      setLoading(false);
+      return;
+    }
+
     if (password.length < 6) {
       toast.error("Password must be at least 6 characters long.");
       setLoading(false);
@@ -133,7 +148,12 @@ const Register = () => {
                   className={INPUT_CLASSES}
                   placeholder="Mr. Aniket"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (/^[a-zA-Z\s]*$/.test(val)) {
+                      setName(val);
+                    }
+                  }}
                 />
               </div>
             </div>
@@ -179,7 +199,12 @@ const Register = () => {
                   className={INPUT_CLASSES}
                   placeholder="+1 234 567 890"
                   value={mobile}
-                  onChange={(e) => setMobile(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (/^[0-9+\(\)\s-]*$/.test(val)) {
+                      setMobile(val);
+                    }
+                  }}
                 />
               </div>
             </div>

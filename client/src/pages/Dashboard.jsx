@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Clock, IndianRupee, Users, Plus,
   Trash2, Pencil, Briefcase, Menu, X, Sun, Moon,
-  LogOut, Download, AlertTriangle, CheckSquare, User,
+  LogOut, Download, Upload, AlertTriangle, CheckSquare, User,
   ChevronDown, ChevronRight
 } from 'lucide-react';
 import FinancialDashboard from '../components/FinancialDashboard';
@@ -141,7 +141,7 @@ const ProjectCard = ({ project, user, isOwner, handleDelete, handleApply, handle
                 <span>Hours Logged:</span><span className="font-bold text-slate-800 dark:text-white">{burn.hours.toFixed(1)}h</span>
               </div>
               <div className="flex justify-between">
-                <span>Cost:</span><span className="font-bold text-slate-800 dark:text-white">₹{burn.cost.toFixed(2)}</span>
+                <span>Cost:</span><span className="select-text cursor-text font-bold text-slate-800 dark:text-white">₹{burn.cost.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -153,7 +153,7 @@ const ProjectCard = ({ project, user, isOwner, handleDelete, handleApply, handle
           <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-500/20">
             <IndianRupee className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           </div>
-          <span className={`font-bold ${TEXT_HEADLINE}`}>₹{project.budget}</span>
+          <span className={`select-text cursor-text font-bold ${TEXT_HEADLINE}`}>₹{project.budget}</span>
         </div>
         <div className="flex flex-col items-end">
           <span className={`text-xs font-medium px-3 py-1 rounded-full bg-gray-100 dark:bg-white/10 ${TEXT_SUB}`}>
@@ -191,7 +191,7 @@ const ProjectCard = ({ project, user, isOwner, handleDelete, handleApply, handle
                 >
                   {applicant.name}
                 </Link>
-                <div className="text-xs text-slate-600 dark:text-gray-400">{applicant.email || applicant._id}</div>
+                <div className="select-text cursor-text text-xs text-slate-600 dark:text-gray-400">{applicant.email || applicant._id}</div>
               </div>
             );
           })}
@@ -210,7 +210,10 @@ const Dashboard = () => {
   const [expandedProjectId, setExpandedProjectId] = useState(null);
   const [projectTimeLogs, setProjectTimeLogs] = useState({});
   const [showPreviousProjects, setShowPreviousProjects] = useState(false);
-  const [isSampleMode, setIsSampleMode] = useState(false);
+  /* Persistence: Initialize isSampleMode from localStorage */
+  const [isSampleMode, setIsSampleMode] = useState(() => {
+    return localStorage.getItem('isSampleMode') === 'true';
+  });
   const navigate = useNavigate();
 
   const [darkMode, setDarkMode] = useState(() => {
@@ -270,7 +273,8 @@ const Dashboard = () => {
       budget: 50000,
       deadline: new Date(Date.now() + 86400000 * 15).toISOString(), // 15 days from now
       status: 'active',
-      owner: { _id: user?._id || 'user_1' }, // Make current user owner so it appears in "My Active Projects"
+      status: 'active',
+      owner: { _id: 'sample_owner_1' }, // Changed to generic ID to appear in Marketplace
       client: { _id: 'client_1', defaultHourlyRate: 200 },
       applicants: [
         { _id: 'app_1', name: 'Alice Designer', email: 'alice@example.com' },
@@ -284,19 +288,22 @@ const Dashboard = () => {
       budget: 120000,
       deadline: new Date(Date.now() + 86400000 * 45).toISOString(),
       status: 'active',
-      owner: { _id: user?._id || 'user_1' },
+      status: 'active',
+      owner: { _id: 'sample_owner_1' },
       client: { _id: 'client_2', defaultHourlyRate: 500 },
       applicants: []
     }
   ];
 
-  /* Toggle Sample Mode */
+  /* Toggle Sample Mode with Persistence */
   const toggleSampleMode = () => {
     if (isSampleMode) {
       setIsSampleMode(false);
+      localStorage.removeItem('isSampleMode');
       toast.success("Sample data unloaded");
     } else {
       setIsSampleMode(true);
+      localStorage.setItem('isSampleMode', 'true');
       toast.success("Sample data loaded");
     }
   };
@@ -471,7 +478,7 @@ const Dashboard = () => {
 
             <div className="flex gap-3">
               <button onClick={toggleSampleMode} className={`${BUTTON_BASE} ${isSampleMode ? 'bg-amber-500 hover:bg-amber-600' : 'bg-emerald-600 hover:bg-emerald-700'} text-white`}>
-                <Download className="w-5 h-5" /> {isSampleMode ? "Unload Sample Data" : "Load Sample Data"}
+                {isSampleMode ? <Upload className="w-5 h-5" /> : <Download className="w-5 h-5" />} {isSampleMode ? "Unload Sample Data" : "Load Sample Data"}
               </button>
               <Link to="/post-project" className={`${BUTTON_BASE} ${ACCENT_BG}`}>
                 <Plus className="w-5 h-5" /> New Project
@@ -557,7 +564,7 @@ const Dashboard = () => {
           </div>
 
           {allPastProjects.length > 0 && (
-            <div className={`mb-8 ${GLASS_CLASSES} rounded-3xl transition-all duration-300 ${showPreviousProjects ? 'p-6 md:p-8 opacity-90' : 'p-4 opacity-75 hover:opacity-100'}`}>
+            <div className={`mb-8 ${GLASS_CLASSES} rounded-3xl transition-all duration-300 grayscale ${showPreviousProjects ? 'p-6 md:p-8 opacity-90' : 'p-4 opacity-75 hover:opacity-100'}`}>
               <button
                 onClick={() => setShowPreviousProjects(!showPreviousProjects)}
                 className={`w-full flex items-center justify-between text-xl font-bold ${TEXT_HEADLINE} hover:opacity-80 transition-opacity`}

@@ -6,9 +6,9 @@ const verifyToken = require('../middleware/verifyToken');
 router.get('/', async (req, res) => {
   try {
     const projects = await Project.find()
-      .populate('client', 'name email mobile')
+      .populate('client', 'name email mobile isDeleted')
       // 👇 FIXED: Added 'defaultHourlyRate' so the report can calculate cost
-      .populate('applicants', 'name email defaultHourlyRate mobile')
+      .populate('applicants', 'name email defaultHourlyRate mobile isDeleted')
       .sort({ createdAt: -1 });
 
     res.status(200).json(projects);
@@ -21,9 +21,9 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const project = await Project.findById(req.params.id)
-      .populate('client', 'name email mobile')
+      .populate('client', 'name email mobile isDeleted')
       // 👇 FIXED: Added 'defaultHourlyRate' here too
-      .populate('applicants', 'name email defaultHourlyRate mobile');
+      .populate('applicants', 'name email defaultHourlyRate mobile isDeleted');
 
     if (!project) return res.status(404).json({ message: "Project not found" });
 

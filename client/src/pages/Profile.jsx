@@ -4,7 +4,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import {
   LayoutDashboard, Users, Clock, IndianRupee, Menu, X,
-  Sun, Moon, LogOut, User, Mail, Briefcase, Save, Trash2, CheckSquare, Lock, Key
+  Sun, Moon, LogOut, User, Mail, Briefcase, Save, Trash2, CheckSquare, Lock, Key,
+  ChevronDown, ChevronUp
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 
@@ -30,7 +31,9 @@ const Profile = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSensitiveChange, setIsSensitiveChange] = useState(false);
+
   const [otpAction, setOtpAction] = useState('update'); // 'update' or 'delete'
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   const [darkMode, setDarkMode] = useState(() => {
     if (localStorage.getItem('theme')) return localStorage.getItem('theme') === 'dark';
@@ -327,7 +330,7 @@ const Profile = () => {
                   {user.name.charAt(0).toUpperCase()}
                 </div>
                 <h2 className="text-xl font-bold text-slate-800 dark:text-white">{user.name}</h2>
-                <p className="text-slate-500 dark:text-gray-400 mb-4">{user.email}</p>
+                <p className="select-text cursor-text text-slate-500 dark:text-gray-400 mb-4">{user.email}</p>
                 <span className="inline-block px-4 py-1.5 bg-violet-100 text-violet-700 dark:bg-yellow-500/20 dark:text-yellow-400 rounded-full text-xs font-bold uppercase tracking-wide">
                   {user.role} Account
                 </span>
@@ -368,33 +371,46 @@ const Profile = () => {
                 </div>
 
                 {/* Password Change Section */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-white/20 pt-4">
-                  <div>
-                    <label className={LABEL_CLASSES}>New Password</label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
-                      <input
-                        type="password"
-                        className={INPUT_CLASSES}
-                        placeholder="Leave blank to keep current"
-                        value={newPassword}
-                        onChange={e => setNewPassword(e.target.value)}
-                      />
+                <div className="border-t border-white/20 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsChangePasswordOpen(!isChangePasswordOpen)}
+                    className="flex items-center gap-2 text-violet-600 dark:text-yellow-400 font-medium hover:underline focus:outline-none"
+                  >
+                    {isChangePasswordOpen ? "Cancel Password Change" : "Change Password"}
+                    {isChangePasswordOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </button>
+
+                  {isChangePasswordOpen && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 animate-in slide-in-from-top-2 fade-in duration-300">
+                      <div>
+                        <label className={LABEL_CLASSES}>New Password</label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
+                          <input
+                            type="password"
+                            className={INPUT_CLASSES}
+                            placeholder="Leave blank to keep current"
+                            value={newPassword}
+                            onChange={e => setNewPassword(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className={LABEL_CLASSES}>Confirm New Password</label>
+                        <div className="relative">
+                          <Key className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
+                          <input
+                            type="password"
+                            className={INPUT_CLASSES}
+                            placeholder="Confirm new password"
+                            value={confirmPassword}
+                            onChange={e => setConfirmPassword(e.target.value)}
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <label className={LABEL_CLASSES}>Confirm New Password</label>
-                    <div className="relative">
-                      <Key className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
-                      <input
-                        type="password"
-                        className={INPUT_CLASSES}
-                        placeholder="Confirm new password"
-                        value={confirmPassword}
-                        onChange={e => setConfirmPassword(e.target.value)}
-                      />
-                    </div>
-                  </div>
+                  )}
                 </div>
 
                 <div>
