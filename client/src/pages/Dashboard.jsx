@@ -118,7 +118,7 @@ const ProjectCard = ({ project, user, isOwner, handleDelete, handleApply, handle
           </>
         )}
       </div>
-      <h4 className={`font-bold text-lg ${ACCENT_COLOR} mb-2 pr-16 truncate`}>{project.title}</h4>
+      <h4 className={`font-bold text-lg ${ACCENT_COLOR} mb-2 pr-32 truncate`}>{project.title}</h4>
       <p className={`text-sm ${TEXT_SUB} mb-4 line-clamp-2 leading-relaxed`}>{project.description}</p>
 
       {(() => {
@@ -184,7 +184,13 @@ const ProjectCard = ({ project, user, isOwner, handleDelete, handleApply, handle
             const applicant = app.name ? app : { _id: app, name: 'Unknown', email: '' };
             return (
               <div key={applicant._id} className="py-2 border-b border-gray-200 dark:border-white/10 last:border-b-0">
-                <div className="font-medium text-sm text-slate-800 dark:text-white">{applicant.name}</div>
+                <Link
+                  to={`/clients/${applicant._id}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="font-medium text-sm text-slate-800 dark:text-white hover:text-violet-600 dark:hover:text-yellow-400 hover:underline transition-colors"
+                >
+                  {applicant.name}
+                </Link>
                 <div className="text-xs text-slate-600 dark:text-gray-400">{applicant.email || applicant._id}</div>
               </div>
             );
@@ -204,6 +210,7 @@ const Dashboard = () => {
   const [expandedProjectId, setExpandedProjectId] = useState(null);
   const [projectTimeLogs, setProjectTimeLogs] = useState({});
   const [showPreviousProjects, setShowPreviousProjects] = useState(false);
+  const [isSampleMode, setIsSampleMode] = useState(false);
   const navigate = useNavigate();
 
   const [darkMode, setDarkMode] = useState(() => {
@@ -252,54 +259,48 @@ const Dashboard = () => {
       .catch(err => console.error("Error fetching timelogs:", err));
   }, [navigate]);
 
-  const handleLoadSampleData = () => {
-    toast.custom((t) => (
-      <div className={`${GLASS_CLASSES} p-6 rounded-2xl max-w-md w-full animate-in fade-in zoom-in duration-300 border-l-4 border-l-amber-500`}>
-        <div className="flex items-start gap-4">
-          <div className="p-3 bg-amber-500/10 rounded-full">
-            <AlertTriangle className="w-6 h-6 text-amber-500" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-bold text-slate-800 dark:text-white mb-1">
-              Reset Database?
-            </h3>
-            <p className="text-sm text-slate-600 dark:text-gray-400 mb-4 whitespace-pre-line">
-              ⚠️ WARNING: This will RESET your database to the sample data.
-              Any projects or logs you created manually will be DELETED.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  toast.dismiss(t.id);
-                  performReset();
-                }}
-                className="flex-1 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium text-sm transition-colors shadow-lg shadow-amber-500/20"
-              >
-                Yes, Reset Data
-              </button>
-              <button
-                onClick={() => toast.dismiss(t.id)}
-                className="flex-1 px-4 py-2 bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-white/20 rounded-xl font-medium text-sm transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    ), { duration: Infinity });
-  };
 
-  const performReset = async () => {
-    try {
-      await api.post('/seed');
-      toast.success('✅ Sample data loaded successfully! The page will now refresh.', { duration: 2000 });
-      setTimeout(() => window.location.reload(), 2000);
-    } catch (err) {
-      console.error(err);
-      toast.error('❌ Error loading sample data.');
+
+  /* Sample Data Constants */
+  const SAMPLE_PROJECTS = [
+    {
+      _id: 'sample_1',
+      title: 'E-Commerce Redesign (Sample)',
+      description: 'Complete overhaul of the product page and checkout flow for better conversion.',
+      budget: 50000,
+      deadline: new Date(Date.now() + 86400000 * 15).toISOString(), // 15 days from now
+      status: 'active',
+      owner: { _id: user?._id || 'user_1' }, // Make current user owner so it appears in "My Active Projects"
+      client: { _id: 'client_1', defaultHourlyRate: 200 },
+      applicants: [
+        { _id: 'app_1', name: 'Alice Designer', email: 'alice@example.com' },
+        { _id: 'app_2', name: 'Bob Coder', email: 'bob@example.com' }
+      ]
+    },
+    {
+      _id: 'sample_2',
+      title: 'Mobile App MVP (Sample)',
+      description: 'Flutter based MVP for a food delivery startup. Core features only.',
+      budget: 120000,
+      deadline: new Date(Date.now() + 86400000 * 45).toISOString(),
+      status: 'active',
+      owner: { _id: user?._id || 'user_1' },
+      client: { _id: 'client_2', defaultHourlyRate: 500 },
+      applicants: []
+    }
+  ];
+
+  /* Toggle Sample Mode */
+  const toggleSampleMode = () => {
+    if (isSampleMode) {
+      setIsSampleMode(false);
+      toast.success("Sample data unloaded");
+    } else {
+      setIsSampleMode(true);
+      toast.success("Sample data loaded");
     }
   };
+
 
   const calculateBurnRate = (projectId, budget, clientRate) => {
     const hours = projectTimeLogs[projectId] || 0;
@@ -402,7 +403,9 @@ const Dashboard = () => {
   const getSafeId = (id) => id?._id || id?.id || id;
   const currentUserId = user ? getSafeId(user) : null;
 
-  const myProjects = projects.filter(project => {
+  const allDisplayProjects = isSampleMode ? [...projects, ...SAMPLE_PROJECTS] : projects;
+
+  const myProjects = allDisplayProjects.filter(project => {
     const projectOwnerId = getSafeId(project.owner);
     const projectClientId = getSafeId(project.client);
     return String(currentUserId) === String(projectOwnerId) || String(currentUserId) === String(projectClientId);
@@ -411,7 +414,7 @@ const Dashboard = () => {
   const activeMyProjects = myProjects.filter(p => p.status !== 'completed' && new Date(p.deadline) >= new Date());
   const pastMyProjects = myProjects.filter(p => p.status === 'completed' || new Date(p.deadline) < new Date());
 
-  const marketplaceProjects = projects.filter(project => {
+  const marketplaceProjects = allDisplayProjects.filter(project => {
     const projectOwnerId = getSafeId(project.owner);
     const projectClientId = getSafeId(project.client);
     return String(currentUserId) !== String(projectOwnerId) && String(currentUserId) !== String(projectClientId);
@@ -437,12 +440,19 @@ const Dashboard = () => {
         <div className={`fixed inset-0 z-50 md:hidden pointer-events-none`}>
           <div className={`absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0'}`} onClick={() => setIsMobileMenuOpen(false)} />
           <div className={`absolute top-0 left-0 w-72 h-full ${GLASS_CLASSES} transform transition-transform duration-300 ease-out pointer-events-auto ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-            <Sidebar mobile={true} closeMobile={() => setIsMobileMenuOpen(false)} darkMode={darkMode} toggleTheme={toggleTheme} handleLogout={handleLogout} />
+            <Sidebar mobile={true} closeMobile={() => setIsMobileMenuOpen(false)} darkMode={darkMode} toggleTheme={toggleTheme} handleLogout={handleLogout} user={user} />
           </div>
         </div>
 
+        <button
+          onClick={() => setIsMobileMenuOpen(true)}
+          className={`fixed top-4 right-4 z-50 md:hidden ${GLASS_CLASSES} p-2 rounded-lg text-gray-600 dark:text-gray-300 shadow-lg`}
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+
         <aside className={`w-72 hidden md:block border-r border-white/20 dark:border-white/5 ${GLASS_CLASSES} z-10`}>
-          <Sidebar mobile={false} darkMode={darkMode} toggleTheme={toggleTheme} handleLogout={handleLogout} />
+          <Sidebar mobile={false} darkMode={darkMode} toggleTheme={toggleTheme} handleLogout={handleLogout} user={user} />
         </aside>
 
         <main className="flex-1 overflow-y-auto p-4 md:p-8 relative">
@@ -451,7 +461,7 @@ const Dashboard = () => {
               <div className={`font-bold text-xl flex items-center gap-2 ${ACCENT_COLOR}`}>
                 <LayoutDashboard className="w-6 h-6" /> FreelanceFlow
               </div>
-              <button onClick={() => setIsMobileMenuOpen(true)} className={`${GLASS_CLASSES} p-2 rounded-lg text-gray-600 dark:text-gray-300`}><Menu className="w-6 h-6" /></button>
+              <button onClick={() => setIsMobileMenuOpen(true)} className={`${GLASS_CLASSES} p-2 rounded-lg text-gray-600 dark:text-gray-300 opacity-0 pointer-events-none`}><Menu className="w-6 h-6" /></button>
             </div>
 
             <div>
@@ -460,8 +470,8 @@ const Dashboard = () => {
             </div>
 
             <div className="flex gap-3">
-              <button onClick={handleLoadSampleData} className={`${BUTTON_BASE} bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white`}>
-                <Download className="w-5 h-5" /> Load Sample Data
+              <button onClick={toggleSampleMode} className={`${BUTTON_BASE} ${isSampleMode ? 'bg-amber-500 hover:bg-amber-600' : 'bg-emerald-600 hover:bg-emerald-700'} text-white`}>
+                <Download className="w-5 h-5" /> {isSampleMode ? "Unload Sample Data" : "Load Sample Data"}
               </button>
               <Link to="/post-project" className={`${BUTTON_BASE} ${ACCENT_BG}`}>
                 <Plus className="w-5 h-5" /> New Project
@@ -582,8 +592,8 @@ const Dashboard = () => {
           )}
 
           <div className="mt-8 flex flex-col gap-8 pb-8">
-            <FinancialDashboard />
-            <UpcomingDeadlines />
+            <FinancialDashboard isSampleMode={isSampleMode} />
+            <UpcomingDeadlines isSampleMode={isSampleMode} />
 
           </div>
 

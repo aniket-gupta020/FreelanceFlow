@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Download, PieChart, Calculator, Calendar, Users, TrendingUp, DollarSign, Clock } from 'lucide-react';
+import { Download, PieChart, Calculator, Calendar, Users, TrendingUp, DollarSign, Clock, Eye, CheckCircle, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import api from '../api';
 
-const ProjectReportGenerator = ({ project, timeLogs }) => {
+const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
     // 1. Date State
     const [startDate, setStartDate] = useState(() => {
         const d = new Date();
@@ -15,6 +15,11 @@ const ProjectReportGenerator = ({ project, timeLogs }) => {
     const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
     const [generatedReport, setGeneratedReport] = useState(null);
     const [summaryStats, setSummaryStats] = useState({ cost: 0, hours: 0, freelancers: 0 });
+
+    // Modal State
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [selectedLogs, setSelectedLogs] = useState([]);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     // 2. 🧮 CALCULATION LOGIC
     const handleCalculate = () => {
@@ -73,6 +78,59 @@ const ProjectReportGenerator = ({ project, timeLogs }) => {
                 freelancers: reportArray.length
             });
             toast.success("Analysis Complete!");
+        }
+    };
+
+    const openBillingModal = (user) => {
+        // Filter out already billed logs if you want to prevent double billing, 
+        // or show them as disabled. For now, showing all but marking status.
+        // Let's filter to show mainly unbilled ones for "Pay Now" action, 
+        // or maybe show all and let user select.
+        // Requirement says: "pending hours... tick the hours which he wants to pay"
+
+        const pendingLogs = user.logs.filter(l => l.status !== 'paid');
+
+        setSelectedUser(user);
+        setSelectedLogs(pendingLogs.map(l => l._id)); // Default select all pending
+        setIsModalOpen(true);
+    };
+
+    const toggleLogSelection = (logId) => {
+        if (selectedLogs.includes(logId)) {
+            setSelectedLogs(selectedLogs.filter(id => id !== logId));
+        } else {
+            setSelectedLogs([...selectedLogs, logId]);
+        }
+    };
+
+    const handleProcessPayment = async (actionType) => {
+        if (selectedLogs.length === 0) return toast.error("Please select at least one log.");
+
+        const logsToProcess = selectedUser.logs.filter(l => selectedLogs.includes(l._id));
+        const totalHours = logsToProcess.reduce((sum, l) => sum + (l.durationHours || 0), 0);
+        const totalAmount = totalHours * selectedUser.rate;
+
+        try {
+            const payload = {
+                projectId: project._id,
+                freelancerId: selectedUser.id,
+                logIds: selectedLogs,
+                amount: totalAmount,
+                hours: totalHours,
+                date: new Date(),
+                status: actionType === 'pay' ? 'paid' : 'sent'
+            };
+
+            await api.post('/invoices/create', payload);
+
+            toast.success(actionType === 'pay' ? "Payment Recorded Successfully!" : "Bill Generated Successfully!");
+            setIsModalOpen(false);
+
+            if (onRefresh) onRefresh();
+
+        } catch (error) {
+            console.error("Payment Error:", error);
+            toast.error("Failed to process payment");
         }
     };
 
@@ -187,206 +245,270 @@ const ProjectReportGenerator = ({ project, timeLogs }) => {
 
         doc.save(`Payout_${userData.name}_${endDate}.pdf`);
         toast.success("Statement Downloaded!");
-
-        // ✅ RECORD INVOICE IN BACKEND
-        try {
-            console.log("Saving Invoice to Backend...", {
-                projectId: project._id,
-                freelancerId: userData.id,
-                amount: userData.totalCost
-            });
-
-            const payload = {
-                projectId: project._id,
-                freelancerId: userData.id,
-                logIds: userData.logs.map(l => l._id),
-                amount: userData.totalCost,
-                hours: userData.totalHours,
-                date: new Date()
-            };
-
-            const res = await api.post('/invoices/create', payload);
-
-            console.log("Invoice API Response:", res.data);
-            toast.success("Invoice Recorded Successfully!", { icon: '✅' });
-
-        } catch (error) {
-            console.error("❌ Failed to record invoice:");
-            if (error.response) {
-                // The request was made and the server responded with a status code
-                // that falls out of the range of 2xx
-                console.error("Data:", error.response.data);
-                console.error("Status:", error.response.status);
-                console.error("Headers:", error.response.headers);
-                toast.error(`Error ${error.response.status}: ${error.response.data?.message || 'Failed to record invoice'}`);
-            } else if (error.request) {
-                // The request was made but no response was received
-                console.error("No response received:", error.request);
-                toast.error("Server not responding. Please check your connection.");
-            } else {
-                // Something happened in setting up the request that triggered an Error
-                console.error("Error setting up request:", error.message);
-                toast.error("Error setting up invoice request.");
-            }
-        }
     };
 
     return (
-        <div className="relative overflow-hidden rounded-3xl backdrop-blur-xl bg-white/40 dark:bg-black/40 border border-white/50 dark:border-white/10 shadow-2xl transition-all duration-300 mb-8">
-            {/* Top Gradient Line */}
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-indigo-500"></div>
+        <>
+            <div className="relative overflow-hidden rounded-3xl backdrop-blur-xl bg-white/40 dark:bg-black/40 border border-white/50 dark:border-white/10 shadow-2xl transition-all duration-300 mb-8">
+                {/* Top Gradient Line */}
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-indigo-500"></div>
 
-            <div className="p-8">
-                {/* 1. Header Section */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl shadow-lg shadow-violet-500/20 text-white">
-                            <PieChart className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-400">
-                                Financial Reports
-                            </h3>
-                            <p className="text-sm font-medium text-slate-500 dark:text-gray-400">
-                                Generate payout statements & analyze costs
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* 2. Controls Section (Glassmorphism Inputs) */}
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-8 p-1">
-                    <div className="md:col-span-4 group relative">
-                        <label className="absolute -top-2.5 left-4 bg-white dark:bg-gray-900 px-2 text-xs font-bold text-violet-600 z-10 transition-all">START DATE</label>
-                        <div className="flex items-center bg-white/50 dark:bg-black/20 border-2 border-transparent group-hover:border-violet-500/50 rounded-2xl focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all duration-300">
-                            <Calendar className="w-5 h-5 text-slate-400 ml-4" />
-                            <input
-                                type="date"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                                className="w-full p-4 bg-transparent outline-none text-slate-700 dark:text-white font-medium cursor-pointer dark:[color-scheme:dark]"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="md:col-span-4 group relative">
-                        <label className="absolute -top-2.5 left-4 bg-white dark:bg-gray-900 px-2 text-xs font-bold text-violet-600 z-10 transition-all">END DATE</label>
-                        <div className="flex items-center bg-white/50 dark:bg-black/20 border-2 border-transparent group-hover:border-violet-500/50 rounded-2xl focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all duration-300">
-                            <Calendar className="w-5 h-5 text-slate-400 ml-4" />
-                            <input
-                                type="date"
-                                value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
-                                className="w-full p-4 bg-transparent outline-none text-slate-700 dark:text-white font-medium cursor-pointer dark:[color-scheme:dark]"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="md:col-span-4">
-                        <button
-                            onClick={handleCalculate}
-                            className="w-full h-full min-h-[56px] flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-900 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-black rounded-2xl font-bold text-lg shadow-xl shadow-slate-500/10 hover:shadow-slate-500/20 active:scale-[0.98] transition-all duration-200"
-                        >
-                            <Calculator className="w-5 h-5" />
-                            Run Analysis
-                        </button>
-                    </div>
-                </div>
-
-                {/* 3. Results Section */}
-                {generatedReport && (
-                    <div className="animate-in fade-in slide-in-from-bottom-6 duration-500">
-                        {/* Summary Stats Cards */}
-                        {generatedReport.length > 0 && (
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                                <div className="bg-violet-50/50 dark:bg-violet-900/10 p-4 rounded-2xl border border-violet-100 dark:border-violet-500/20">
-                                    <div className="flex items-center gap-3 mb-1">
-                                        <div className="p-2 bg-violet-100 dark:bg-violet-800 rounded-lg"><DollarSign className="w-4 h-4 text-violet-600 dark:text-violet-300" /></div>
-                                        <span className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">Total Cost</span>
-                                    </div>
-                                    <div className="text-2xl font-black text-slate-800 dark:text-white">Rs. {summaryStats.cost.toFixed(2)}</div>
-                                </div>
-                                <div className="bg-emerald-50/50 dark:bg-emerald-900/10 p-4 rounded-2xl border border-emerald-100 dark:border-emerald-500/20">
-                                    <div className="flex items-center gap-3 mb-1">
-                                        <div className="p-2 bg-emerald-100 dark:bg-emerald-800 rounded-lg"><Clock className="w-4 h-4 text-emerald-600 dark:text-emerald-300" /></div>
-                                        <span className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">Total Hours</span>
-                                    </div>
-                                    <div className="text-2xl font-black text-slate-800 dark:text-white">{summaryStats.hours.toFixed(2)}h</div>
-                                </div>
-                                <div className="bg-blue-50/50 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-500/20">
-                                    <div className="flex items-center gap-3 mb-1">
-                                        <div className="p-2 bg-blue-100 dark:bg-blue-800 rounded-lg"><Users className="w-4 h-4 text-blue-600 dark:text-blue-300" /></div>
-                                        <span className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">Freelancers</span>
-                                    </div>
-                                    <div className="text-2xl font-black text-slate-800 dark:text-white">{summaryStats.freelancers}</div>
-                                </div>
+                <div className="p-8">
+                    {/* 1. Header Section */}
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl shadow-lg shadow-violet-500/20 text-white">
+                                <PieChart className="w-6 h-6" />
                             </div>
-                        )}
+                            <div>
+                                <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-400">
+                                    Financial Reports
+                                </h3>
+                                <p className="text-sm font-medium text-slate-500 dark:text-gray-400">
+                                    Generate payout statements & analyze costs
+                                </p>
+                            </div>
+                        </div>
+                    </div>
 
-                        {/* Freelancer List */}
-                        <div className="bg-white/40 dark:bg-black/20 rounded-2xl border border-white/50 dark:border-white/5 overflow-hidden backdrop-blur-sm">
-                            {generatedReport.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center p-12 text-center">
-                                    <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
-                                        <TrendingUp className="w-8 h-8 text-slate-400" />
+                    {/* 2. Controls Section (Glassmorphism Inputs) */}
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-8 p-1">
+                        <div className="md:col-span-4 group relative">
+                            <label className="absolute -top-2.5 left-4 bg-white dark:bg-gray-900 px-2 text-xs font-bold text-violet-600 z-10 transition-all">START DATE</label>
+                            <div className="flex items-center bg-white/50 dark:bg-black/20 border-2 border-transparent group-hover:border-violet-500/50 rounded-2xl focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all duration-300">
+                                <Calendar className="w-5 h-5 text-slate-400 ml-4" />
+                                <input
+                                    type="date"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    className="w-full p-4 bg-transparent outline-none text-slate-700 dark:text-white font-medium cursor-pointer dark:[color-scheme:dark]"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="md:col-span-4 group relative">
+                            <label className="absolute -top-2.5 left-4 bg-white dark:bg-gray-900 px-2 text-xs font-bold text-violet-600 z-10 transition-all">END DATE</label>
+                            <div className="flex items-center bg-white/50 dark:bg-black/20 border-2 border-transparent group-hover:border-violet-500/50 rounded-2xl focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all duration-300">
+                                <Calendar className="w-5 h-5 text-slate-400 ml-4" />
+                                <input
+                                    type="date"
+                                    value={endDate}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                    className="w-full p-4 bg-transparent outline-none text-slate-700 dark:text-white font-medium cursor-pointer dark:[color-scheme:dark]"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="md:col-span-4">
+                            <button
+                                onClick={handleCalculate}
+                                className="w-full h-full min-h-[56px] flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-900 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-black rounded-2xl font-bold text-lg shadow-xl shadow-slate-500/10 hover:shadow-slate-500/20 active:scale-[0.98] transition-all duration-200"
+                            >
+                                <Calculator className="w-5 h-5" />
+                                Run Analysis
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* 3. Results Section */}
+                    {generatedReport && (
+                        <div className="animate-in fade-in slide-in-from-bottom-6 duration-500">
+                            {/* Summary Stats Cards */}
+                            {generatedReport.length > 0 && (
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                    <div className="bg-violet-50/50 dark:bg-violet-900/10 p-4 rounded-2xl border border-violet-100 dark:border-violet-500/20">
+                                        <div className="flex items-center gap-3 mb-1">
+                                            <div className="p-2 bg-violet-100 dark:bg-violet-800 rounded-lg"><DollarSign className="w-4 h-4 text-violet-600 dark:text-violet-300" /></div>
+                                            <span className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">Total Cost</span>
+                                        </div>
+                                        <div className="text-2xl font-black text-slate-800 dark:text-white">Rs. {summaryStats.cost.toFixed(2)}</div>
                                     </div>
-                                    <h4 className="text-lg font-bold text-slate-700 dark:text-slate-300">No Data Available</h4>
-                                    <p className="text-slate-500">Try adjusting your date range to see results.</p>
+                                    <div className="bg-emerald-50/50 dark:bg-emerald-900/10 p-4 rounded-2xl border border-emerald-100 dark:border-emerald-500/20">
+                                        <div className="flex items-center gap-3 mb-1">
+                                            <div className="p-2 bg-emerald-100 dark:bg-emerald-800 rounded-lg"><Clock className="w-4 h-4 text-emerald-600 dark:text-emerald-300" /></div>
+                                            <span className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">Total Hours</span>
+                                        </div>
+                                        <div className="text-2xl font-black text-slate-800 dark:text-white">{summaryStats.hours.toFixed(2)}h</div>
+                                    </div>
+                                    <div className="bg-blue-50/50 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-500/20">
+                                        <div className="flex items-center gap-3 mb-1">
+                                            <div className="p-2 bg-blue-100 dark:bg-blue-800 rounded-lg"><Users className="w-4 h-4 text-blue-600 dark:text-blue-300" /></div>
+                                            <span className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">Freelancers</span>
+                                        </div>
+                                        <div className="text-2xl font-black text-slate-800 dark:text-white">{summaryStats.freelancers}</div>
+                                    </div>
                                 </div>
+                            )}
+
+                            {/* Freelancer List */}
+                            <div className="bg-white/40 dark:bg-black/20 rounded-2xl border border-white/50 dark:border-white/5 overflow-hidden backdrop-blur-sm">
+                                {generatedReport.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center p-12 text-center">
+                                        <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+                                            <TrendingUp className="w-8 h-8 text-slate-400" />
+                                        </div>
+                                        <h4 className="text-lg font-bold text-slate-700 dark:text-slate-300">No Data Available</h4>
+                                        <p className="text-slate-500">Try adjusting your date range to see results.</p>
+                                    </div>
+                                ) : (
+                                    <table className="w-full text-left border-collapse">
+                                        <thead className="bg-slate-50/80 dark:bg-white/5 border-b border-white/20 dark:border-white/5 text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">
+                                            <tr>
+                                                <th className="p-5">Freelancer</th>
+                                                <th className="p-5 text-right">Performance</th>
+                                                <th className="p-5 text-right">Payout</th>
+                                                <th className="p-5 text-center">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-white/40 dark:divide-white/5">
+                                            {generatedReport.map((user, idx) => (
+                                                <tr key={user.id} className="group hover:bg-violet-50/40 dark:hover:bg-violet-900/10 transition-all duration-200">
+                                                    <td className="p-5">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center text-white font-bold shadow-md">
+                                                                {user.name.charAt(0)}
+                                                            </div>
+                                                            <div>
+                                                                <div className="font-bold text-slate-800 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
+                                                                    {user.name}
+                                                                </div>
+                                                                <div className="text-xs text-slate-500">{user.email}</div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-5 text-right">
+                                                        <div className="font-mono font-bold text-slate-700 dark:text-slate-300">{user.totalHours.toFixed(2)} hrs</div>
+                                                        <div className="text-xs text-slate-400">@ Rs.{user.rate}/hr</div>
+                                                    </td>
+                                                    <td className="p-5 text-right">
+                                                        <div className="inline-block px-3 py-1 rounded-lg bg-emerald-100/50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 font-bold border border-emerald-200 dark:border-emerald-800">
+                                                            Rs. {user.totalCost.toFixed(2)}
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-5 text-center">
+                                                        <button
+                                                            onClick={() => openBillingModal(user)}
+                                                            className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-medium text-sm transition-all shadow-lg shadow-violet-500/20"
+                                                        >
+                                                            <Eye className="w-4 h-4" /> View & Pay
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* BILLING MODAL */}
+            {isModalOpen && selectedUser && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}></div>
+                    <div className="relative w-full max-w-2xl bg-white dark:bg-gray-900 p-6 rounded-3xl shadow-2xl animate-in zoom-in duration-200 border border-white/20">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Pending Hours</h2>
+                                <p className="text-slate-500">Select hours to pay for <span className="text-violet-600 font-bold">{selectedUser.name}</span></p>
+                            </div>
+                            <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="max-h-[50vh] overflow-y-auto mb-6 bg-slate-50 dark:bg-black/20 rounded-2xl p-4">
+                            {selectedUser.logs.length === 0 ? (
+                                <div className="text-center p-8 text-slate-500">No logs found.</div>
                             ) : (
-                                <table className="w-full text-left border-collapse">
-                                    <thead className="bg-slate-50/80 dark:bg-white/5 border-b border-white/20 dark:border-white/5 text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">
-                                        <tr>
-                                            <th className="p-5">Freelancer</th>
-                                            <th className="p-5 text-right">Performance</th>
-                                            <th className="p-5 text-right">Payout</th>
-                                            <th className="p-5 text-center">Export</th>
+                                <table className="w-full text-left">
+                                    <thead>
+                                        <tr className="text-xs uppercase text-slate-500 border-b border-gray-200 dark:border-gray-700">
+                                            <th className="pb-3 pl-2">
+                                                <input
+                                                    type="checkbox"
+                                                    className="rounded border-gray-300 text-violet-600 focus:ring-violet-500"
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) setSelectedLogs(selectedUser.logs.map(l => l._id));
+                                                        else setSelectedLogs([]);
+                                                    }}
+                                                    checked={selectedLogs.length === selectedUser.logs.length && selectedUser.logs.length > 0}
+                                                />
+                                            </th>
+                                            <th className="pb-3">Date</th>
+                                            <th className="pb-3">Task / Description</th>
+                                            <th className="pb-3 text-right">Hours</th>
+                                            <th className="pb-3 text-right">Cost</th>
+                                            <th className="pb-3 text-center">Status</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-white/40 dark:divide-white/5">
-                                        {generatedReport.map((user, idx) => (
-                                            <tr key={user.id} className="group hover:bg-violet-50/40 dark:hover:bg-violet-900/10 transition-all duration-200">
-                                                <td className="p-5">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center text-white font-bold shadow-md">
-                                                            {user.name.charAt(0)}
-                                                        </div>
-                                                        <div>
-                                                            <div className="font-bold text-slate-800 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
-                                                                {user.name}
-                                                            </div>
-                                                            <div className="text-xs text-slate-500">{user.email}</div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="p-5 text-right">
-                                                    <div className="font-mono font-bold text-slate-700 dark:text-slate-300">{user.totalHours.toFixed(2)} hrs</div>
-                                                    <div className="text-xs text-slate-400">@ Rs.{user.rate}/hr</div>
-                                                </td>
-                                                <td className="p-5 text-right">
-                                                    <div className="inline-block px-3 py-1 rounded-lg bg-emerald-100/50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 font-bold border border-emerald-200 dark:border-emerald-800">
-                                                        Rs. {user.totalCost.toFixed(2)}
-                                                    </div>
-                                                </td>
-                                                <td className="p-5 text-center">
-                                                    <button
-                                                        onClick={() => generatePDF(user)}
-                                                        className="p-2 text-slate-400 hover:text-violet-600 hover:bg-white dark:hover:bg-white/10 rounded-xl transition-all active:scale-95"
-                                                        title="Download Payout Statement"
-                                                    >
-                                                        <Download className="w-5 h-5" />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                        {selectedUser.logs.map(log => {
+                                            const isSelected = selectedLogs.includes(log._id);
+                                            const isPaid = log.status === 'paid';
+                                            const isSent = log.status === 'billed';
+
+                                            return (
+                                                <tr key={log._id} className={`hover:bg-white dark:hover:bg-white/5 transition-colors ${isSelected ? 'bg-violet-50/50 dark:bg-violet-900/10' : ''}`}>
+                                                    <td className="py-3 pl-2">
+                                                        {!isPaid && (
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isSelected}
+                                                                onChange={() => toggleLogSelection(log._id)}
+                                                                className="rounded border-gray-300 text-violet-600 focus:ring-violet-500"
+                                                            />
+                                                        )}
+                                                    </td>
+                                                    <td className="py-3 text-sm text-slate-600 dark:text-gray-300">{new Date(log.startTime).toLocaleDateString()}</td>
+                                                    <td className="py-3 text-sm text-slate-800 dark:text-white font-medium">{log.description}</td>
+                                                    <td className="py-3 text-sm text-right font-mono">{log.durationHours.toFixed(2)}</td>
+                                                    <td className="py-3 text-sm text-right font-mono text-slate-600">Rs. {(log.durationHours * selectedUser.rate).toFixed(2)}</td>
+                                                    <td className="py-3 text-center">
+                                                        {isPaid ? (
+                                                            <span className="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded-full">Paid</span>
+                                                        ) : isSent ? (
+                                                            <span className="text-xs font-bold text-amber-600 bg-amber-100 px-2 py-1 rounded-full">Billed</span>
+                                                        ) : (
+                                                            <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-full">Unbilled</span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             )}
                         </div>
+
+                        <div className="flex flex-col md:flex-row gap-4 items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-800">
+                            <div>
+                                <div className="text-sm text-slate-500">Selected Total</div>
+                                <div className="text-2xl font-bold text-slate-800 dark:text-white">
+                                    Rs. {(selectedUser.logs.filter(l => selectedLogs.includes(l._id)).reduce((sum, l) => sum + (l.durationHours * selectedUser.rate), 0)).toFixed(2)}
+                                </div>
+                            </div>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => handleProcessPayment('bill')}
+                                    className="px-6 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-slate-700 dark:text-white rounded-xl font-bold transition-colors"
+                                >
+                                    Generate Bill
+                                </button>
+                                <button
+                                    onClick={() => handleProcessPayment('pay')}
+                                    className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-500/30 transition-all active:scale-95 flex items-center gap-2"
+                                >
+                                    <CheckCircle className="w-5 h-5" /> Pay Now
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                )}
-            </div>
-        </div>
+                </div>
+            )}
+        </>
     );
 };
 

@@ -233,18 +233,24 @@ const ProjectDetails = () => {
                 <div className={`fixed inset-0 z-50 md:hidden pointer-events-none`}>
                     <div className={`absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0'}`} onClick={() => setIsMobileMenuOpen(false)} />
                     <div className={`absolute top-0 left-0 w-72 h-full ${GLASS_CLASSES} transform transition-transform duration-300 ease-out pointer-events-auto ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-                        <Sidebar mobile={true} closeMobile={() => setIsMobileMenuOpen(false)} darkMode={darkMode} toggleTheme={toggleTheme} handleLogout={handleLogout} />
+                        <Sidebar mobile={true} closeMobile={() => setIsMobileMenuOpen(false)} darkMode={darkMode} toggleTheme={toggleTheme} handleLogout={handleLogout} user={user} />
                     </div>
                 </div>
 
+                <button
+                    onClick={() => setIsMobileMenuOpen(true)}
+                    className={`fixed top-4 right-4 z-50 md:hidden ${GLASS_CLASSES} p-2 rounded-lg text-gray-600 dark:text-gray-300 shadow-lg`}
+                >
+                    <Menu className="w-6 h-6" />
+                </button>
+
                 <aside className={`w-72 hidden md:block border-r border-white/20 dark:border-white/5 ${GLASS_CLASSES} z-10`}>
-                    <Sidebar mobile={false} darkMode={darkMode} toggleTheme={toggleTheme} handleLogout={handleLogout} />
+                    <Sidebar mobile={false} darkMode={darkMode} toggleTheme={toggleTheme} handleLogout={handleLogout} user={user} />
                 </aside>
 
                 <main className="flex-1 overflow-y-auto p-4 md:p-8 relative">
                     <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                        <div className="flex items-center gap-4">
-                            <button onClick={() => setIsMobileMenuOpen(true)} className={`${GLASS_CLASSES} p-2 rounded-lg text-gray-600 dark:text-gray-300 md:hidden`}><Menu className="w-6 h-6" /></button>
+                        <div className="flex items-center justify-between w-full md:w-auto gap-4">
                             <div>
                                 <h2 className="text-3xl font-bold text-slate-800 dark:text-white">Project Details</h2>
                                 <div className="flex items-center gap-2 text-slate-600 dark:text-gray-400 mt-1">
@@ -259,6 +265,7 @@ const ProjectDetails = () => {
                                     <span className="text-violet-600 dark:text-yellow-400">{project.title}</span>
                                 </div>
                             </div>
+
                         </div>
 
                         <div className="flex gap-3">
@@ -322,6 +329,7 @@ const ProjectDetails = () => {
                                     timeLogs={timeLogs}
                                     clientName={project.client?.name || 'Unknown Client'}
                                     applicants={project.applicants || []}
+                                    onRefresh={fetchProjectData}
                                 />
                             );
                         }
@@ -477,18 +485,28 @@ const ProjectDetails = () => {
                                                                 <th className="p-4">Date</th>
                                                                 <th className="p-4">Description</th>
                                                                 <th className="p-4 text-right">Duration</th>
+                                                                <th className="p-4 text-center">Status</th>
                                                                 <th className="p-4"></th>
                                                             </tr>
                                                         </thead>
                                                         <tbody className="divide-y divide-white/20 dark:divide-white/5">
                                                             {timeLogs.length === 0 ? (
-                                                                <tr><td colSpan="4" className="p-8 text-center opacity-50">No logs recorded.</td></tr>
+                                                                <tr><td colSpan="5" className="p-8 text-center opacity-50">No logs recorded.</td></tr>
                                                             ) : (
                                                                 timeLogs.map(log => (
                                                                     <tr key={log._id} className="hover:bg-white/30 dark:hover:bg-white/5">
                                                                         <td className="p-4 text-sm text-slate-800 dark:text-gray-300">{new Date(log.startTime).toLocaleDateString()}</td>
                                                                         <td className="p-4 text-sm text-slate-600 dark:text-gray-400">{log.description}</td>
                                                                         <td className="p-4 text-right font-bold text-slate-800 dark:text-gray-300">{log.durationHours?.toFixed(2)} hrs</td>
+                                                                        <td className="p-4 text-center">
+                                                                            {log.status === 'paid' ? (
+                                                                                <span className="text-xs font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-1 rounded-full">Paid</span>
+                                                                            ) : log.status === 'billed' ? (
+                                                                                <span className="text-xs font-bold text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-1 rounded-full">Billed</span>
+                                                                            ) : (
+                                                                                <span className="text-xs font-bold text-slate-500 bg-slate-100 dark:bg-white/10 dark:text-slate-400 px-2 py-1 rounded-full">Unbilled</span>
+                                                                            )}
+                                                                        </td>
                                                                         <td className="p-4 text-right">
                                                                             <button onClick={() => handleDeleteLog(log._id)} className="text-red-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
                                                                         </td>

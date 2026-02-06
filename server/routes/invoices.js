@@ -102,7 +102,7 @@ router.post('/', verifyToken, async (req, res) => {
 // ✅ NEW: CREATE & RECORD INVOICE (Transaction-like)
 router.post('/create', verifyToken, async (req, res) => {
   try {
-    const { projectId, freelancerId, logIds, amount, hours, date } = req.body;
+    const { projectId, freelancerId, logIds, amount, hours, date, status } = req.body; // Added status
 
     if (!projectId || !freelancerId || !amount) {
       return res.status(400).json({ message: 'Missing required fields' });
@@ -112,6 +112,7 @@ router.post('/create', verifyToken, async (req, res) => {
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
     const invoiceNumber = await generateInvoiceNumber();
+    const invoiceStatus = status === 'paid' ? 'paid' : 'sent';
 
     // Create Invoice
     const newInvoice = new Invoice({
@@ -120,21 +121,30 @@ router.post('/create', verifyToken, async (req, res) => {
       client: project.client._id, // Bill From Project Owner
       freelancer: freelancerId,   // Bill To Freelancer
       totalAmount: amount,
-      subtotal: amount,           // For now assuming no tax logic in this flow unless specified
+      subtotal: amount,
       totalHours: hours,
       logs: logIds,
-      dueDate: date || new Date(), // Immediate record
-      status: 'sent',              // It's a record of a generated statement
-      items: [],                   // Optional: could populate from logs if needed, but keeping simple for now
+      dueDate: date || new Date(),
+      status: invoiceStatus,
+      paidDate: status === 'paid' ? new Date() : null, // Set paidDate if paid immediately
+      items: [],
     });
 
     const savedInvoice = await newInvoice.save();
 
     // Update TimeLogs
     if (logIds && logIds.length > 0) {
+      const logStatus = status === 'paid' ? 'paid' : 'billed';
+
       await TimeLog.updateMany(
         { _id: { $in: logIds } },
-        { $set: { billed: true } }
+        {
+          $set: {
+            billed: true,
+            status: logStatus,
+            invoice: savedInvoice._id
+          }
+        }
       );
     }
 

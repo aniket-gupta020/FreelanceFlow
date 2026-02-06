@@ -7,6 +7,7 @@ import {
   Trash2, Menu, X, Sun, Moon, LogOut, Download, AlertTriangle,
   CheckCircle, AlertCircle, Send, CheckSquare, User, ArrowDownCircle, ArrowUpCircle
 } from 'lucide-react';
+import Sidebar from '../components/Sidebar';
 
 const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
 const CARD_HOVER = "hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-out";
@@ -277,44 +278,7 @@ export default function Invoices() {
 
   const displayedInvoices = activeTab === 'received' ? receivedInvoices : paidInvoices;
 
-  const NavContent = ({ mobile = false }) => (
-    <div className="flex flex-col h-full">
-      <div className="p-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-violet-600 dark:text-yellow-400 flex items-center gap-2">
-          <LayoutDashboard className="w-8 h-8" /> FreelanceFlow
-        </h1>
-        {mobile && <button onClick={() => setIsMobileMenuOpen(false)}><X className="w-6 h-6 dark:text-white" /></button>}
-      </div>
-      <nav className="mt-2 px-4 space-y-3 flex-1">
-        <Link to="/" className="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-gray-400 hover:bg-white/20 dark:hover:bg-white/5 rounded-xl font-medium transition-all">
-          <LayoutDashboard className="w-5 h-5" /> Dashboard
-        </Link>
-        <Link to="/tasks" className="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-gray-400 hover:bg-white/20 dark:hover:bg-white/5 rounded-xl font-medium transition-all">
-          <CheckSquare className="w-5 h-5" /> Tasks
-        </Link>
-        <Link to="/clients" className="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-gray-400 hover:bg-white/20 dark:hover:bg-white/5 rounded-xl font-medium transition-all">
-          <Users className="w-5 h-5" /> Clients
-        </Link>
-        <Link to="/time" className="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-gray-400 hover:bg-white/20 dark:hover:bg-white/5 rounded-xl font-medium transition-all">
-          <Clock className="w-5 h-5" /> Time Tracking
-        </Link>
-        <div className="flex items-center gap-3 px-4 py-3 bg-violet-600 dark:bg-yellow-500 text-white dark:text-black rounded-xl font-medium shadow-lg shadow-indigo-500/20">
-          <IndianRupee className="w-5 h-5" /> Invoices
-        </div>
-        <Link to="/profile" className="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-gray-400 hover:bg-white/20 dark:hover:bg-white/5 rounded-xl font-medium transition-all">
-          <User className="w-5 h-5" /> Profile
-        </Link>
-      </nav>
-      <div className="p-4 border-t border-white/20 dark:border-white/5 space-y-3">
-        <button onClick={toggleTheme} className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-gray-400 hover:bg-white/20 dark:hover:bg-white/5 rounded-xl font-medium transition-all">
-          {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />} {darkMode ? "Light Mode" : "Dark Mode"}
-        </button>
-        <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-500/10 rounded-xl font-medium transition-all">
-          <LogOut className="w-5 h-5" /> Log Out
-        </button>
-      </div>
-    </div>
-  );
+
 
   return (
     <div className="min-h-screen transition-colors duration-500 bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-gray-900 dark:via-black dark:to-gray-900 select-none">
@@ -323,12 +287,19 @@ export default function Invoices() {
         <div className={`fixed inset-0 z-50 md:hidden pointer-events-none`}>
           <div className={`absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0'}`} onClick={() => setIsMobileMenuOpen(false)} />
           <div className={`absolute top-0 left-0 w-72 h-full ${GLASS_CLASSES} transform transition-transform duration-300 ease-out pointer-events-auto ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-            <NavContent mobile={true} />
+            <Sidebar mobile={true} closeMobile={() => setIsMobileMenuOpen(false)} darkMode={darkMode} toggleTheme={toggleTheme} handleLogout={handleLogout} user={user} />
           </div>
         </div>
 
+        <button
+          onClick={() => setIsMobileMenuOpen(true)}
+          className={`fixed top-4 right-4 z-50 md:hidden ${GLASS_CLASSES} p-2 rounded-lg text-gray-600 dark:text-gray-300 shadow-lg`}
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+
         <aside className={`w-72 hidden md:block border-r border-white/20 dark:border-white/5 ${GLASS_CLASSES} z-10`}>
-          <NavContent />
+          <Sidebar mobile={false} darkMode={darkMode} toggleTheme={toggleTheme} handleLogout={handleLogout} user={user} />
         </aside>
 
         <main className="flex-1 overflow-y-auto p-4 md:p-8 relative">
@@ -337,7 +308,7 @@ export default function Invoices() {
               <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Transaction History</h2>
               <p className="text-slate-600 dark:text-gray-400">Track your income and expenses</p>
             </div>
-            <button onClick={() => setIsMobileMenuOpen(true)} className={`${GLASS_CLASSES} p-2 rounded-lg text-gray-600 dark:text-gray-300 md:hidden`}><Menu className="w-6 h-6" /></button>
+
           </header>
 
           <div className="max-w-5xl mx-auto">

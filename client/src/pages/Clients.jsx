@@ -113,9 +113,16 @@ const Clients = () => {
         <div className={`fixed inset-0 z-50 md:hidden pointer-events-none`}>
           <div className={`absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0'}`} onClick={() => setIsMobileMenuOpen(false)} />
           <div className={`absolute top-0 left-0 w-72 h-full ${GLASS_CLASSES} transform transition-transform duration-300 ease-out pointer-events-auto ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-            <Sidebar mobile={true} closeMobile={() => setIsMobileMenuOpen(false)} darkMode={darkMode} toggleTheme={toggleTheme} handleLogout={handleLogout} />
+            <Sidebar mobile={true} closeMobile={() => setIsMobileMenuOpen(false)} darkMode={darkMode} toggleTheme={toggleTheme} handleLogout={handleLogout} user={storedUser} />
           </div>
         </div>
+
+        <button
+          onClick={() => setIsMobileMenuOpen(true)}
+          className={`fixed top-4 right-4 z-50 md:hidden ${GLASS_CLASSES} p-2 rounded-lg text-gray-600 dark:text-gray-300 shadow-lg`}
+        >
+          <Menu className="w-6 h-6" />
+        </button>
 
         <aside className={`w-72 hidden md:block border-r border-white/20 dark:border-white/5 ${GLASS_CLASSES} z-10`}>
           <Sidebar
@@ -123,6 +130,7 @@ const Clients = () => {
             darkMode={darkMode}
             toggleTheme={toggleTheme}
             handleLogout={handleLogout}
+            user={storedUser}
           />
         </aside>
 
@@ -132,7 +140,7 @@ const Clients = () => {
               <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Clients</h2>
               <p className="text-slate-600 dark:text-gray-400">People working on your projects</p>
             </div>
-            <button onClick={() => setIsMobileMenuOpen(true)} className={`${GLASS_CLASSES} p-2 rounded-lg text-gray-600 dark:text-gray-300 md:hidden`}><Menu className="w-6 h-6" /></button>
+
           </header>
 
           {clients.length === 0 ? (

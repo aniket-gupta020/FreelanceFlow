@@ -4,12 +4,22 @@ import { Calendar, AlertCircle } from 'lucide-react';
 
 const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
 
-export default function UpcomingDeadlines() {
+const SAMPLE_TASKS = [
+  { _id: 't1', title: 'Finalize Mockups', project: { title: 'E-Commerce Redesign' }, dueDate: new Date(Date.now() + 86400000 * 2).toISOString() },
+  { _id: 't2', title: 'Database Schema', project: { title: 'Mobile App MVP' }, dueDate: new Date(Date.now() + 86400000 * 5).toISOString() },
+  { _id: 't3', title: 'Client Meeting', project: { title: 'Consulting' }, dueDate: new Date(Date.now() + 86400000 * 1).toISOString() }
+];
+
+export default function UpcomingDeadlines({ isSampleMode }) {
   const [tasks, setTasks] = useState([]);
 
   useEffect(() => {
-    fetchUpcomingTasks();
-  }, []);
+    if (isSampleMode) {
+      setTasks(SAMPLE_TASKS);
+    } else {
+      fetchUpcomingTasks();
+    }
+  }, [isSampleMode]);
 
   const fetchUpcomingTasks = async () => {
     try {

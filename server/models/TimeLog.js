@@ -30,6 +30,15 @@ const TimeLogSchema = new mongoose.Schema({
   billed: {
     type: Boolean,
     default: false
+  },
+  status: {
+    type: String,
+    enum: ['unbilled', 'billed', 'paid'],
+    default: 'unbilled'
+  },
+  invoice: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Invoice'
   }
 }, { timestamps: true });
 

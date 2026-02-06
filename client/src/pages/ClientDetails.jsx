@@ -158,27 +158,32 @@ const ClientDetails = () => {
                 <div className={`fixed inset-0 z-50 md:hidden pointer-events-none`}>
                     <div className={`absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0'}`} onClick={() => setIsMobileMenuOpen(false)} />
                     <div className={`absolute top-0 left-0 w-72 h-full ${GLASS_CLASSES} transform transition-transform duration-300 ease-out pointer-events-auto ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-                        <Sidebar mobile={true} closeMobile={() => setIsMobileMenuOpen(false)} darkMode={darkMode} toggleTheme={toggleTheme} handleLogout={handleLogout} />
+                        <Sidebar mobile={true} closeMobile={() => setIsMobileMenuOpen(false)} darkMode={darkMode} toggleTheme={toggleTheme} handleLogout={handleLogout} user={storedUser} />
                     </div>
                 </div>
 
+                <button
+                    onClick={() => setIsMobileMenuOpen(true)}
+                    className={`fixed top-4 right-4 z-50 md:hidden ${GLASS_CLASSES} p-2 rounded-lg text-gray-600 dark:text-gray-300 shadow-lg`}
+                >
+                    <Menu className="w-6 h-6" />
+                </button>
+
                 <aside className={`w-72 hidden md:block border-r border-white/20 dark:border-white/5 ${GLASS_CLASSES} z-10`}>
-                    <Sidebar mobile={false} darkMode={darkMode} toggleTheme={toggleTheme} handleLogout={handleLogout} />
+                    <Sidebar mobile={false} darkMode={darkMode} toggleTheme={toggleTheme} handleLogout={handleLogout} user={storedUser} />
                 </aside>
 
                 <main className="flex-1 overflow-y-auto p-4 md:p-8 relative">
-                    <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                        <div className="flex items-center gap-4">
-                            <button onClick={() => setIsMobileMenuOpen(true)} className={`${GLASS_CLASSES} p-2 rounded-lg text-gray-600 dark:text-gray-300 md:hidden`}><Menu className="w-6 h-6" /></button>
-                            <div>
-                                <h2 className="text-3xl font-bold text-slate-800 dark:text-white">Client Details</h2>
-                                <div className="flex items-center gap-2 text-slate-600 dark:text-gray-400 mt-1">
-                                    <Link to="/clients" className="hover:underline">My Freelancers</Link>
-                                    <span>/</span>
-                                    <span className="text-violet-600 dark:text-yellow-400">{freelancer?.name || 'Unknown'}</span>
-                                </div>
+                    <header className="flex justify-between items-start md:items-center mb-8 gap-4">
+                        <div>
+                            <h2 className="text-3xl font-bold text-slate-800 dark:text-white">Client Details</h2>
+                            <div className="flex items-center gap-2 text-slate-600 dark:text-gray-400 mt-1">
+                                <Link to="/clients" className="hover:underline">My Freelancers</Link>
+                                <span>/</span>
+                                <span className="text-violet-600 dark:text-yellow-400">{freelancer?.name || 'Unknown'}</span>
                             </div>
                         </div>
+
 
 
                     </header>
@@ -362,105 +367,107 @@ const ClientDetails = () => {
             </div>
 
             {/* Invoice Details Modal */}
-            {showInvoiceDetails && selectedInvoice && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4" onClick={() => setShowInvoiceDetails(false)}>
-                    <div
-                        className={`${GLASS_CLASSES} rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto relative bg-white dark:bg-gray-900 shadow-2xl animate-in zoom-in-95 duration-200`}
-                        onClick={e => e.stopPropagation()}
-                    >
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
-                                {selectedInvoice.invoiceNumber || `INV-${selectedInvoice._id.substring(0, 6).toUpperCase()}`}
-                            </h2>
-                            <button
-                                onClick={() => setShowInvoiceDetails(false)}
-                                className="p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition"
-                            >
-                                <X className="w-5 h-5 dark:text-white" />
-                            </button>
-                        </div>
-
-                        <div className="space-y-6">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="p-4 bg-white/30 dark:bg-white/5 rounded-xl">
-                                    <p className="text-slate-600 dark:text-gray-400 text-xs font-bold uppercase mb-1">Freelancer</p>
-                                    <p className="text-slate-800 dark:text-white font-semibold">{selectedInvoice.freelancer?.name}</p>
-                                </div>
-                                <div className="p-4 bg-white/30 dark:bg-white/5 rounded-xl">
-                                    <p className="text-slate-600 dark:text-gray-400 text-xs font-bold uppercase mb-1">Client</p>
-                                    <p className="text-slate-800 dark:text-white font-semibold">{selectedInvoice.client?.name}</p>
-                                </div>
-                                <div className="p-4 bg-white/30 dark:bg-white/5 rounded-xl">
-                                    <p className="text-slate-600 dark:text-gray-400 text-xs font-bold uppercase mb-1">Date</p>
-                                    <p className="text-slate-800 dark:text-white font-semibold">{new Date(selectedInvoice.createdAt).toLocaleDateString()}</p>
-                                </div>
-                                <div className="p-4 bg-white/30 dark:bg-white/5 rounded-xl">
-                                    <p className="text-slate-600 dark:text-gray-400 text-xs font-bold uppercase mb-1">Status</p>
-                                    <p className={`font-bold uppercase ${selectedInvoice.status === 'paid' ? 'text-emerald-500' : 'text-slate-800 dark:text-white'}`}>
-                                        {selectedInvoice.status}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {selectedInvoice.items && selectedInvoice.items.length > 0 ? (
-                                <div>
-                                    <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-3">Items</h3>
-                                    <div className="overflow-x-auto rounded-xl border border-white/20">
-                                        <table className="w-full text-sm">
-                                            <thead className="bg-black/5 dark:bg-white/10">
-                                                <tr>
-                                                    <th className="text-left py-3 px-4 text-slate-600 dark:text-gray-300 font-bold">Description</th>
-                                                    <th className="text-right py-3 px-4 text-slate-600 dark:text-gray-300 font-bold">Hours</th>
-                                                    <th className="text-right py-3 px-4 text-slate-600 dark:text-gray-300 font-bold">Rate</th>
-                                                    <th className="text-right py-3 px-4 text-slate-600 dark:text-gray-300 font-bold">Amount</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-white/10">
-                                                {selectedInvoice.items.map((item, idx) => (
-                                                    <tr key={idx}>
-                                                        <td className="py-3 px-4 text-slate-800 dark:text-white">{item.description}</td>
-                                                        <td className="text-right py-3 px-4 text-slate-800 dark:text-white">{item.hours?.toFixed(2)}</td>
-                                                        <td className="text-right py-3 px-4 text-slate-800 dark:text-white">₹{item.hourlyRate?.toFixed(2)}</td>
-                                                        <td className="text-right py-3 px-4 text-slate-800 dark:text-white font-bold">₹{item.amount?.toFixed(2)}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="p-6 bg-white/20 dark:bg-white/5 rounded-xl text-center">
-                                    <p className="text-slate-500">No line items detailed (Flat amount).</p>
-                                </div>
-                            )}
-
-                            <div className="bg-violet-50 dark:bg-white/5 p-6 rounded-xl space-y-3">
-                                <div className="flex justify-between items-center">
-                                    <p className="text-slate-800 dark:text-white font-bold text-lg">Total Amount</p>
-                                    <p className="text-2xl font-bold text-violet-600 dark:text-yellow-400">
-                                        ₹{selectedInvoice.totalAmount.toFixed(2)}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="flex gap-3 justify-end pt-4 border-t border-white/10">
-                                <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 shadow-lg active:scale-95 bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black"
-                                    onClick={() => window.print()}
-                                >
-                                    <Download className="w-5 h-5" /> Print / PDF
-                                </button>
+            {
+                showInvoiceDetails && selectedInvoice && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4" onClick={() => setShowInvoiceDetails(false)}>
+                        <div
+                            className={`${GLASS_CLASSES} rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto relative bg-white dark:bg-gray-900 shadow-2xl animate-in zoom-in-95 duration-200`}
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
+                                    {selectedInvoice.invoiceNumber || `INV-${selectedInvoice._id.substring(0, 6).toUpperCase()}`}
+                                </h2>
                                 <button
                                     onClick={() => setShowInvoiceDetails(false)}
-                                    className="flex-1 px-4 py-2 bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-white/20 rounded-xl font-medium text-sm transition-colors"
+                                    className="p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition"
                                 >
-                                    Close
+                                    <X className="w-5 h-5 dark:text-white" />
                                 </button>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="p-4 bg-white/30 dark:bg-white/5 rounded-xl">
+                                        <p className="text-slate-600 dark:text-gray-400 text-xs font-bold uppercase mb-1">Freelancer</p>
+                                        <p className="text-slate-800 dark:text-white font-semibold">{selectedInvoice.freelancer?.name}</p>
+                                    </div>
+                                    <div className="p-4 bg-white/30 dark:bg-white/5 rounded-xl">
+                                        <p className="text-slate-600 dark:text-gray-400 text-xs font-bold uppercase mb-1">Client</p>
+                                        <p className="text-slate-800 dark:text-white font-semibold">{selectedInvoice.client?.name}</p>
+                                    </div>
+                                    <div className="p-4 bg-white/30 dark:bg-white/5 rounded-xl">
+                                        <p className="text-slate-600 dark:text-gray-400 text-xs font-bold uppercase mb-1">Date</p>
+                                        <p className="text-slate-800 dark:text-white font-semibold">{new Date(selectedInvoice.createdAt).toLocaleDateString()}</p>
+                                    </div>
+                                    <div className="p-4 bg-white/30 dark:bg-white/5 rounded-xl">
+                                        <p className="text-slate-600 dark:text-gray-400 text-xs font-bold uppercase mb-1">Status</p>
+                                        <p className={`font-bold uppercase ${selectedInvoice.status === 'paid' ? 'text-emerald-500' : 'text-slate-800 dark:text-white'}`}>
+                                            {selectedInvoice.status}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {selectedInvoice.items && selectedInvoice.items.length > 0 ? (
+                                    <div>
+                                        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-3">Items</h3>
+                                        <div className="overflow-x-auto rounded-xl border border-white/20">
+                                            <table className="w-full text-sm">
+                                                <thead className="bg-black/5 dark:bg-white/10">
+                                                    <tr>
+                                                        <th className="text-left py-3 px-4 text-slate-600 dark:text-gray-300 font-bold">Description</th>
+                                                        <th className="text-right py-3 px-4 text-slate-600 dark:text-gray-300 font-bold">Hours</th>
+                                                        <th className="text-right py-3 px-4 text-slate-600 dark:text-gray-300 font-bold">Rate</th>
+                                                        <th className="text-right py-3 px-4 text-slate-600 dark:text-gray-300 font-bold">Amount</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-white/10">
+                                                    {selectedInvoice.items.map((item, idx) => (
+                                                        <tr key={idx}>
+                                                            <td className="py-3 px-4 text-slate-800 dark:text-white">{item.description}</td>
+                                                            <td className="text-right py-3 px-4 text-slate-800 dark:text-white">{item.hours?.toFixed(2)}</td>
+                                                            <td className="text-right py-3 px-4 text-slate-800 dark:text-white">₹{item.hourlyRate?.toFixed(2)}</td>
+                                                            <td className="text-right py-3 px-4 text-slate-800 dark:text-white font-bold">₹{item.amount?.toFixed(2)}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="p-6 bg-white/20 dark:bg-white/5 rounded-xl text-center">
+                                        <p className="text-slate-500">No line items detailed (Flat amount).</p>
+                                    </div>
+                                )}
+
+                                <div className="bg-violet-50 dark:bg-white/5 p-6 rounded-xl space-y-3">
+                                    <div className="flex justify-between items-center">
+                                        <p className="text-slate-800 dark:text-white font-bold text-lg">Total Amount</p>
+                                        <p className="text-2xl font-bold text-violet-600 dark:text-yellow-400">
+                                            ₹{selectedInvoice.totalAmount.toFixed(2)}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3 justify-end pt-4 border-t border-white/10">
+                                    <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 shadow-lg active:scale-95 bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black"
+                                        onClick={() => window.print()}
+                                    >
+                                        <Download className="w-5 h-5" /> Print / PDF
+                                    </button>
+                                    <button
+                                        onClick={() => setShowInvoiceDetails(false)}
+                                        className="flex-1 px-4 py-2 bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-white/20 rounded-xl font-medium text-sm transition-colors"
+                                    >
+                                        Close
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };
 
