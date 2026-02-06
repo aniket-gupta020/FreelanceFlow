@@ -160,5 +160,5 @@ const sendEmail = async (email, otp, type = 'register') => {
     }
 };
 
-// 🛑 CHANGED EXPORT STYLE to match 'const sendEmail = require()' in auth.js
-module.exports = sendEmail;
+// ✅ THE FIX IS HERE: Use curly braces to export as an object
+module.exports = { sendEmail };
