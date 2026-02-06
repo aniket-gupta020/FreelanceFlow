@@ -1,12 +1,23 @@
 const nodemailer = require('nodemailer');
 
-// 🔵 GMAIL CONFIGURATION
+// 🔵 BREVO / SMTP CONFIGURATION (Cloud-Proof)
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: process.env.EMAIL_HOST || 'smtp-relay.brevo.com',
+    port: Number(process.env.EMAIL_PORT) || 587,
+    secure: false, // true for 465, false for other ports
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
-    }
+    },
+    // 🛡️ NETWORK HARDENING (Fix for Render ETIMEDOUT)
+    family: 4, // Force IPv4 (Critical for Render)
+    connectionTimeout: 10000, // 10 seconds
+    greetingTimeout: 5000,    // 5 seconds
+    socketTimeout: 10000,     // 10 seconds
+    dnsTimeout: 5000,         // 5 seconds
+    // 🔍 DEBUGGING
+    debug: true,
+    logger: true
 });
 
 /**
