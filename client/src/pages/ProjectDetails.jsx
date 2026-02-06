@@ -499,16 +499,21 @@ const ProjectDetails = () => {
                                                                         <td className="p-4 text-sm text-slate-600 dark:text-gray-400">{log.description}</td>
                                                                         <td className="p-4 text-right font-bold text-slate-800 dark:text-gray-300">{log.durationHours?.toFixed(2)} hrs</td>
                                                                         <td className="p-4 text-center">
-                                                                            {log.status === 'paid' ? (
-                                                                                <span className="text-xs font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-1 rounded-full">Paid</span>
-                                                                            ) : log.status === 'billed' ? (
-                                                                                <span className="text-xs font-bold text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-1 rounded-full">Billed</span>
-                                                                            ) : (
-                                                                                <span className="text-xs font-bold text-slate-500 bg-slate-100 dark:bg-white/10 dark:text-slate-400 px-2 py-1 rounded-full">Unbilled</span>
-                                                                            )}
+                                                                            {(() => {
+                                                                                if (log.status === 'paid') {
+                                                                                    return <span className="text-xs font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-1 rounded-full">Paid</span>;
+                                                                                } else if (log.status === 'billed' || log.billed === true) {
+                                                                                    return <span className="text-xs font-bold text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-1 rounded-full">Billed</span>;
+                                                                                } else {
+                                                                                    return <span className="text-xs font-bold text-slate-500 bg-slate-100 dark:bg-white/10 dark:text-slate-400 px-2 py-1 rounded-full">Unbilled</span>;
+                                                                                }
+                                                                            })()}
                                                                         </td>
                                                                         <td className="p-4 text-right">
-                                                                            <button onClick={() => handleDeleteLog(log._id)} className="text-red-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                                                                            {/* Only show delete button if NOT billed or paid */}
+                                                                            {!(log.status === 'paid' || log.status === 'billed' || log.billed === true) && (
+                                                                                <button onClick={() => handleDeleteLog(log._id)} className="text-red-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                                                                            )}
                                                                         </td>
                                                                     </tr>
                                                                 ))

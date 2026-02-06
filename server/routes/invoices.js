@@ -10,6 +10,7 @@ const generateInvoiceNumber = async () => {
   return `INV-${String(lastNumber + 1).padStart(5, '0')}`;
 };
 
+// 1️⃣ GET ALL INVOICES (Transaction History)
 router.get('/', verifyToken, async (req, res) => {
   try {
     const invoices = await Invoice.find({
@@ -18,6 +19,7 @@ router.get('/', verifyToken, async (req, res) => {
       .populate('project', 'title budget')
       .populate('client', 'name email')
       .populate('freelancer', 'name email')
+      .populate('logs') // ✅ See the work details
       .sort({ createdAt: -1 });
 
     res.status(200).json(invoices);
@@ -26,12 +28,17 @@ router.get('/', verifyToken, async (req, res) => {
   }
 });
 
+// 2️⃣ GET SINGLE INVOICE
 router.get('/:id', verifyToken, async (req, res) => {
   try {
     const invoice = await Invoice.findById(req.params.id)
       .populate('project', 'title budget deadline')
       .populate('client', 'name email')
-      .populate('freelancer', 'name email');
+      .populate('freelancer', 'name email')
+      .populate({
+        path: 'logs',
+        populate: { path: 'project', select: 'title' } // Deep populate to see project name in logs
+      });
 
     if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
 
@@ -49,60 +56,10 @@ router.get('/:id', verifyToken, async (req, res) => {
   }
 });
 
-router.post('/', verifyToken, async (req, res) => {
-  try {
-    const { projectId, clientId, items, taxPercentage, notes, dueDate } = req.body;
-    if (!projectId || !clientId || !items || items.length === 0) {
-      return res.status(400).json({ message: 'Missing required fields' });
-    }
-
-    const project = await Project.findById(projectId).populate('client');
-    if (!project) return res.status(404).json({ message: 'Project not found' });
-
-    const subtotal = items.reduce((sum, item) => sum + (item.amount || 0), 0);
-    const tax = taxPercentage ? (subtotal * taxPercentage) / 100 : 0;
-    const totalAmount = subtotal + tax;
-
-    const invoiceNumber = await generateInvoiceNumber();
-
-    const newInvoice = new Invoice({
-      invoiceNumber,
-      project: projectId,
-      client: clientId,
-      freelancer: req.user.id,
-      items,
-      subtotal,
-      taxPercentage: taxPercentage || 0,
-      taxAmount: tax,
-      totalAmount,
-      notes,
-      dueDate: dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days default
-    });
-
-    const savedInvoice = await newInvoice.save();
-
-    const timeLogIds = items
-      .filter(item => item.timeLogId)
-      .map(item => item.timeLogId);
-
-    if (timeLogIds.length > 0) {
-      await TimeLog.updateMany(
-        { _id: { $in: timeLogIds } },
-        { billed: true }
-      );
-    }
-
-    res.status(200).json(savedInvoice);
-  } catch (err) {
-    res.status(500).json(err);
-  }
-});
-
-
-// ✅ NEW: CREATE & RECORD INVOICE (Transaction-like)
+// 3️⃣ CREATE INVOICE (Granular - Selected Logs Only)
 router.post('/create', verifyToken, async (req, res) => {
   try {
-    const { projectId, freelancerId, logIds, amount, hours, date, status } = req.body; // Added status
+    const { projectId, freelancerId, logIds, amount, hours, date, status } = req.body;
 
     if (!projectId || !freelancerId || !amount) {
       return res.status(400).json({ message: 'Missing required fields' });
@@ -118,21 +75,22 @@ router.post('/create', verifyToken, async (req, res) => {
     const newInvoice = new Invoice({
       invoiceNumber,
       project: projectId,
-      client: project.client._id, // Bill From Project Owner
-      freelancer: freelancerId,   // Bill To Freelancer
+      client: project.client._id, // Payer (Project Owner)
+      freelancer: freelancerId,   // Payee (Worker)
       totalAmount: amount,
       subtotal: amount,
       totalHours: hours,
-      logs: logIds,
+      logs: logIds,               // ✅ Storing the specific IDs we selected
       dueDate: date || new Date(),
       status: invoiceStatus,
-      paidDate: status === 'paid' ? new Date() : null, // Set paidDate if paid immediately
-      items: [],
+      paidDate: status === 'paid' ? new Date() : null,
+      items: [],                  // Keeping empty as we use 'logs' array now
     });
 
     const savedInvoice = await newInvoice.save();
 
-    // Update TimeLogs
+    // ✅ CRITICAL: Mark ONLY selected logs as Billed
+    // This removes them from the "Pending Hours" list immediately
     if (logIds && logIds.length > 0) {
       const logStatus = status === 'paid' ? 'paid' : 'billed';
 
@@ -155,13 +113,13 @@ router.post('/create', verifyToken, async (req, res) => {
   }
 });
 
+// 4️⃣ UPDATE INVOICE (Mark as Paid)
 router.put('/:id', verifyToken, async (req, res) => {
   try {
     const invoice = await Invoice.findById(req.params.id);
     if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
 
-    // Check authorization (freelancer or client can update)
-    // Client needs to mark as paid, Freelancer needs to update details/status
+    // Authorization Check
     if (
       String(invoice.freelancer) !== String(req.user.id) &&
       String(invoice.client) !== String(req.user.id)
@@ -176,51 +134,58 @@ router.put('/:id', verifyToken, async (req, res) => {
     if (paidDate && status === 'paid') invoice.paidDate = paidDate;
 
     const updated = await invoice.save();
+
+    // ✅ SYNC: If marked PAID, update the TimeLogs to 'paid' too
+    if (status === 'paid' && invoice.logs && invoice.logs.length > 0) {
+      await TimeLog.updateMany(
+        { _id: { $in: invoice.logs } },
+        { $set: { status: 'paid' } }
+      );
+    }
+
     res.status(200).json(updated);
   } catch (err) {
     res.status(500).json(err);
   }
 });
 
+// 5️⃣ DELETE INVOICE (Revert Billed Status)
 router.delete('/:id', verifyToken, async (req, res) => {
   try {
     const invoice = await Invoice.findById(req.params.id);
     if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
 
-    // Only allow deletion if draft and freelancer owns it
-    if (invoice.status !== 'draft' || String(invoice.freelancer) !== String(req.user.id)) {
-      return res.status(403).json({ message: 'Can only delete draft invoices' });
+    // Security: Only draft/sent invoices can be deleted, and only by involved parties
+    if (String(invoice.freelancer) !== String(req.user.id) && String(invoice.client) !== String(req.user.id)) {
+      return res.status(403).json({ message: 'Not authorized to delete' });
     }
 
-    // Unmark time logs as billed
-    const timeLogIds = invoice.items
-      .filter(item => item.timeLogId)
-      .map(item => item.timeLogId);
+    // ✅ FIXED: Look in 'logs' array, not just 'items'
+    // This ensures logs reappear in "Pending Hours" if invoice is deleted
+    const logsToRevert = invoice.logs || [];
 
-    if (timeLogIds.length > 0) {
+    // Fallback for old invoices using 'items'
+    if (invoice.items && invoice.items.length > 0) {
+      invoice.items.forEach(item => {
+        if (item.timeLogId) logsToRevert.push(item.timeLogId);
+      });
+    }
+
+    if (logsToRevert.length > 0) {
       await TimeLog.updateMany(
-        { _id: { $in: timeLogIds } },
-        { billed: false }
+        { _id: { $in: logsToRevert } },
+        {
+          billed: false,
+          status: 'pending',
+          $unset: { invoice: "" } // Remove the link
+        }
       );
     }
 
     await Invoice.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: 'Invoice deleted successfully' });
   } catch (err) {
-    res.status(500).json(err);
-  }
-});
-
-router.get('/project/:projectId/unbilled', verifyToken, async (req, res) => {
-  try {
-    const timeLogs = await TimeLog.find({
-      project: req.params.projectId,
-      billed: false,
-      user: req.user.id
-    }).populate('project', 'title budget hourlyRate defaultHourlyRate');
-
-    res.status(200).json(timeLogs);
-  } catch (err) {
+    console.error("Delete Error:", err);
     res.status(500).json(err);
   }
 });

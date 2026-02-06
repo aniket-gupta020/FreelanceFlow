@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { Download, PieChart, Calculator, Calendar, Users, TrendingUp, DollarSign, Clock, Eye, CheckCircle, X } from 'lucide-react';
+import { PieChart, Calculator, Calendar, Users, DollarSign, Clock, Eye, CheckCircle, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import api from '../api';
+import { generateInvoicePDF } from './pdfGenerator';
 
 const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
     // 1. Date State
@@ -34,10 +33,19 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
         const userMap = {};
         let totalProjectCost = 0;
         let totalProjectHours = 0;
+        let skippedCount = 0;
 
         timeLogs.forEach(log => {
             const logDate = new Date(log.startTime);
+
             if (logDate < start || logDate > end) return;
+
+            // STRICTLY PENDING ONLY
+            if (log.billed || log.status === 'paid' || log.status === 'billed') {
+                skippedCount++;
+                return;
+            }
+
             if (!log.user) return;
 
             const userId = log.user._id || log.user;
@@ -49,7 +57,7 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
                     id: userId,
                     name: log.user.name || 'Unknown',
                     email: log.user.email || 'No Email',
-                    mobile: log.user.mobile || '',
+                    mobile: log.user.mobile || 'N/A',
                     rate: rate,
                     totalHours: 0,
                     totalCost: 0,
@@ -68,8 +76,13 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
         const reportArray = Object.values(userMap);
 
         if (reportArray.length === 0) {
-            toast("No logs found in this range", { icon: 'ℹ️' });
+            if (skippedCount > 0) {
+                toast.success("All logs in this period are already billed! ✅");
+            } else {
+                toast("No unbilled logs found in this range", { icon: 'ℹ️' });
+            }
             setGeneratedReport([]);
+            setSummaryStats({ cost: 0, hours: 0, freelancers: 0 });
         } else {
             setGeneratedReport(reportArray);
             setSummaryStats({
@@ -77,21 +90,13 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
                 hours: totalProjectHours,
                 freelancers: reportArray.length
             });
-            toast.success("Analysis Complete!");
+            toast.success(`Found ${reportArray.length} freelancers with pending work.`);
         }
     };
 
     const openBillingModal = (user) => {
-        // Filter out already billed logs if you want to prevent double billing, 
-        // or show them as disabled. For now, showing all but marking status.
-        // Let's filter to show mainly unbilled ones for "Pay Now" action, 
-        // or maybe show all and let user select.
-        // Requirement says: "pending hours... tick the hours which he wants to pay"
-
-        const pendingLogs = user.logs.filter(l => l.status !== 'paid');
-
         setSelectedUser(user);
-        setSelectedLogs(pendingLogs.map(l => l._id)); // Default select all pending
+        setSelectedLogs(user.logs.map(l => l._id));
         setIsModalOpen(true);
     };
 
@@ -102,6 +107,8 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
             setSelectedLogs([...selectedLogs, logId]);
         }
     };
+
+
 
     const handleProcessPayment = async (actionType) => {
         if (selectedLogs.length === 0) return toast.error("Please select at least one log.");
@@ -123,128 +130,35 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
 
             await api.post('/invoices/create', payload);
 
-            toast.success(actionType === 'pay' ? "Payment Recorded Successfully!" : "Bill Generated Successfully!");
+            toast.success("Bill Generated Successfully!");
             setIsModalOpen(false);
 
-            if (onRefresh) onRefresh();
+            // Generate the New Futuristic PDF
+            const tempInvoice = {
+                client: project.client || { name: 'Project Owner', email: 'N/A' },
+                freelancer: {
+                    name: selectedUser.name,
+                    email: selectedUser.email,
+                    mobile: selectedUser.mobile
+                },
+                project: { title: project.title },
+                logs: logsToProcess,
+                invoiceNumber: `INV-${Date.now().toString().slice(-6)}`,
+                createdAt: new Date(),
+                totalAmount: totalAmount,
+                totalHours: totalHours
+            };
+            generateInvoicePDF(tempInvoice);
+
+            if (onRefresh) {
+                onRefresh();
+                setGeneratedReport(prev => prev.filter(u => u.id !== selectedUser.id));
+            }
 
         } catch (error) {
             console.error("Payment Error:", error);
             toast.error("Failed to process payment");
         }
-    };
-
-    // 3. 📄 PDF GENERATION (Your Custom Invoice Logic)
-    const generatePDF = async (userData) => {
-        const doc = new jsPDF();
-        const pageWidth = doc.internal.pageSize.getWidth();
-
-        // HEADER
-        doc.setFontSize(24);
-        doc.setTextColor(139, 92, 246); // Violet
-        doc.text("PAYOUT STATEMENT", pageWidth - 14, 20, { align: 'right' });
-
-        doc.setFontSize(10);
-        doc.setTextColor(100);
-        doc.text(`Date: ${new Date().toLocaleDateString()}`, pageWidth - 14, 28, { align: 'right' });
-        doc.text(`Ref: ${project.title.substring(0, 4).toUpperCase()}-${Date.now().toString().slice(-4)}`, pageWidth - 14, 33, { align: 'right' });
-
-        // BILL FROM (Client)
-        const clientName = project.client?.name || 'Project Owner';
-        const clientEmail = project.client?.email || 'owner@freelanceflow.com';
-        const clientPhone = project.client?.mobile || null;
-
-        doc.setFontSize(12);
-        doc.setTextColor(0);
-        doc.text("From (Payer):", 14, 45);
-        doc.setFont("helvetica", "bold");
-        doc.text(clientName, 14, 52);
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
-        doc.setTextColor(80);
-        let clientY = 57;
-        if (clientPhone) { doc.text(clientPhone, 14, clientY); clientY += 5; }
-        doc.text(clientEmail, 14, clientY);
-
-        // BILL TO (Freelancer)
-        const freelancerName = userData.name;
-        const freelancerEmail = userData.email;
-        const freelancerPhone = userData.mobile || userData.logs[0]?.user?.mobile || null;
-
-        doc.setFontSize(12);
-        doc.setTextColor(0);
-        doc.text("To (Payee):", pageWidth / 2 + 10, 45);
-        doc.setFont("helvetica", "bold");
-        doc.text(freelancerName, pageWidth / 2 + 10, 52);
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
-        doc.setTextColor(80);
-        let freelancerY = 57;
-        if (freelancerPhone) { doc.text(freelancerPhone, pageWidth / 2 + 10, freelancerY); freelancerY += 5; }
-        doc.text(freelancerEmail, pageWidth / 2 + 10, freelancerY);
-
-        // PROJECT INFO
-        doc.setDrawColor(200);
-        doc.line(14, 75, pageWidth - 14, 75);
-        doc.setFontSize(10);
-        doc.setTextColor(0);
-        doc.text(`Project: ${project.title}`, 14, 83);
-        doc.text(`Period: ${startDate} to ${endDate}`, 14, 89);
-
-        // SUMMARY BOX
-        doc.setFillColor(247, 247, 255);
-        doc.rect(14, 95, pageWidth - 28, 25, 'F');
-        doc.setDrawColor(139, 92, 246);
-        doc.rect(14, 95, pageWidth - 28, 25, 'S');
-
-        doc.setTextColor(0);
-        doc.text("Total Hours", 25, 105);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(12);
-        doc.text(`${userData.totalHours.toFixed(2)} hrs`, 25, 113);
-
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
-        doc.text("Rate", 85, 105);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(12);
-        doc.text(`Rs. ${userData.rate}/hr`, 85, 113);
-
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
-        doc.text("Total Payout", 145, 105);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(14);
-        doc.setTextColor(139, 92, 246);
-        doc.text(`Rs. ${userData.totalCost.toFixed(2)}`, 145, 113);
-
-        // TABLE
-        const tableBody = userData.logs.map(log => [
-            new Date(log.startTime).toLocaleDateString(),
-            log.description || 'Manual Entry',
-            `${(log.durationHours || 0).toFixed(2)} hrs`,
-            `Rs. ${(log.durationHours * userData.rate).toFixed(2)}`
-        ]);
-
-        autoTable(doc, {
-            startY: 130,
-            head: [['Date', 'Task', 'Hours', 'Amount']],
-            body: tableBody,
-            foot: [['Total', '', `${userData.totalHours.toFixed(2)} hrs`, `Rs. ${userData.totalCost.toFixed(2)}`]],
-            theme: 'grid',
-            headStyles: { fillColor: [139, 92, 246], textColor: 255 },
-            footStyles: { fillColor: [247, 247, 255], textColor: 0, fontStyle: 'bold' },
-        });
-
-        // FOOTER
-        const finalY = doc.lastAutoTable.finalY + 20;
-        doc.setFontSize(9);
-        doc.setTextColor(100);
-        doc.text("This is a computer-generated payout statement.", pageWidth / 2, finalY, { align: 'center' });
-        doc.text("For questions, please contact support@freelanceflow.com", pageWidth / 2, finalY + 5, { align: 'center' });
-
-        doc.save(`Payout_${userData.name}_${endDate}.pdf`);
-        toast.success("Statement Downloaded!");
     };
 
     return (
@@ -254,7 +168,7 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-indigo-500"></div>
 
                 <div className="p-8">
-                    {/* 1. Header Section */}
+                    {/* Header */}
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl shadow-lg shadow-violet-500/20 text-white">
@@ -265,70 +179,55 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
                                     Financial Reports
                                 </h3>
                                 <p className="text-sm font-medium text-slate-500 dark:text-gray-400">
-                                    Generate payout statements & analyze costs
+                                    View unbilled hours and generate invoices
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    {/* 2. Controls Section (Glassmorphism Inputs) */}
+                    {/* Controls */}
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-8 p-1">
                         <div className="md:col-span-4 group relative">
                             <label className="absolute -top-2.5 left-4 bg-white dark:bg-gray-900 px-2 text-xs font-bold text-violet-600 z-10 transition-all">START DATE</label>
-                            <div className="flex items-center bg-white/50 dark:bg-black/20 border-2 border-transparent group-hover:border-violet-500/50 rounded-2xl focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all duration-300">
+                            <div className="flex items-center bg-white/50 dark:bg-black/20 border-2 border-transparent group-hover:border-violet-500/50 rounded-2xl">
                                 <Calendar className="w-5 h-5 text-slate-400 ml-4" />
-                                <input
-                                    type="date"
-                                    value={startDate}
-                                    onChange={(e) => setStartDate(e.target.value)}
-                                    className="w-full p-4 bg-transparent outline-none text-slate-700 dark:text-white font-medium cursor-pointer dark:[color-scheme:dark]"
-                                />
+                                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full p-4 bg-transparent outline-none text-slate-700 dark:text-white dark:[color-scheme:dark]" />
                             </div>
                         </div>
 
                         <div className="md:col-span-4 group relative">
                             <label className="absolute -top-2.5 left-4 bg-white dark:bg-gray-900 px-2 text-xs font-bold text-violet-600 z-10 transition-all">END DATE</label>
-                            <div className="flex items-center bg-white/50 dark:bg-black/20 border-2 border-transparent group-hover:border-violet-500/50 rounded-2xl focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all duration-300">
+                            <div className="flex items-center bg-white/50 dark:bg-black/20 border-2 border-transparent group-hover:border-violet-500/50 rounded-2xl">
                                 <Calendar className="w-5 h-5 text-slate-400 ml-4" />
-                                <input
-                                    type="date"
-                                    value={endDate}
-                                    onChange={(e) => setEndDate(e.target.value)}
-                                    className="w-full p-4 bg-transparent outline-none text-slate-700 dark:text-white font-medium cursor-pointer dark:[color-scheme:dark]"
-                                />
+                                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full p-4 bg-transparent outline-none text-slate-700 dark:text-white dark:[color-scheme:dark]" />
                             </div>
                         </div>
 
                         <div className="md:col-span-4">
-                            <button
-                                onClick={handleCalculate}
-                                className="w-full h-full min-h-[56px] flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-900 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-black rounded-2xl font-bold text-lg shadow-xl shadow-slate-500/10 hover:shadow-slate-500/20 active:scale-[0.98] transition-all duration-200"
-                            >
-                                <Calculator className="w-5 h-5" />
-                                Run Analysis
+                            <button onClick={handleCalculate} className="w-full h-full min-h-[56px] flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-900 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-black rounded-2xl font-bold text-lg shadow-xl transition-all">
+                                <Calculator className="w-5 h-5" /> Find Unbilled Work
                             </button>
                         </div>
                     </div>
 
-                    {/* 3. Results Section */}
+                    {/* Results */}
                     {generatedReport && (
                         <div className="animate-in fade-in slide-in-from-bottom-6 duration-500">
-                            {/* Summary Stats Cards */}
                             {generatedReport.length > 0 && (
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                                     <div className="bg-violet-50/50 dark:bg-violet-900/10 p-4 rounded-2xl border border-violet-100 dark:border-violet-500/20">
                                         <div className="flex items-center gap-3 mb-1">
                                             <div className="p-2 bg-violet-100 dark:bg-violet-800 rounded-lg"><DollarSign className="w-4 h-4 text-violet-600 dark:text-violet-300" /></div>
-                                            <span className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">Total Cost</span>
+                                            <span className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">Pending Amount</span>
                                         </div>
                                         <div className="text-2xl font-black text-slate-800 dark:text-white">Rs. {summaryStats.cost.toFixed(2)}</div>
                                     </div>
                                     <div className="bg-emerald-50/50 dark:bg-emerald-900/10 p-4 rounded-2xl border border-emerald-100 dark:border-emerald-500/20">
                                         <div className="flex items-center gap-3 mb-1">
                                             <div className="p-2 bg-emerald-100 dark:bg-emerald-800 rounded-lg"><Clock className="w-4 h-4 text-emerald-600 dark:text-emerald-300" /></div>
-                                            <span className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">Total Hours</span>
+                                            <span className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">Pending Hours</span>
                                         </div>
-                                        <div className="text-2xl font-black text-slate-800 dark:text-white">{summaryStats.hours.toFixed(2)}h</div>
+                                        <div className="text-2xl font-black text-slate-800 dark:text-white">{summaryStats.hours.toFixed(2)} hrs</div>
                                     </div>
                                     <div className="bg-blue-50/50 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-500/20">
                                         <div className="flex items-center gap-3 mb-1">
@@ -340,56 +239,31 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
                                 </div>
                             )}
 
-                            {/* Freelancer List */}
+                            {/* List */}
                             <div className="bg-white/40 dark:bg-black/20 rounded-2xl border border-white/50 dark:border-white/5 overflow-hidden backdrop-blur-sm">
                                 {generatedReport.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center p-12 text-center">
-                                        <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
-                                            <TrendingUp className="w-8 h-8 text-slate-400" />
-                                        </div>
-                                        <h4 className="text-lg font-bold text-slate-700 dark:text-slate-300">No Data Available</h4>
-                                        <p className="text-slate-500">Try adjusting your date range to see results.</p>
-                                    </div>
+                                    <div className="p-12 text-center text-slate-500">No unbilled work found for this period.</div>
                                 ) : (
                                     <table className="w-full text-left border-collapse">
-                                        <thead className="bg-slate-50/80 dark:bg-white/5 border-b border-white/20 dark:border-white/5 text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">
+                                        <thead className="bg-slate-50/80 dark:bg-white/5 border-b border-white/20 dark:border-white/5 text-xs font-bold uppercase text-slate-500 dark:text-slate-400">
                                             <tr>
                                                 <th className="p-5">Freelancer</th>
-                                                <th className="p-5 text-right">Performance</th>
-                                                <th className="p-5 text-right">Payout</th>
+                                                <th className="p-5 text-right">Hours</th>
+                                                <th className="p-5 text-right">Pending Payout</th>
                                                 <th className="p-5 text-center">Action</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-white/40 dark:divide-white/5">
-                                            {generatedReport.map((user, idx) => (
-                                                <tr key={user.id} className="group hover:bg-violet-50/40 dark:hover:bg-violet-900/10 transition-all duration-200">
+                                            {generatedReport.map((user) => (
+                                                <tr key={user.id} className="hover:bg-violet-50/40 dark:hover:bg-violet-900/10 transition-colors">
                                                     <td className="p-5">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center text-white font-bold shadow-md">
-                                                                {user.name.charAt(0)}
-                                                            </div>
-                                                            <div>
-                                                                <div className="font-bold text-slate-800 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
-                                                                    {user.name}
-                                                                </div>
-                                                                <div className="text-xs text-slate-500">{user.email}</div>
-                                                            </div>
-                                                        </div>
+                                                        <div className="font-bold text-slate-800 dark:text-white">{user.name}</div>
+                                                        <div className="text-xs text-slate-500">{user.email}</div>
                                                     </td>
-                                                    <td className="p-5 text-right">
-                                                        <div className="font-mono font-bold text-slate-700 dark:text-slate-300">{user.totalHours.toFixed(2)} hrs</div>
-                                                        <div className="text-xs text-slate-400">@ Rs.{user.rate}/hr</div>
-                                                    </td>
-                                                    <td className="p-5 text-right">
-                                                        <div className="inline-block px-3 py-1 rounded-lg bg-emerald-100/50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 font-bold border border-emerald-200 dark:border-emerald-800">
-                                                            Rs. {user.totalCost.toFixed(2)}
-                                                        </div>
-                                                    </td>
+                                                    <td className="p-5 text-right font-mono">{user.totalHours.toFixed(2)} hrs</td>
+                                                    <td className="p-5 text-right font-bold text-emerald-600">Rs. {user.totalCost.toFixed(2)}</td>
                                                     <td className="p-5 text-center">
-                                                        <button
-                                                            onClick={() => openBillingModal(user)}
-                                                            className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-medium text-sm transition-all shadow-lg shadow-violet-500/20"
-                                                        >
+                                                        <button onClick={() => openBillingModal(user)} className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-medium text-sm shadow-lg">
                                                             <Eye className="w-4 h-4" /> View & Pay
                                                         </button>
                                                     </td>
@@ -411,99 +285,56 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
                     <div className="relative w-full max-w-2xl bg-white dark:bg-gray-900 p-6 rounded-3xl shadow-2xl animate-in zoom-in duration-200 border border-white/20">
                         <div className="flex justify-between items-center mb-6">
                             <div>
-                                <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Pending Hours</h2>
-                                <p className="text-slate-500">Select hours to pay for <span className="text-violet-600 font-bold">{selectedUser.name}</span></p>
+                                <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Review & Bill</h2>
+                                <p className="text-slate-500">Uncheck items to exclude them from this bill.</p>
                             </div>
-                            <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full">
-                                <X className="w-6 h-6" />
-                            </button>
+                            <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full"><X className="w-6 h-6" /></button>
                         </div>
 
                         <div className="max-h-[50vh] overflow-y-auto mb-6 bg-slate-50 dark:bg-black/20 rounded-2xl p-4">
-                            {selectedUser.logs.length === 0 ? (
-                                <div className="text-center p-8 text-slate-500">No logs found.</div>
-                            ) : (
-                                <table className="w-full text-left">
-                                    <thead>
-                                        <tr className="text-xs uppercase text-slate-500 border-b border-gray-200 dark:border-gray-700">
-                                            <th className="pb-3 pl-2">
-                                                <input
-                                                    type="checkbox"
-                                                    className="rounded border-gray-300 text-violet-600 focus:ring-violet-500"
-                                                    onChange={(e) => {
-                                                        if (e.target.checked) setSelectedLogs(selectedUser.logs.map(l => l._id));
-                                                        else setSelectedLogs([]);
-                                                    }}
-                                                    checked={selectedLogs.length === selectedUser.logs.length && selectedUser.logs.length > 0}
-                                                />
-                                            </th>
-                                            <th className="pb-3">Date</th>
-                                            <th className="pb-3">Task / Description</th>
-                                            <th className="pb-3 text-right">Hours</th>
-                                            <th className="pb-3 text-right">Cost</th>
-                                            <th className="pb-3 text-center">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                                        {selectedUser.logs.map(log => {
-                                            const isSelected = selectedLogs.includes(log._id);
-                                            const isPaid = log.status === 'paid';
-                                            const isSent = log.status === 'billed';
-
-                                            return (
-                                                <tr key={log._id} className={`hover:bg-white dark:hover:bg-white/5 transition-colors ${isSelected ? 'bg-violet-50/50 dark:bg-violet-900/10' : ''}`}>
-                                                    <td className="py-3 pl-2">
-                                                        {!isPaid && (
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={isSelected}
-                                                                onChange={() => toggleLogSelection(log._id)}
-                                                                className="rounded border-gray-300 text-violet-600 focus:ring-violet-500"
-                                                            />
-                                                        )}
-                                                    </td>
-                                                    <td className="py-3 text-sm text-slate-600 dark:text-gray-300">{new Date(log.startTime).toLocaleDateString()}</td>
-                                                    <td className="py-3 text-sm text-slate-800 dark:text-white font-medium">{log.description}</td>
-                                                    <td className="py-3 text-sm text-right font-mono">{log.durationHours.toFixed(2)}</td>
-                                                    <td className="py-3 text-sm text-right font-mono text-slate-600">Rs. {(log.durationHours * selectedUser.rate).toFixed(2)}</td>
-                                                    <td className="py-3 text-center">
-                                                        {isPaid ? (
-                                                            <span className="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded-full">Paid</span>
-                                                        ) : isSent ? (
-                                                            <span className="text-xs font-bold text-amber-600 bg-amber-100 px-2 py-1 rounded-full">Billed</span>
-                                                        ) : (
-                                                            <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-full">Unbilled</span>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            )}
+                            <table className="w-full text-left">
+                                <thead>
+                                    <tr className="text-xs uppercase text-slate-500 border-b border-gray-200">
+                                        <th className="pb-3 pl-2">
+                                            <input type="checkbox"
+                                                checked={selectedLogs.length === selectedUser.logs.length}
+                                                onChange={(e) => e.target.checked ? setSelectedLogs(selectedUser.logs.map(l => l._id)) : setSelectedLogs([])}
+                                                className="rounded border-gray-300 text-violet-600 focus:ring-violet-500"
+                                            />
+                                        </th>
+                                        <th className="pb-3">Date</th>
+                                        <th className="pb-3">Task</th>
+                                        <th className="pb-3 text-right">Cost</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {selectedUser.logs.map(log => {
+                                        const isSelected = selectedLogs.includes(log._id);
+                                        return (
+                                            <tr key={log._id} className={isSelected ? 'bg-violet-50/50' : ''}>
+                                                <td className="py-3 pl-2">
+                                                    <input type="checkbox" checked={isSelected} onChange={() => toggleLogSelection(log._id)} className="rounded border-gray-300 text-violet-600 focus:ring-violet-500" />
+                                                </td>
+                                                <td className="py-3 text-sm">{new Date(log.startTime).toLocaleDateString()}</td>
+                                                <td className="py-3 text-sm">{log.description}</td>
+                                                <td className="py-3 text-sm text-right">Rs. {(log.durationHours * selectedUser.rate).toFixed(2)}</td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
                         </div>
 
-                        <div className="flex flex-col md:flex-row gap-4 items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-800">
+                        <div className="flex justify-between items-center pt-4 border-t border-gray-100">
                             <div>
-                                <div className="text-sm text-slate-500">Selected Total</div>
-                                <div className="text-2xl font-bold text-slate-800 dark:text-white">
+                                <div className="text-sm text-slate-500">Invoice Total</div>
+                                <div className="text-2xl font-bold text-violet-600">
                                     Rs. {(selectedUser.logs.filter(l => selectedLogs.includes(l._id)).reduce((sum, l) => sum + (l.durationHours * selectedUser.rate), 0)).toFixed(2)}
                                 </div>
                             </div>
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={() => handleProcessPayment('bill')}
-                                    className="px-6 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-slate-700 dark:text-white rounded-xl font-bold transition-colors"
-                                >
-                                    Generate Bill
-                                </button>
-                                <button
-                                    onClick={() => handleProcessPayment('pay')}
-                                    className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-500/30 transition-all active:scale-95 flex items-center gap-2"
-                                >
-                                    <CheckCircle className="w-5 h-5" /> Pay Now
-                                </button>
-                            </div>
+                            <button onClick={() => handleProcessPayment('bill')} className="px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-bold shadow-lg flex items-center gap-2">
+                                <CheckCircle className="w-5 h-5" /> Generate Bill
+                            </button>
                         </div>
                     </div>
                 </div>

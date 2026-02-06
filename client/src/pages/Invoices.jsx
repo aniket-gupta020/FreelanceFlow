@@ -8,6 +8,7 @@ import {
   CheckCircle, AlertCircle, Send, CheckSquare, User, ArrowDownCircle, ArrowUpCircle
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
+import { generateInvoicePDF } from '../components/pdfGenerator';
 
 const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
 const CARD_HOVER = "hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-out";
@@ -206,10 +207,7 @@ export default function Invoices() {
   };
 
   const handlePrint = (invoice) => {
-    // Determine who is printing
-    // If I'm the freelancer -> Invoice
-    // If I'm the client -> Receipt
-    window.print();
+    generateInvoicePDF(invoice);
   };
 
   const handleLogout = () => {
