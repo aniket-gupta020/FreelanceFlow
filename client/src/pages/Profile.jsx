@@ -79,6 +79,19 @@ const Profile = () => {
 
   const handleUpdate = async (e) => {
     e.preventDefault();
+
+    // Validation Logic from Register.jsx
+    const nameRegex = /^[a-zA-Z\s]+$/;
+    const mobileRegex = /^[0-9+\(\)\s-]+$/;
+
+    if (!nameRegex.test(formData.name) || formData.name.length < 2) {
+      return toast.error("Invalid Name. Please use letters only.");
+    }
+
+    if (formData.mobile && (!mobileRegex.test(formData.mobile) || formData.mobile.length < 10 || formData.mobile.length > 15)) {
+      return toast.error("Invalid Mobile Number.");
+    }
+
     try {
       const skillsArray = formData.skills.split(',').map(s => s.trim()).filter(s => s);
       const payload = { ...formData, skills: skillsArray };
@@ -350,7 +363,12 @@ const Profile = () => {
                         type="text"
                         className={INPUT_CLASSES}
                         value={formData.name}
-                        onChange={e => setFormData({ ...formData, name: e.target.value })}
+                        onChange={e => {
+                          const val = e.target.value;
+                          if (/^[a-zA-Z\s]*$/.test(val)) {
+                            setFormData({ ...formData, name: val });
+                          }
+                        }}
                       />
                     </div>
                   </div>
@@ -460,7 +478,12 @@ const Profile = () => {
                         className={INPUT_CLASSES}
                         placeholder="+91 9876543210"
                         value={formData.mobile}
-                        onChange={e => setFormData({ ...formData, mobile: e.target.value })}
+                        onChange={e => {
+                          const val = e.target.value;
+                          if (/^[0-9+\(\)\s-]*$/.test(val)) {
+                            setFormData({ ...formData, mobile: val });
+                          }
+                        }}
                       />
                     </div>
                   </div>
