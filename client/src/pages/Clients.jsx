@@ -150,7 +150,7 @@ const Clients = () => {
               <p className="text-slate-500 dark:text-gray-400">Once people apply to your projects, they will appear here.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
               {clients.map((client) => {
                 const getSafeId = (id) => id?._id || id?.id || id;
                 return (

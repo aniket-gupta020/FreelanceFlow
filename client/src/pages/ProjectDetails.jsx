@@ -389,7 +389,7 @@ const ProjectDetails = () => {
                                         </div>
                                         <button
                                             onClick={() => handleToggleTaskStatus(task)}
-                                            className={`p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100 ${task.status === 'done' ? 'hover:bg-amber-100 dark:hover:bg-amber-900/30 text-amber-500' : 'hover:bg-emerald-100 dark:hover:bg-emerald-900/30 text-emerald-500'}`}
+                                            className={`p-2 rounded-full transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 ${task.status === 'done' ? 'hover:bg-amber-100 dark:hover:bg-amber-900/30 text-amber-500' : 'hover:bg-emerald-100 dark:hover:bg-emerald-900/30 text-emerald-500'}`}
                                             title={task.status === 'done' ? "Mark as Incomplete" : "Mark as Complete"}
                                         >
                                             {task.status === 'done' ? <AlertCircle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
@@ -399,7 +399,7 @@ const ProjectDetails = () => {
                                             const user = JSON.parse(localStorage.getItem('user'));
                                             if (user && (user._id === project.createdBy || user._id === project.createdBy?._id)) {
                                                 return (
-                                                    <button onClick={() => handleDeleteTask(task._id)} className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 rounded-full transition-colors opacity-0 group-hover:opacity-100">
+                                                    <button onClick={() => handleDeleteTask(task._id)} className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 rounded-full transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100">
                                                         <Trash2 className="w-4 h-4" />
                                                     </button>
                                                 );
@@ -450,7 +450,7 @@ const ProjectDetails = () => {
                                                             className={INPUT_CLASSES}
                                                         />
                                                     </div>
-                                                    <div className="grid grid-cols-2 gap-3">
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                         <div>
                                                             <label className={LABEL_CLASSES}>Hours</label>
                                                             <input
@@ -484,48 +484,93 @@ const ProjectDetails = () => {
                                                 <div className="px-6 py-4 border-b border-white/20 dark:border-white/5 bg-white/20 dark:bg-white/5">
                                                     <h3 className="font-bold text-slate-800 dark:text-white">Recent Activity</h3>
                                                 </div>
-                                                <div className="overflow-x-auto flex-1">
-                                                    <table className="w-full text-left">
-                                                        <thead className="text-slate-500 dark:text-gray-400 text-xs uppercase bg-white/30 dark:bg-black/20">
-                                                            <tr>
-                                                                <th className="p-4">Date</th>
-                                                                <th className="p-4">Description</th>
-                                                                <th className="p-4 text-right">Duration</th>
-                                                                <th className="p-4 text-center">Status</th>
-                                                                <th className="p-4"></th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody className="divide-y divide-white/20 dark:divide-white/5">
-                                                            {timeLogs.length === 0 ? (
-                                                                <tr><td colSpan="5" className="p-8 text-center opacity-50">No logs recorded.</td></tr>
-                                                            ) : (
-                                                                timeLogs.map(log => (
-                                                                    <tr key={log._id} className="hover:bg-white/30 dark:hover:bg-white/5">
-                                                                        <td className="p-4 text-sm text-slate-800 dark:text-gray-300">{new Date(log.startTime).toLocaleDateString()}</td>
-                                                                        <td className="p-4 text-sm text-slate-600 dark:text-gray-400">{log.description}</td>
-                                                                        <td className="p-4 text-right font-bold text-slate-800 dark:text-gray-300">{log.durationHours?.toFixed(2)} hrs</td>
-                                                                        <td className="p-4 text-center">
-                                                                            {(() => {
-                                                                                if (log.status === 'paid') {
-                                                                                    return <span className="text-xs font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-1 rounded-full">Paid</span>;
-                                                                                } else if (log.status === 'billed' || log.billed === true) {
-                                                                                    return <span className="text-xs font-bold text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-1 rounded-full">Billed</span>;
-                                                                                } else {
-                                                                                    return <span className="text-xs font-bold text-slate-500 bg-slate-100 dark:bg-white/10 dark:text-slate-400 px-2 py-1 rounded-full">Unbilled</span>;
-                                                                                }
-                                                                            })()}
-                                                                        </td>
-                                                                        <td className="p-4 text-right">
-                                                                            {/* Only show delete button if NOT billed or paid */}
+
+                                                <div className="flex-1">
+                                                    {timeLogs.length === 0 ? (
+                                                        <div className="p-12 text-center opacity-50 text-slate-600 dark:text-gray-400">No logs recorded yet.</div>
+                                                    ) : (
+                                                        <>
+                                                            {/* Mobile Card View (< md) */}
+                                                            <div className="md:hidden divide-y divide-white/20 dark:divide-white/5">
+                                                                {timeLogs.map(log => (
+                                                                    <div key={log._id} className="p-4 flex flex-col gap-3 hover:bg-white/30 dark:hover:bg-white/5 transition-colors">
+                                                                        <div className="flex justify-between items-start">
+                                                                            <span className="text-sm font-bold text-slate-800 dark:text-gray-200">
+                                                                                {new Date(log.startTime).toLocaleDateString()}
+                                                                            </span>
+                                                                            <span className="font-mono font-bold text-violet-600 dark:text-yellow-400">
+                                                                                {log.durationHours?.toFixed(2)} hrs
+                                                                            </span>
+                                                                        </div>
+
+                                                                        <p className="text-sm text-slate-600 dark:text-gray-400 line-clamp-2">
+                                                                            {log.description}
+                                                                        </p>
+
+                                                                        <div className="flex justify-between items-center mt-2">
+                                                                            <div>
+                                                                                {(() => {
+                                                                                    if (log.status === 'paid') {
+                                                                                        return <span className="text-xs font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-1 rounded-full">Paid</span>;
+                                                                                    } else if (log.status === 'billed' || log.billed === true) {
+                                                                                        return <span className="text-xs font-bold text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-1 rounded-full">Billed</span>;
+                                                                                    } else {
+                                                                                        return <span className="text-xs font-bold text-slate-500 bg-slate-100 dark:bg-white/10 dark:text-slate-400 px-2 py-1 rounded-full">Unbilled</span>;
+                                                                                    }
+                                                                                })()}
+                                                                            </div>
+
                                                                             {!(log.status === 'paid' || log.status === 'billed' || log.billed === true) && (
-                                                                                <button onClick={() => handleDeleteLog(log._id)} className="text-red-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                                                                                <button onClick={() => handleDeleteLog(log._id)} className="p-2 text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
+                                                                                    <Trash2 className="w-4 h-4" />
+                                                                                </button>
                                                                             )}
-                                                                        </td>
-                                                                    </tr>
-                                                                ))
-                                                            )}
-                                                        </tbody>
-                                                    </table>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+
+                                                            {/* Desktop Table View (>= md) */}
+                                                            <div className="hidden md:block overflow-x-auto">
+                                                                <table className="w-full text-left">
+                                                                    <thead className="text-slate-500 dark:text-gray-400 text-xs uppercase bg-white/30 dark:bg-black/20">
+                                                                        <tr>
+                                                                            <th className="p-4">Date</th>
+                                                                            <th className="p-4">Description</th>
+                                                                            <th className="p-4 text-right">Duration</th>
+                                                                            <th className="p-4 text-center">Status</th>
+                                                                            <th className="p-4"></th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody className="divide-y divide-white/20 dark:divide-white/5">
+                                                                        {timeLogs.map(log => (
+                                                                            <tr key={log._id} className="hover:bg-white/30 dark:hover:bg-white/5 transition-colors">
+                                                                                <td className="p-4 text-sm text-slate-800 dark:text-gray-300">{new Date(log.startTime).toLocaleDateString()}</td>
+                                                                                <td className="p-4 text-sm text-slate-600 dark:text-gray-400 max-w-[200px] truncate" title={log.description}>{log.description}</td>
+                                                                                <td className="p-4 text-right font-bold text-slate-800 dark:text-gray-300">{log.durationHours?.toFixed(2)} hrs</td>
+                                                                                <td className="p-4 text-center">
+                                                                                    {(() => {
+                                                                                        if (log.status === 'paid') {
+                                                                                            return <span className="text-xs font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-1 rounded-full">Paid</span>;
+                                                                                        } else if (log.status === 'billed' || log.billed === true) {
+                                                                                            return <span className="text-xs font-bold text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-1 rounded-full">Billed</span>;
+                                                                                        } else {
+                                                                                            return <span className="text-xs font-bold text-slate-500 bg-slate-100 dark:bg-white/10 dark:text-slate-400 px-2 py-1 rounded-full">Unbilled</span>;
+                                                                                        }
+                                                                                    })()}
+                                                                                </td>
+                                                                                <td className="p-4 text-right">
+                                                                                    {!(log.status === 'paid' || log.status === 'billed' || log.billed === true) && (
+                                                                                        <button onClick={() => handleDeleteLog(log._id)} className="text-red-400 hover:text-red-500 p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
+                                                                                    )}
+                                                                                </td>
+                                                                            </tr>
+                                                                        ))}
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>

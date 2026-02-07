@@ -187,7 +187,7 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
 
                     {/* Controls */}
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-8 p-1">
-                        <div className="md:col-span-4 group relative">
+                        <div className="md:col-span-6 lg:col-span-4 group relative">
                             <label className="absolute -top-2.5 left-4 bg-white dark:bg-gray-900 px-2 text-xs font-bold text-violet-600 z-10 transition-all">START DATE</label>
                             <div className="flex items-center bg-white/50 dark:bg-black/20 border-2 border-transparent group-hover:border-violet-500/50 rounded-2xl">
                                 <Calendar className="w-5 h-5 text-slate-400 ml-4" />
@@ -195,7 +195,7 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
                             </div>
                         </div>
 
-                        <div className="md:col-span-4 group relative">
+                        <div className="md:col-span-6 lg:col-span-4 group relative">
                             <label className="absolute -top-2.5 left-4 bg-white dark:bg-gray-900 px-2 text-xs font-bold text-violet-600 z-10 transition-all">END DATE</label>
                             <div className="flex items-center bg-white/50 dark:bg-black/20 border-2 border-transparent group-hover:border-violet-500/50 rounded-2xl">
                                 <Calendar className="w-5 h-5 text-slate-400 ml-4" />
@@ -203,9 +203,9 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
                             </div>
                         </div>
 
-                        <div className="md:col-span-4">
-                            <button onClick={handleCalculate} className="w-full h-full min-h-[56px] flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-900 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-black rounded-2xl font-bold text-lg shadow-xl transition-all">
-                                <Calculator className="w-5 h-5" /> Find Unbilled Work
+                        <div className="md:col-span-12 lg:col-span-4">
+                            <button onClick={handleCalculate} className="w-full h-full min-h-[56px] flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-900 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-black rounded-2xl font-bold text-sm md:text-base xl:text-lg shadow-xl transition-all active:scale-[0.98] whitespace-nowrap">
+                                <Calculator className="w-4 h-4 md:w-5 md:h-5" /> Find Unbilled Work
                             </button>
                         </div>
                     </div>
@@ -214,7 +214,7 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
                     {generatedReport && (
                         <div className="animate-in fade-in slide-in-from-bottom-6 duration-500">
                             {generatedReport.length > 0 && (
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                                     <div className="bg-violet-50/50 dark:bg-violet-900/10 p-4 rounded-2xl border border-violet-100 dark:border-violet-500/20">
                                         <div className="flex items-center gap-3 mb-1">
                                             <div className="p-2 bg-violet-100 dark:bg-violet-800 rounded-lg"><DollarSign className="w-4 h-4 text-violet-600 dark:text-violet-300" /></div>
@@ -229,7 +229,7 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
                                         </div>
                                         <div className="text-2xl font-black text-slate-800 dark:text-white">{summaryStats.hours.toFixed(2)} hrs</div>
                                     </div>
-                                    <div className="bg-blue-50/50 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-500/20">
+                                    <div className="md:col-span-2 lg:col-span-1 bg-blue-50/50 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-500/20">
                                         <div className="flex items-center gap-3 mb-1">
                                             <div className="p-2 bg-blue-100 dark:bg-blue-800 rounded-lg"><Users className="w-4 h-4 text-blue-600 dark:text-blue-300" /></div>
                                             <span className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">Freelancers</span>
@@ -239,38 +239,77 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
                                 </div>
                             )}
 
-                            {/* List */}
+                            {/* Responsive List Container */}
                             <div className="bg-white/40 dark:bg-black/20 rounded-2xl border border-white/50 dark:border-white/5 overflow-hidden backdrop-blur-sm">
                                 {generatedReport.length === 0 ? (
                                     <div className="p-12 text-center text-slate-500">No unbilled work found for this period.</div>
                                 ) : (
-                                    <table className="w-full text-left border-collapse">
-                                        <thead className="bg-slate-50/80 dark:bg-white/5 border-b border-white/20 dark:border-white/5 text-xs font-bold uppercase text-slate-500 dark:text-slate-400">
-                                            <tr>
-                                                <th className="p-5">Freelancer</th>
-                                                <th className="p-5 text-right">Hours</th>
-                                                <th className="p-5 text-right">Pending Payout</th>
-                                                <th className="p-5 text-center">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-white/40 dark:divide-white/5">
+                                    <>
+                                        {/* Mobile/Tablet Card View (< 1024px) */}
+                                        <div className="block lg:hidden divide-y divide-white/40 dark:divide-white/5">
                                             {generatedReport.map((user) => (
-                                                <tr key={user.id} className="hover:bg-violet-50/40 dark:hover:bg-violet-900/10 transition-colors">
-                                                    <td className="p-5">
-                                                        <div className="font-bold text-slate-800 dark:text-white">{user.name}</div>
-                                                        <div className="text-xs text-slate-500">{user.email}</div>
-                                                    </td>
-                                                    <td className="p-5 text-right font-mono">{user.totalHours.toFixed(2)} hrs</td>
-                                                    <td className="p-5 text-right font-bold text-emerald-600">Rs. {user.totalCost.toFixed(2)}</td>
-                                                    <td className="p-5 text-center">
-                                                        <button onClick={() => openBillingModal(user)} className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-medium text-sm shadow-lg">
-                                                            <Eye className="w-4 h-4" /> View & Pay
-                                                        </button>
-                                                    </td>
-                                                </tr>
+                                                <div key={user.id} className="p-5 flex flex-col gap-4">
+                                                    {/* Header: Name & Rate - Wrap on very small screens */}
+                                                    <div className="flex flex-col min-[450px]:flex-row justify-between items-start gap-2">
+                                                        <div>
+                                                            <div className="font-bold text-slate-800 dark:text-white text-lg break-words">{user.name}</div>
+                                                            <div className="text-sm text-slate-500 break-all">{user.email}</div>
+                                                        </div>
+                                                        <div className="self-start px-3 py-1 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 rounded-full text-xs font-bold whitespace-nowrap">
+                                                            Rs. {user.rate}/hr
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Stats Grid - Single column on < 450px */}
+                                                    <div className="grid grid-cols-1 min-[450px]:grid-cols-2 gap-4">
+                                                        <div className="bg-slate-50/50 dark:bg-white/5 p-3 rounded-xl border border-white/10">
+                                                            <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Hours</div>
+                                                            <div className="font-mono font-bold text-slate-800 dark:text-slate-200">{user.totalHours.toFixed(2)}</div>
+                                                        </div>
+                                                        <div className="bg-slate-50/50 dark:bg-white/5 p-3 rounded-xl border border-white/10">
+                                                            <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Pending</div>
+                                                            <div className="font-bold text-emerald-600">Rs. {user.totalCost.toFixed(2)}</div>
+                                                        </div>
+                                                    </div>
+
+                                                    <button onClick={() => openBillingModal(user)} className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-medium shadow-lg transition-transform active:scale-[0.98]">
+                                                        <Eye className="w-4 h-4" /> View Details & Pay
+                                                    </button>
+                                                </div>
                                             ))}
-                                        </tbody>
-                                    </table>
+                                        </div>
+
+                                        {/* Desktop Table View (>= 1024px) */}
+                                        <div className="hidden lg:block">
+                                            <table className="w-full text-left border-collapse">
+                                                <thead className="bg-slate-50/80 dark:bg-white/5 border-b border-white/20 dark:border-white/5 text-xs font-bold uppercase text-slate-500 dark:text-slate-400">
+                                                    <tr>
+                                                        <th className="p-5">Freelancer</th>
+                                                        <th className="p-5 text-right">Hours</th>
+                                                        <th className="p-5 text-right">Pending Payout</th>
+                                                        <th className="p-5 text-center">Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-white/40 dark:divide-white/5">
+                                                    {generatedReport.map((user) => (
+                                                        <tr key={user.id} className="hover:bg-violet-50/40 dark:hover:bg-violet-900/10 transition-colors">
+                                                            <td className="p-5">
+                                                                <div className="font-bold text-slate-800 dark:text-white">{user.name}</div>
+                                                                <div className="text-xs text-slate-500">{user.email}</div>
+                                                            </td>
+                                                            <td className="p-5 text-right font-mono">{user.totalHours.toFixed(2)} hrs</td>
+                                                            <td className="p-5 text-right font-bold text-emerald-600">Rs. {user.totalCost.toFixed(2)}</td>
+                                                            <td className="p-5 text-center">
+                                                                <button onClick={() => openBillingModal(user)} className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-medium text-sm shadow-lg hover:shadow-xl transition-all">
+                                                                    <Eye className="w-4 h-4" /> View & Pay
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </>
                                 )}
                             </div>
                         </div>
