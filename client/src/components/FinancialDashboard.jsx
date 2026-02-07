@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../api';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { formatCurrency } from '../utils/formatCurrency';
 
 const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
 
@@ -75,7 +76,7 @@ export default function FinancialDashboard({ isSampleMode }) {
               <YAxis stroke="#666" />
               <Tooltip
                 contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '8px', color: '#fff' }}
-                formatter={(value) => `₹${value.toFixed(2)}`}
+                formatter={(value) => formatCurrency(value)}
               />
               <Legend />
               <Line type="monotone" dataKey="amount" stroke="#8b5cf6" strokeWidth={2} dot={{ fill: '#8b5cf6' }} />
@@ -94,7 +95,7 @@ export default function FinancialDashboard({ isSampleMode }) {
               <YAxis stroke="#666" />
               <Tooltip
                 contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '8px', color: '#fff' }}
-                formatter={(value) => `₹${value.toFixed(2)}`}
+                formatter={(value) => formatCurrency(value)}
               />
               <Legend />
               <Bar dataKey="amount" fill="#ef4444" radius={[8, 8, 0, 0]} />

@@ -10,6 +10,7 @@ import {
 const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
 
 import Sidebar from '../components/Sidebar';
+import { formatCurrency } from '../utils/formatCurrency';
 
 const Clients = () => {
   const [clients, setClients] = useState([]);
@@ -180,8 +181,7 @@ const Clients = () => {
                       <div className="flex flex-col items-end">
                         <span className="text-xs text-slate-500 dark:text-gray-500 uppercase font-bold tracking-wider">Hourly Rate</span>
                         <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
-                          <IndianRupee className="w-3 h-3" />
-                          <span>{client.defaultHourlyRate || 0}/hr</span>
+                          <span>{formatCurrency(client.defaultHourlyRate || 0)}/hr</span>
                         </div>
                       </div>
                     </div>

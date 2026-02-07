@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import api from '../api';
 import { useNavigate, useParams, Link } from 'react-router-dom';
+import { formatCurrency } from '../utils/formatCurrency';
 import {
   LayoutDashboard, Clock, ChevronLeft, Save, Menu, X,
   Sun, Moon, LogOut, Briefcase, Plus, Trash2, FileText,
@@ -441,7 +442,7 @@ export default function InvoiceGenerator() {
                           </div>
                           <div className="text-right">
                             <p className={`${TEXT_HEADLINE} font-bold`}>
-                              ₹{(log.durationHours * (parseFloat(formData.hourlyRate) || 0)).toFixed(2)}
+                              {formatCurrency(log.durationHours * (parseFloat(formData.hourlyRate) || 0))}
                             </p>
                           </div>
                         </div>
@@ -464,22 +465,22 @@ export default function InvoiceGenerator() {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className={TEXT_SUB}>Hourly Rate:</span>
-                      <span className={`${TEXT_HEADLINE} font-bold`}>₹{parseFloat(formData.hourlyRate || 0).toFixed(2)}</span>
+                      <span className={`${TEXT_HEADLINE} font-bold`}>{formatCurrency(parseFloat(formData.hourlyRate || 0))}</span>
                     </div>
                     <div className="border-t border-gray-300 dark:border-white/10 pt-3 flex justify-between items-center">
                       <span className={TEXT_SUB}>Subtotal:</span>
-                      <span className={`${TEXT_HEADLINE} font-bold`}>₹{totals.subtotal.toFixed(2)}</span>
+                      <span className={`${TEXT_HEADLINE} font-bold`}>{formatCurrency(totals.subtotal)}</span>
                     </div>
                     {totals.taxAmount > 0 && (
                       <div className="flex justify-between items-center">
                         <span className={TEXT_SUB}>Tax ({formData.taxPercentage}%):</span>
-                        <span className={`${TEXT_HEADLINE} font-bold`}>₹{totals.taxAmount.toFixed(2)}</span>
+                        <span className={`${TEXT_HEADLINE} font-bold`}>{formatCurrency(totals.taxAmount)}</span>
                       </div>
                     )}
                     <div className="border-t border-gray-300 dark:border-white/10 pt-3 flex justify-between items-center bg-violet-100 dark:bg-violet-500/10 p-4 rounded-xl">
                       <span className={`${TEXT_HEADLINE} font-bold text-lg`}>Total Amount:</span>
                       <span className="text-2xl font-bold text-violet-600 dark:text-yellow-400">
-                        ₹{totals.totalAmount.toFixed(2)}
+                        {formatCurrency(totals.totalAmount)}
                       </span>
                     </div>
                   </div>

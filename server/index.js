@@ -14,6 +14,12 @@ const tasksRoute = require('./routes/tasks');
 const dashboardRoute = require('./routes/dashboard');
 
 const app = express();
+
+// 🏓 Keep-Alive Route (The Robot's Door)
+app.get('/ping', (req, res) => {
+  res.status(200).send('Pong');
+});
+
 const PORT = process.env.PORT || 5000;
 
 // ✅ 1. TRUST PROXY (CRITICAL for Render + Cookies)

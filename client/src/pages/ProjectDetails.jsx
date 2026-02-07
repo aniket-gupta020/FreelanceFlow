@@ -10,6 +10,7 @@ import { toast } from 'react-hot-toast';
 import Stopwatch from '../components/Stopwatch';
 import AutoTimeTracker from '../components/AutoTimeTracker';
 import ProjectReportGenerator from '../components/ProjectReportGenerator';
+import { formatCurrency } from '../utils/formatCurrency';
 
 const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
 const INPUT_CLASSES = "w-full p-3 bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none transition-all dark:text-white";
@@ -309,7 +310,7 @@ const ProjectDetails = () => {
                                 </div>
                                 <div>
                                     <div className="text-sm text-slate-500 dark:text-gray-400">Budget</div>
-                                    <div className="font-bold text-lg text-slate-800 dark:text-white">{project.budget}</div>
+                                    <div className="font-bold text-lg text-slate-800 dark:text-white">{formatCurrency(project.budget)}</div>
                                 </div>
                             </div>
                             <div className="bg-white/50 dark:bg-white/5 p-4 rounded-2xl flex items-center gap-4">

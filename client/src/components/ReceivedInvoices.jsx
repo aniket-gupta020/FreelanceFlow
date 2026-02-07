@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../api';
 import { Download, FileText, CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react';
 import { generateInvoicePDF } from './pdfGenerator';
+import { formatCurrency } from '../utils/formatCurrency';
 import { toast } from 'react-hot-toast';
 
 const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
@@ -101,7 +102,7 @@ export default function ReceivedInvoices() {
 
                             <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto mt-2 sm:mt-0">
                                 <div className="text-right">
-                                    <p className={`font-bold text-lg ${TEXT_HEADLINE}`}>₹{invoice.totalAmount.toFixed(2)}</p>
+                                    <p className={`font-bold text-lg ${TEXT_HEADLINE}`}>{formatCurrency(invoice.totalAmount)}</p>
                                 </div>
                                 <button
                                     onClick={() => generateInvoicePDF(invoice)}

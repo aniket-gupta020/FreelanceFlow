@@ -11,6 +11,7 @@ import {
 import FinancialDashboard from '../components/FinancialDashboard';
 import UpcomingDeadlines from '../components/UpcomingDeadlines';
 import Sidebar from '../components/Sidebar';
+import { formatCurrency } from '../utils/formatCurrency';
 
 
 const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
@@ -141,7 +142,7 @@ const ProjectCard = ({ project, user, isOwner, handleDelete, handleApply, handle
                 <span>Hours Logged:</span><span className="font-bold text-slate-800 dark:text-white">{burn.hours.toFixed(1)}h</span>
               </div>
               <div className="flex justify-between">
-                <span>Cost:</span><span className="select-text cursor-text font-bold text-slate-800 dark:text-white">₹{burn.cost.toFixed(2)}</span>
+                <span>Cost:</span><span className="select-text cursor-text font-bold text-slate-800 dark:text-white">{formatCurrency(burn.cost)}</span>
               </div>
             </div>
           </div>
@@ -150,10 +151,7 @@ const ProjectCard = ({ project, user, isOwner, handleDelete, handleApply, handle
 
       <div className="flex justify-between items-center pt-4 border-t border-gray-200/50 dark:border-white/10">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-500/20">
-            <IndianRupee className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          </div>
-          <span className={`select-text cursor-text font-bold ${TEXT_HEADLINE}`}>₹{project.budget}</span>
+          <span className={`select-text cursor-text font-bold ${TEXT_HEADLINE}`}>{formatCurrency(project.budget)}</span>
         </div>
         <div className="flex flex-col items-end">
           <span className={`text-xs font-medium px-3 py-1 rounded-full bg-gray-100 dark:bg-white/10 ${TEXT_SUB}`}>
@@ -318,6 +316,16 @@ const Dashboard = () => {
   const handleApply = async (projectId) => {
     try {
       await api.post(`/projects/${projectId}/apply`, { userId: user._id });
+
+      setProjects(prevProjects => prevProjects.map(project => {
+        if (project._id === projectId) {
+          // Optimistically update applicants to include current user
+          const updatedApplicants = project.applicants ? [...project.applicants, user] : [user];
+          return { ...project, applicants: updatedApplicants };
+        }
+        return project;
+      }));
+
       toast.success("Applied Successfully! 🚀");
     } catch (err) {
       toast.error(err.response?.data?.message || "Error applying");

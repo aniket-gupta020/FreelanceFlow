@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { generateInvoicePDF } from '../components/pdfGenerator';
+import { formatCurrency } from '../utils/formatCurrency';
 
 const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
 const CARD_HOVER = "hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-out";
@@ -77,7 +78,7 @@ const InvoiceItemRender = ({ invoice, isIncome, handleDelete, handleStatusChange
 
       <div className="flex flex-col md:items-end gap-3 ml-9 md:ml-0">
         <p className={`select-text cursor-text text-2xl font-bold ${isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-orange-600 dark:text-orange-400'}`}>
-          {isIncome ? '+' : '-'} ₹{invoice.totalAmount.toFixed(2)}
+          {isIncome ? '+' : '-'} {formatCurrency(invoice.totalAmount)}
         </p>
 
         <div className="flex gap-2 flex-wrap justify-start md:justify-end">
@@ -316,7 +317,7 @@ export default function Invoices() {
               <div className={`${GLASS_CLASSES} p-5 rounded-2xl flex items-center justify-between`}>
                 <div>
                   <h3 className="text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Total Income</h3>
-                  <p className={`text-2xl font-bold ${TEXT_HEADLINE}`}>₹{totals.totalIncome.toFixed(2)}</p>
+                  <p className={`text-2xl font-bold ${TEXT_HEADLINE}`}>{formatCurrency(totals.totalIncome)}</p>
                 </div>
                 <div className="p-3 bg-emerald-100 dark:bg-emerald-500/20 rounded-xl text-emerald-600 dark:text-emerald-400">
                   <ArrowDownCircle className="w-6 h-6" />
@@ -325,7 +326,7 @@ export default function Invoices() {
               <div className={`${GLASS_CLASSES} p-5 rounded-2xl flex items-center justify-between`}>
                 <div>
                   <h3 className="text-sm font-bold text-orange-600 dark:text-orange-400 uppercase tracking-widest mb-1">Total Expenses</h3>
-                  <p className={`text-2xl font-bold ${TEXT_HEADLINE}`}>₹{totals.totalExpense.toFixed(2)}</p>
+                  <p className={`text-2xl font-bold ${TEXT_HEADLINE}`}>{formatCurrency(totals.totalExpense)}</p>
                 </div>
                 <div className="p-3 bg-orange-100 dark:bg-orange-500/20 rounded-xl text-orange-600 dark:text-orange-400">
                   <ArrowUpCircle className="w-6 h-6" />
@@ -443,8 +444,8 @@ export default function Invoices() {
                             <tr key={idx}>
                               <td className={`py-3 px-4 ${TEXT_HEADLINE}`}>{item.description}</td>
                               <td className={`text-right py-3 px-4 ${TEXT_HEADLINE}`}>{item.hours?.toFixed(2)}</td>
-                              <td className={`text-right py-3 px-4 ${TEXT_HEADLINE}`}><span className="select-text cursor-text">₹{item.hourlyRate?.toFixed(2)}</span></td>
-                              <td className={`text-right py-3 px-4 ${TEXT_HEADLINE} font-bold`}><span className="select-text cursor-text">₹{item.amount?.toFixed(2)}</span></td>
+                              <td className={`text-right py-3 px-4 ${TEXT_HEADLINE}`}><span className="select-text cursor-text">{formatCurrency(item.hourlyRate)}</span></td>
+                              <td className={`text-right py-3 px-4 ${TEXT_HEADLINE} font-bold`}><span className="select-text cursor-text">{formatCurrency(item.amount)}</span></td>
                             </tr>
                           ))}
                         </tbody>
@@ -457,7 +458,7 @@ export default function Invoices() {
                   <div className="flex justify-between items-center">
                     <p className={`${TEXT_HEADLINE} font-bold text-lg`}>Total Amount</p>
                     <p className={`select-text cursor-text text-2xl font-bold text-violet-600 dark:text-yellow-400`}>
-                      ₹{selectedInvoice.totalAmount.toFixed(2)}
+                      {formatCurrency(selectedInvoice.totalAmount)}
                     </p>
                   </div>
                 </div>

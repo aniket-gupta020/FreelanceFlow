@@ -1,6 +1,7 @@
 // src/utils/pdfGenerator.js
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { formatCurrency } from '../utils/formatCurrency';
 
 export const generateInvoicePDF = (invoice) => {
     if (!invoice) return;
@@ -116,8 +117,9 @@ export const generateInvoicePDF = (invoice) => {
             new Date(log.startTime || Date.now()).toLocaleDateString(),
             log.description || 'System Log',
             `${(log.durationHours || 0).toFixed(2)} hrs`,
-            `Rs. ${(invoice.totalAmount / (invoice.totalHours || 1)).toFixed(0)}`, // Approx rate if not saved
-            `Rs. ${((log.durationHours || 0) * (invoice.totalAmount / (invoice.totalHours || 1))).toFixed(2)}`
+            `${(log.durationHours || 0).toFixed(2)} hrs`,
+            formatCurrency(invoice.totalAmount / (invoice.totalHours || 1)), // Approx rate if not saved
+            formatCurrency((log.durationHours || 0) * (invoice.totalAmount / (invoice.totalHours || 1)))
         ]);
     } else {
         // Fallback for flat invoices without logs
@@ -126,7 +128,7 @@ export const generateInvoicePDF = (invoice) => {
             "Consolidated Project Payment",
             `${(invoice.totalHours || 0).toFixed(2)} hrs`,
             "-",
-            `Rs. ${invoice.totalAmount}`
+            formatCurrency(invoice.totalAmount)
         ]];
     }
 
@@ -177,7 +179,7 @@ export const generateInvoicePDF = (invoice) => {
     doc.setTextColor(...violetPrimary);
     doc.text("Total Amount:", boxX + 5, finalY + 19);
     doc.setFontSize(14);
-    doc.text(`Rs. ${(invoice.totalAmount || 0).toFixed(2)}`, pageWidth - 19, finalY + 19, { align: 'right' });
+    doc.text(formatCurrency(invoice.totalAmount || 0), pageWidth - 19, finalY + 19, { align: 'right' });
 
     // --- 6. FOOTER ---
     const footerY = pageHeight - 15;

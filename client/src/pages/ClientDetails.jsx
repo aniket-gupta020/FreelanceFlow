@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import Sidebar from '../components/Sidebar';
 import { generateInvoicePDF } from '../components/pdfGenerator';
+import { formatCurrency } from '../utils/formatCurrency';
 import {
     Menu, User, Mail, Phone, IndianRupee, Briefcase, ArrowRight, X, LayoutDashboard,
     FileText, Send, CheckCircle, AlertCircle, Clock, Download
@@ -212,8 +213,7 @@ const ClientDetails = () => {
                                 </div>
 
                                 <div className="flex items-center gap-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                                    <IndianRupee className="w-6 h-6" />
-                                    <span className="select-text cursor-text">{freelancer?.defaultHourlyRate || 0}</span>
+                                    <span className="select-text cursor-text">{formatCurrency(freelancer?.defaultHourlyRate || 0)}</span>
                                     <span className="text-sm text-slate-500 font-normal self-end mb-1">/ hour (default)</span>
                                 </div>
                             </div>
@@ -246,7 +246,7 @@ const ClientDetails = () => {
 
                                         <div className="flex justify-between items-center pt-4 border-t border-gray-200/50 dark:border-white/10">
                                             <div className="font-bold text-slate-800 dark:text-white flex items-center">
-                                                <IndianRupee className="w-4 h-4 text-emerald-500" /> <span className="select-text cursor-text">{project.budget}</span>
+                                                <span className="select-text cursor-text">{formatCurrency(project.budget)}</span>
                                             </div>
                                             <div className="flex items-center gap-1 text-violet-600 dark:text-yellow-400 text-sm font-medium group-hover:translate-x-1 transition-transform">
                                                 Details <ArrowRight className="w-4 h-4" />
@@ -281,7 +281,7 @@ const ClientDetails = () => {
 
                                         <div className="flex justify-between items-center pt-4 border-t border-gray-200/50 dark:border-white/10">
                                             <div className="font-bold text-slate-800 dark:text-white flex items-center">
-                                                <IndianRupee className="w-4 h-4 text-emerald-500" /> {project.budget}
+                                                {formatCurrency(project.budget)}
                                             </div>
                                         </div>
                                     </div>
@@ -325,7 +325,7 @@ const ClientDetails = () => {
                                                         {inv.status}
                                                     </span>
                                                     <span className="text-xl font-bold text-slate-800 dark:text-white flex items-center">
-                                                        <IndianRupee className="w-4 h-4" /><span className="select-text cursor-text">{inv.totalAmount}</span>
+                                                        <span className="select-text cursor-text">{formatCurrency(inv.totalAmount)}</span>
                                                     </span>
                                                 </div>
                                             </div>
@@ -427,8 +427,8 @@ const ClientDetails = () => {
                                                         <tr key={idx}>
                                                             <td className="py-3 px-4 text-slate-800 dark:text-white">{item.description}</td>
                                                             <td className="text-right py-3 px-4 text-slate-800 dark:text-white">{item.hours?.toFixed(2)}</td>
-                                                            <td className="text-right py-3 px-4 text-slate-800 dark:text-white"><span className="select-text cursor-text">₹{item.hourlyRate?.toFixed(2)}</span></td>
-                                                            <td className="text-right py-3 px-4 text-slate-800 dark:text-white font-bold"><span className="select-text cursor-text">₹{item.amount?.toFixed(2)}</span></td>
+                                                            <td className="text-right py-3 px-4 text-slate-800 dark:text-white"><span className="select-text cursor-text">{formatCurrency(item.hourlyRate)}</span></td>
+                                                            <td className="text-right py-3 px-4 text-slate-800 dark:text-white font-bold"><span className="select-text cursor-text">{formatCurrency(item.amount)}</span></td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
@@ -441,7 +441,7 @@ const ClientDetails = () => {
                                     <div className="flex justify-between items-center">
                                         <p className="text-slate-800 dark:text-white font-bold text-lg">Total Amount</p>
                                         <p className="select-text cursor-text text-2xl font-bold text-violet-600 dark:text-yellow-400">
-                                            ₹{selectedInvoice.totalAmount.toFixed(2)}
+                                            {formatCurrency(selectedInvoice.totalAmount)}
                                         </p>
                                     </div>
                                 </div>
