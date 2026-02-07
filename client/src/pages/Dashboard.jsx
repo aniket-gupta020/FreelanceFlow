@@ -486,10 +486,9 @@ const Dashboard = () => {
             </div>
           </header>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <StatCard title="Total Projects" value={projects.length} subtext="System wide" type="blue" icon={LayoutDashboard} />
             <StatCard title="My Projects" value={myProjects.length} subtext="Active & Owned" type="emerald" icon={Briefcase} />
-            <StatCard title="Status" value="Active" subtext="System Online" type="rose" icon={Clock} />
           </div>
 
           <div className={`${GLASS_CLASSES} rounded-3xl p-6 md:p-8 mb-8`}>
