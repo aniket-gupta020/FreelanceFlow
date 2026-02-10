@@ -8,7 +8,12 @@ import {
 } from 'lucide-react';
 import UpgradeButton from '../components/UpgradeButton'; // Import UpgradeButton
 
+
+// Styling Constants
 const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
+const BUTTON_BASE = "flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 shadow-lg active:scale-95";
+const ACCENT_BG = "bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black";
+
 
 import Sidebar from '../components/Sidebar';
 import { formatCurrency } from '../utils/formatCurrency';
@@ -113,14 +118,15 @@ const Clients = () => {
   const handleAddClient = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/clients', newClient);
+      const res = await api.post('/clients', newClient);
+      const newClientId = res.data._id;
+
       toast.success("Client added successfully!");
       setShowAddClientModal(false);
       setNewClient({ name: '', email: '', phone: '', defaultHourlyRate: '' });
 
-      // Refresh list
-      const res = await api.get('/clients');
-      setClients(res.data);
+      // Navigate to the newly created client's profile
+      navigate(`/clients/${newClientId}`);
     } catch (err) {
       console.error(err);
       // Check for limit error
@@ -223,10 +229,10 @@ const Clients = () => {
                 ) : (
                   <button
                     onClick={() => setShowAddClientModal(true)}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-all shadow-lg hover:shadow-indigo-500/30"
+                    className={`${BUTTON_BASE} ${ACCENT_BG}`}
                   >
-                    <Plus className="w-4 h-4" />
-                    Add Client
+                    <Plus className="w-5 h-5" />
+                    New Client
                   </button>
                 )}
               </div>
@@ -304,7 +310,7 @@ const Clients = () => {
           {/* ADD CLIENT MODAL */}
           {showAddClientModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-              <div className={`${GLASS_CLASSES} w-full max-w-md p-6 rounded-2xl animate-in zoom-in duration-200 bg-white dark:bg-gray-800`}>
+              <div className={`${GLASS_CLASSES} w-full max-w-md p-6 rounded-2xl animate-in zoom-in duration-200`}>
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-xl font-bold text-slate-800 dark:text-white">Add New Client</h3>
                   <button onClick={() => setShowAddClientModal(false)} className="text-slate-500 hover:text-slate-700 dark:text-gray-400 dark:hover:text-white">
@@ -319,10 +325,17 @@ const Clients = () => {
                       required
                       type="text"
                       value={newClient.name}
-                      onChange={e => setNewClient({ ...newClient, name: e.target.value })}
+                      onChange={e => {
+                        const val = e.target.value;
+                        // Only allow letters and spaces
+                        if (/^[a-zA-Z\s]*$/.test(val)) {
+                          setNewClient({ ...newClient, name: val });
+                        }
+                      }}
                       className="w-full p-2 rounded-xl bg-white/50 dark:bg-black/20 border border-slate-200 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
-                      placeholder="e.g. Acme Corp"
+                      placeholder="e.g. Guptaji's Company"
                     />
+                    <p className="text-xs text-slate-500 mt-1 pl-1">Letters and spaces only</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Email</label>
@@ -332,7 +345,7 @@ const Clients = () => {
                       value={newClient.email}
                       onChange={e => setNewClient({ ...newClient, email: e.target.value })}
                       className="w-full p-2 rounded-xl bg-white/50 dark:bg-black/20 border border-slate-200 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
-                      placeholder="client@example.com"
+                      placeholder="Factory@Guptaji.com"
                     />
                   </div>
                   <div>
@@ -340,10 +353,17 @@ const Clients = () => {
                     <input
                       type="tel"
                       value={newClient.phone}
-                      onChange={e => setNewClient({ ...newClient, phone: e.target.value })}
+                      onChange={e => {
+                        const val = e.target.value;
+                        // Only allow numbers and phone special characters
+                        if (/^[0-9+\(\)\s-]*$/.test(val)) {
+                          setNewClient({ ...newClient, phone: val });
+                        }
+                      }}
                       className="w-full p-2 rounded-xl bg-white/50 dark:bg-black/20 border border-slate-200 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
-                      placeholder="+1 234 567 8900"
+                      placeholder="+91 0987654321"
                     />
+                    <p className="text-xs text-slate-500 mt-1 pl-1">Numbers, +, -, (, ), and spaces only</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Default Hourly Rate</label>
@@ -361,7 +381,7 @@ const Clients = () => {
 
                   <button
                     type="submit"
-                    className="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg hover:shadow-indigo-500/30"
+                    className={`mt-4 w-full ${BUTTON_BASE} ${ACCENT_BG}`}
                   >
                     Add Client
                   </button>
