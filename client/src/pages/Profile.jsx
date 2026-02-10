@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import {
   LayoutDashboard, Users, Clock, IndianRupee, Menu, X,
-  Sun, Moon, LogOut, User, Mail, Briefcase, Save, Trash2, CheckSquare, Lock, Key,
+  Sun, Moon, LogOut, User, Mail, Save, Trash2, CheckSquare, Lock, Key,
   ChevronDown, ChevronUp
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
@@ -22,7 +22,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [formData, setFormData] = useState({
-    name: '', email: '', bio: '', skills: '', defaultHourlyRate: 0, mobile: ''
+    name: '', email: '', defaultHourlyRate: 0, mobile: ''
   });
 
   // OTP & Security State
@@ -34,6 +34,7 @@ const Profile = () => {
 
   const [otpAction, setOtpAction] = useState('update'); // 'update' or 'delete'
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [isEmailFocused, setIsEmailFocused] = useState(false);
 
   const [darkMode, setDarkMode] = useState(() => {
     if (localStorage.getItem('theme')) return localStorage.getItem('theme') === 'dark';
@@ -66,8 +67,6 @@ const Profile = () => {
         setFormData({
           name: u.name,
           email: u.email,
-          bio: u.bio || '',
-          skills: u.skills ? u.skills.join(', ') : '',
           defaultHourlyRate: u.defaultHourlyRate || 0,
           mobile: u.mobile || ''
         });
@@ -93,8 +92,7 @@ const Profile = () => {
     }
 
     try {
-      const skillsArray = formData.skills.split(',').map(s => s.trim()).filter(s => s);
-      const payload = { ...formData, skills: skillsArray };
+      const payload = { ...formData };
 
       // Check for sensitive changes
       const isEmailChanged = user.email.toLowerCase() !== formData.email.toLowerCase();
@@ -131,8 +129,7 @@ const Profile = () => {
 
   const handleVerifyAndSave = async () => {
     try {
-      const skillsArray = formData.skills.split(',').map(s => s.trim()).filter(s => s);
-      const payload = { ...formData, skills: skillsArray, otp };
+      const payload = { ...formData, otp };
 
       if (newPassword) payload.password = newPassword;
 
@@ -343,7 +340,7 @@ const Profile = () => {
                   {user.name.charAt(0).toUpperCase()}
                 </div>
                 <h2 className="text-xl font-bold text-slate-800 dark:text-white">{user.name}</h2>
-                <p className="select-text cursor-text text-slate-500 dark:text-gray-400 mb-4">{user.email}</p>
+                <p className="select-text cursor-text text-slate-500 dark:text-gray-400 mb-4 break-all">{user.email}</p>
                 <span className="inline-block px-4 py-1.5 bg-violet-100 text-violet-700 dark:bg-yellow-500/20 dark:text-yellow-400 rounded-full text-xs font-bold uppercase tracking-wide">
                   {user.role} Account
                 </span>
@@ -377,14 +374,19 @@ const Profile = () => {
                     <div className="relative">
                       <Mail className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
                       <input
-
                         type="email"
                         className={INPUT_CLASSES}
                         value={formData.email}
+                        onFocus={() => setIsEmailFocused(true)}
+                        onBlur={() => setIsEmailFocused(false)}
                         onChange={e => setFormData({ ...formData, email: e.target.value })}
                       />
                     </div>
-                    <p className="text-xs text-slate-500 mt-1 pl-1">Changing email requires OTP verification.</p>
+                    {isEmailFocused && (
+                      <p className="text-xs text-slate-500 mt-1 pl-1 animate-in slide-in-from-top-1 fade-in duration-200">
+                        Changing email requires OTP verification.
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -431,31 +433,7 @@ const Profile = () => {
                   )}
                 </div>
 
-                <div>
-                  <label className={LABEL_CLASSES}>Bio</label>
-                  <textarea
-                    className={`${INPUT_CLASSES} pl-4`}
-                    rows="4"
-                    placeholder="Tell clients about yourself..."
-                    value={formData.bio}
-                    onChange={e => setFormData({ ...formData, bio: e.target.value })}
-                  ></textarea>
-                </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className={LABEL_CLASSES}>Skills (comma separated)</label>
-                    <div className="relative">
-                      <Briefcase className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
-                      <input
-                        type="text"
-                        className={INPUT_CLASSES}
-                        placeholder="React, Node.js..."
-                        value={formData.skills}
-                        onChange={e => setFormData({ ...formData, skills: e.target.value })}
-                      />
-                    </div>
-                  </div>
                   <div>
                     <label className={LABEL_CLASSES}>Hourly Rate (₹)</label>
                     <div className="relative">
@@ -476,7 +454,7 @@ const Profile = () => {
                       <input
                         type="text"
                         className={INPUT_CLASSES}
-                        placeholder="+91 9876543210"
+                        placeholder="+91 7414908640"
                         value={formData.mobile}
                         onChange={e => {
                           const val = e.target.value;
@@ -489,18 +467,18 @@ const Profile = () => {
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center pt-6 border-t border-white/20">
+                <div className="flex flex-col-reverse sm:flex-row justify-between items-center gap-4 pt-6 border-t border-white/20">
                   <button
                     type="button"
                     onClick={handleDeleteAccount}
-                    className="flex items-center gap-2 text-red-500 hover:text-red-600 text-sm font-medium transition"
+                    className="flex items-center gap-2 text-red-500 hover:text-red-600 text-sm font-medium transition w-full sm:w-auto justify-center sm:justify-start"
                   >
                     <Trash2 className="w-4 h-4" /> Delete Account
                   </button>
 
                   <button
                     type="submit"
-                    className={`${BUTTON_BASE} bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black`}
+                    className={`${BUTTON_BASE} bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black w-full sm:w-auto justify-center`}
                   >
                     <Save className="w-5 h-5" /> Save Changes
                   </button>

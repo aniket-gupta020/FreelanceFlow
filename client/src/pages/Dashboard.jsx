@@ -429,16 +429,8 @@ const Dashboard = () => {
   const activeMyProjects = myProjects.filter(p => p.status !== 'completed' && new Date(p.deadline) >= new Date());
   const pastMyProjects = myProjects.filter(p => p.status === 'completed' || new Date(p.deadline) < new Date());
 
-  const marketplaceProjects = allDisplayProjects.filter(project => {
-    const projectOwnerId = getSafeId(project.owner);
-    const projectClientId = getSafeId(project.client);
-    return String(currentUserId) !== String(projectOwnerId) && String(currentUserId) !== String(projectClientId);
-  });
-
-  const activeMarketplaceProjects = marketplaceProjects.filter(p => p.status !== 'completed' && new Date(p.deadline) >= new Date());
-  const pastMarketplaceProjects = marketplaceProjects.filter(p => p.status === 'completed' || new Date(p.deadline) < new Date());
-
-  const allPastProjects = [...pastMyProjects, ...pastMarketplaceProjects];
+  // Only show user's own past projects (dead and completed)
+  const allPastProjects = pastMyProjects;
 
   const checkIsOwner = (project) => {
     const projectOwnerId = getSafeId(project.owner);
@@ -495,47 +487,8 @@ const Dashboard = () => {
           </header>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <StatCard title="Total Projects" value={projects.length} subtext="System wide" type="blue" icon={LayoutDashboard} />
-            <StatCard title="My Projects" value={myProjects.length} subtext="Active & Owned" type="emerald" icon={Briefcase} />
-          </div>
-
-          <div className={`${GLASS_CLASSES} rounded-3xl p-6 md:p-8 mb-8`}>
-            <h3 className={`text-xl font-bold ${TEXT_HEADLINE} mb-6`}>Marketplace</h3>
-            {activeMarketplaceProjects.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="bg-gray-100 dark:bg-white/5 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4 animate-pulse">
-                  <LayoutDashboard className="w-10 h-10 text-gray-400" />
-                </div>
-                <h3 className={`text-lg font-bold ${TEXT_HEADLINE}`}>No marketplace projects</h3>
-                <p className={`${TEXT_SUB} mt-2`}>Be the first to post a project!</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {activeMarketplaceProjects.map(project => (
-                  <ProjectCard
-                    key={project._id}
-                    project={project}
-                    user={user}
-                    isOwner={false}
-                    handleDelete={handleDelete}
-                    handleApply={handleApply}
-                    handleMarkComplete={handleMarkComplete}
-                    expandedProjectId={expandedProjectId}
-                    setExpandedProjectId={setExpandedProjectId}
-                    projectTimeLogs={projectTimeLogs}
-                    calculateBurnRate={calculateBurnRate}
-                    onClick={() => {
-                      const hasApplied = project.applicants?.some(app => String(app._id || app) === String(user?._id));
-                      if (hasApplied) {
-                        navigate(`/projects/${project._id}`);
-                      } else {
-                        toast.error("Please apply to view details");
-                      }
-                    }}
-                  />
-                ))}
-              </div>
-            )}
+            <StatCard title="Active Projects" value={activeMyProjects.length} subtext="Currently active" type="emerald" icon={Briefcase} />
+            <StatCard title="Owned Projects" value={myProjects.length} subtext="Total owned" type="blue" icon={LayoutDashboard} />
           </div>
 
           <div className={`${GLASS_CLASSES} rounded-3xl p-6 md:p-8 mb-8`}>

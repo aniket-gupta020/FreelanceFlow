@@ -36,10 +36,10 @@ const sendTokenResponse = (user, statusCode, res, message) => {
     });
 };
 
-// 1️⃣ REGISTER ROUTE
+// 1️⃣ REGISTER ROUTE (No OTP Required)
 router.post('/register', async (req, res) => {
   try {
-    let { name, email, password, role, mobile, defaultHourlyRate, subscription } = req.body;
+    let { name, email, password, role, mobile, subscription } = req.body;
     if (email) email = email.trim().toLowerCase();
 
     console.log("👉 HIT REGISTER for:", email);
@@ -81,38 +81,24 @@ router.post('/register', async (req, res) => {
       }
     }
 
-    // 2. Generate OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // 3. Hash Password & Save to TempUser
+    // 2. Hash Password & Create User Directly
     const salt = await bcrypt.genSalt(10);
     const hashed = await bcrypt.hash(password, salt);
 
-    const tempUserData = {
+    const newUser = new User({
+      name,
       email,
-      otp,
-      registrationData: {
-        name,
-        password: hashed,
-        role: role || 'freelancer',
-        mobile: mobile || '',
-        defaultHourlyRate: defaultHourlyRate || 0,
-        subscription: subscription || 'free'
-      }
-    };
-
-    await TempUser.findOneAndUpdate(
-      { email },
-      tempUserData,
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
-
-    await sendEmail(email, otp, 'register');
-
-    res.status(200).json({
-      message: 'OTP sent to your email. Please verify to complete registration.',
-      email: email
+      password: hashed,
+      role: role || 'freelancer',
+      mobile: mobile || '',
+      subscription: subscription || 'free',
+      isVerified: true // Automatically verified, no OTP needed
     });
+
+    const savedUser = await newUser.save();
+
+    // ✅ Send Response with Cookie and Token
+    sendTokenResponse(savedUser, 201, res, 'Registration Successful! Welcome to FreelanceFlow.');
 
   } catch (err) {
     console.log("❌ REGISTER ERROR:", err);

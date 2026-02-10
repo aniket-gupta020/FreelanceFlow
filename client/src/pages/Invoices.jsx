@@ -313,7 +313,7 @@ export default function Invoices() {
           <div className="max-w-5xl mx-auto">
 
             {/* Stats Overview */}
-            <div className="grid grid-cols-2 gap-4 mb-8">
+            <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-4 mb-8">
               <div className={`${GLASS_CLASSES} p-5 rounded-2xl flex items-center justify-between`}>
                 <div>
                   <h3 className="text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Total Income</h3>
