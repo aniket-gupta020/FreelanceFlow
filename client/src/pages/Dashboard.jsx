@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Clock, IndianRupee, Users, Plus,
   Trash2, Pencil, Briefcase, Menu, X, Sun, Moon,
-  LogOut, Download, Upload, AlertTriangle, CheckSquare, User,
+  LogOut, AlertTriangle, CheckSquare, User,
   ChevronDown, ChevronRight
 } from 'lucide-react';
 import FinancialDashboard from '../components/FinancialDashboard';
@@ -208,10 +208,6 @@ const Dashboard = () => {
   const [expandedProjectId, setExpandedProjectId] = useState(null);
   const [projectTimeLogs, setProjectTimeLogs] = useState({});
   const [showPreviousProjects, setShowPreviousProjects] = useState(false);
-  /* Persistence: Initialize isSampleMode from localStorage */
-  const [isSampleMode, setIsSampleMode] = useState(() => {
-    return localStorage.getItem('isSampleMode') === 'true';
-  });
   const navigate = useNavigate();
 
   const [darkMode, setDarkMode] = useState(() => {
@@ -260,51 +256,6 @@ const Dashboard = () => {
       .catch(err => console.error("Error fetching timelogs:", err));
   }, [navigate]);
 
-
-
-  /* Sample Data Constants */
-  const SAMPLE_PROJECTS = [
-    {
-      _id: 'sample_1',
-      title: 'E-Commerce Redesign (Sample)',
-      description: 'Complete overhaul of the product page and checkout flow for better conversion.',
-      budget: 50000,
-      deadline: new Date(Date.now() + 86400000 * 15).toISOString(), // 15 days from now
-      status: 'active',
-      status: 'active',
-      owner: { _id: 'sample_owner_1' }, // Changed to generic ID to appear in Marketplace
-      client: { _id: 'client_1', defaultHourlyRate: 200 },
-      applicants: [
-        { _id: 'app_1', name: 'Alice Designer', email: 'alice@example.com' },
-        { _id: 'app_2', name: 'Bob Coder', email: 'bob@example.com' }
-      ]
-    },
-    {
-      _id: 'sample_2',
-      title: 'Mobile App MVP (Sample)',
-      description: 'Flutter based MVP for a food delivery startup. Core features only.',
-      budget: 120000,
-      deadline: new Date(Date.now() + 86400000 * 45).toISOString(),
-      status: 'active',
-      status: 'active',
-      owner: { _id: 'sample_owner_1' },
-      client: { _id: 'client_2', defaultHourlyRate: 500 },
-      applicants: []
-    }
-  ];
-
-  /* Toggle Sample Mode with Persistence */
-  const toggleSampleMode = () => {
-    if (isSampleMode) {
-      setIsSampleMode(false);
-      localStorage.removeItem('isSampleMode');
-      toast.success("Sample data unloaded");
-    } else {
-      setIsSampleMode(true);
-      localStorage.setItem('isSampleMode', 'true');
-      toast.success("Sample data loaded");
-    }
-  };
 
 
   const calculateBurnRate = (projectId, budget, clientRate) => {
@@ -418,9 +369,7 @@ const Dashboard = () => {
   const getSafeId = (id) => id?._id || id?.id || id;
   const currentUserId = user ? getSafeId(user) : null;
 
-  const allDisplayProjects = isSampleMode ? [...projects, ...SAMPLE_PROJECTS] : projects;
-
-  const myProjects = allDisplayProjects.filter(project => {
+  const myProjects = projects.filter(project => {
     const projectOwnerId = getSafeId(project.owner);
     const projectClientId = getSafeId(project.client);
     return String(currentUserId) === String(projectOwnerId) || String(currentUserId) === String(projectClientId);
@@ -477,9 +426,6 @@ const Dashboard = () => {
             </div>
 
             <div className="flex gap-3">
-              <button onClick={toggleSampleMode} className={`${BUTTON_BASE} ${isSampleMode ? 'bg-amber-500 hover:bg-amber-600' : 'bg-emerald-600 hover:bg-emerald-700'} text-white`}>
-                {isSampleMode ? <Upload className="w-5 h-5" /> : <Download className="w-5 h-5" />} {isSampleMode ? "Unload Sample Data" : "Load Sample Data"}
-              </button>
               <Link to="/post-project" className={`${BUTTON_BASE} ${ACCENT_BG}`}>
                 <Plus className="w-5 h-5" /> New Project
               </Link>
@@ -559,8 +505,8 @@ const Dashboard = () => {
           )}
 
           <div className="mt-8 flex flex-col gap-8 pb-8">
-            <FinancialDashboard isSampleMode={isSampleMode} />
-            <UpcomingDeadlines isSampleMode={isSampleMode} />
+            <FinancialDashboard />
+            <UpcomingDeadlines />
 
           </div>
 

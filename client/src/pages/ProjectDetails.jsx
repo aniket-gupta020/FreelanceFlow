@@ -104,7 +104,10 @@ const ProjectDetails = () => {
 
     const handleMarkComplete = async () => {
         try {
-            await api.put(`/projects/${projectId}`, { status: 'Completed' });
+            await api.put(`/projects/${projectId}`, {
+                status: 'completed',
+                completedAt: new Date().toISOString()
+            });
             toast.success("Project Marked as Complete!");
             fetchProjectData();
         } catch (err) {
@@ -277,7 +280,7 @@ const ProjectDetails = () => {
 
                         <div className="flex gap-3">
                             {/* Only the user who CREATED the project can mark it as complete */}
-                            {project.status !== 'Completed' && (() => {
+                            {project.status !== 'completed' && (() => {
                                 const user = JSON.parse(localStorage.getItem('user'));
                                 if (user && (user._id === project.createdBy || user._id === project.createdBy?._id)) {
                                     return (
@@ -298,7 +301,7 @@ const ProjectDetails = () => {
                                 <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{project.title}</h1>
                                 <p className="text-slate-600 dark:text-gray-400 max-w-2xl">{project.description}</p>
                             </div>
-                            <div className={`px-3 py-1 rounded-full text-sm font-bold uppercase ${project.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
+                            <div className={`px-3 py-1 rounded-full text-sm font-bold uppercase ${project.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
                                 {project.status || 'Active'}
                             </div>
                         </div>
