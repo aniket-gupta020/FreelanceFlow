@@ -11,6 +11,7 @@ import Stopwatch from '../components/Stopwatch';
 import AutoTimeTracker from '../components/AutoTimeTracker';
 import ProjectReportGenerator from '../components/ProjectReportGenerator';
 import { formatCurrency } from '../utils/formatCurrency';
+import { formatDuration } from '../utils/formatDuration';
 
 const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
 const INPUT_CLASSES = "w-full p-3 bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none transition-all dark:text-white";
@@ -82,6 +83,17 @@ const ProjectDetails = () => {
 
     const handleCreateTask = async (e) => {
         e.preventDefault();
+
+        // Validation: Task deadline cannot be after Project deadline
+        if (project.deadline && newTaskDeadline) {
+            const taskDate = new Date(newTaskDeadline);
+            const projectDate = new Date(project.deadline);
+            // Compare dates (ignoring time for simplicity, or keep if needed)
+            if (taskDate > projectDate) {
+                return toast.error(`Task deadline cannot be after Project deadline (${new Date(project.deadline).toLocaleDateString()})`);
+            }
+        }
+
         try {
             await api.post('/tasks', {
                 title: newTaskTitle,
@@ -121,14 +133,38 @@ const ProjectDetails = () => {
         if (isNaN(hours) || hours <= 0) return toast.error('Please enter valid hours');
         if (!manualForm.description.trim()) return toast.error('Description is required');
 
-        // Validation: Cannot exceed project age (Now - CreatedAt)
-        if (project.createdAt) {
-            const created = new Date(project.createdAt);
+        // Validation: Cannot exceed project age (Now - StartDate/CreatedAt)
+        if (project.createdAt || project.startDate) {
+            const effectiveStart = new Date(project.startDate || project.createdAt);
             const now = new Date();
-            const projectAgeHours = (now - created) / (1000 * 60 * 60);
+            // Only enforce this check if the project started in the past
+            if (now > effectiveStart) {
+                const projectAgeHours = (now - effectiveStart) / (1000 * 60 * 60);
 
-            if (hours > projectAgeHours) {
-                return toast.error(`Cannot log ${hours} hours. Project is only ${projectAgeHours.toFixed(2)} hours old.`);
+                // Allow a small buffer (e.g. 1 min) or just strict check
+                if (hours > projectAgeHours + 0.1) { // 0.1 hour buffer
+                    return toast.error(`Cannot log ${hours} hours. Project is only ${projectAgeHours.toFixed(2)} hours old.`);
+                }
+            }
+
+            // New Date Validation: Project Start (StartDate or CreatedAt) & Death (Deadline)
+            const selectedDate = new Date(manualForm.date);
+            selectedDate.setHours(0, 0, 0, 0);
+
+            const effectiveStartDate = new Date(project.startDate || project.createdAt);
+            effectiveStartDate.setHours(0, 0, 0, 0);
+
+            if (selectedDate < effectiveStartDate) {
+                return toast.error(`Cannot log time before project start date (${effectiveStartDate.toLocaleDateString()})`);
+            }
+
+            if (project.deadline) {
+                const deadlineDate = new Date(project.deadline);
+                deadlineDate.setHours(0, 0, 0, 0);
+
+                if (selectedDate > deadlineDate) {
+                    return toast.error(`Cannot log time after project deadline (${deadlineDate.toLocaleDateString()})`);
+                }
             }
         }
 
@@ -308,6 +344,17 @@ const ProjectDetails = () => {
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
                             <div className="bg-white/50 dark:bg-white/5 p-4 rounded-2xl flex items-center gap-4">
+                                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl text-blue-600 dark:text-blue-400">
+                                    <Clock className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <div className="text-sm text-slate-500 dark:text-gray-400">Start Date</div>
+                                    <div className="font-bold text-lg text-slate-800 dark:text-white">
+                                        {new Date(project.startDate || project.createdAt).toLocaleDateString()}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="bg-white/50 dark:bg-white/5 p-4 rounded-2xl flex items-center gap-4">
                                 <div className="p-3 bg-violet-100 dark:bg-violet-900/30 rounded-xl text-violet-600 dark:text-violet-400">
                                     <IndianRupee className="w-6 h-6" />
                                 </div>
@@ -415,12 +462,10 @@ const ProjectDetails = () => {
                         </div>
                     )}
 
-                    {/* Time Tracking Section - Hidden for Creator */
+                    {/* Time Tracking Section - Visible to Creator (Owner) and others */
                         (() => {
                             const user = JSON.parse(localStorage.getItem('user'));
-                            const isCreator = user && (user._id === project.createdBy || user._id === project.createdBy?._id);
-
-                            if (isCreator) return null;
+                            // Removed check: if (isCreator) return null; 
 
                             return (
                                 <>
@@ -503,7 +548,7 @@ const ProjectDetails = () => {
                                                                                 {new Date(log.startTime).toLocaleDateString()}
                                                                             </span>
                                                                             <span className="font-mono font-bold text-violet-600 dark:text-yellow-400">
-                                                                                {log.durationHours?.toFixed(2)} hrs
+                                                                                {formatDuration(log.durationHours)}
                                                                             </span>
                                                                         </div>
 
@@ -551,7 +596,7 @@ const ProjectDetails = () => {
                                                                             <tr key={log._id} className="hover:bg-white/30 dark:hover:bg-white/5 transition-colors">
                                                                                 <td className="p-4 text-sm text-slate-800 dark:text-gray-300">{new Date(log.startTime).toLocaleDateString()}</td>
                                                                                 <td className="p-4 text-sm text-slate-600 dark:text-gray-400 max-w-[200px] truncate" title={log.description}>{log.description}</td>
-                                                                                <td className="p-4 text-right font-bold text-slate-800 dark:text-gray-300">{log.durationHours?.toFixed(2)} hrs</td>
+                                                                                <td className="p-4 text-right font-bold text-slate-800 dark:text-gray-300">{formatDuration(log.durationHours)}</td>
                                                                                 <td className="p-4 text-center">
                                                                                     {(() => {
                                                                                         if (log.status === 'paid') {

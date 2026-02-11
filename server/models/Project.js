@@ -22,9 +22,13 @@ const ProjectSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
+  startDate: {
+    type: Date,
+    default: Date.now
+  },
   client: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'client',
     required: true
   },
   applicants: [{

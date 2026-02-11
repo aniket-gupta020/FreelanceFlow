@@ -2,6 +2,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCurrency } from '../utils/formatCurrency';
+import { formatDuration } from '../utils/formatDuration';
 
 export const generateInvoicePDF = (invoice) => {
     if (!invoice) return;
@@ -55,7 +56,7 @@ export const generateInvoicePDF = (invoice) => {
     // --- 3. DETAILS GRID ---
     const startY = 55;
 
-    // Left: FROM (Client)
+    // Left: FROM (Freelancer)
     doc.setDrawColor(200);
     doc.line(14, startY - 5, 14, startY + 25);
     doc.setLineWidth(1);
@@ -64,20 +65,20 @@ export const generateInvoicePDF = (invoice) => {
 
     doc.setFontSize(8);
     doc.setTextColor(...slateLight);
-    doc.text("BILL FROM (PROJECT OWNER)", 18, startY);
+    doc.text("BILL FROM (FREELANCER)", 18, startY);
 
     doc.setFontSize(11);
     doc.setTextColor(...slateText);
     doc.setFont("helvetica", "bold");
-    doc.text((client.name || "").toUpperCase(), 18, startY + 6);
+    doc.text((freelancer.name || "").toUpperCase(), 18, startY + 6);
 
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(80);
-    doc.text(client.email || "", 18, startY + 11);
-    doc.text(client.mobile || "", 18, startY + 16);
+    doc.text(freelancer.email || "", 18, startY + 11);
+    doc.text(freelancer.mobile || freelancer.phone || "", 18, startY + 16);
 
-    // Right: TO (Freelancer)
+    // Right: TO (Client)
     const rightColX = pageWidth / 2 + 10;
     doc.setLineWidth(0.5);
     doc.setDrawColor(200);
@@ -88,18 +89,18 @@ export const generateInvoicePDF = (invoice) => {
 
     doc.setFontSize(8);
     doc.setTextColor(...slateLight);
-    doc.text("BILL TO (FREELANCER)", rightColX + 4, startY);
+    doc.text("BILL TO (CLIENT)", rightColX + 4, startY);
 
     doc.setFontSize(11);
     doc.setTextColor(...slateText);
     doc.setFont("helvetica", "bold");
-    doc.text((freelancer.name || "").toUpperCase(), rightColX + 4, startY + 6);
+    doc.text((client.name || "").toUpperCase(), rightColX + 4, startY + 6);
 
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(80);
-    doc.text(freelancer.email || "", rightColX + 4, startY + 11);
-    doc.text(freelancer.mobile || "", rightColX + 4, startY + 16);
+    doc.text(client.email || "", rightColX + 4, startY + 11);
+    doc.text(client.mobile || client.phone || "", rightColX + 4, startY + 16);
 
     // Project Badge
     doc.setFillColor(245, 243, 255);
@@ -116,19 +117,19 @@ export const generateInvoicePDF = (invoice) => {
         tableBody = logs.map(log => [
             new Date(log.startTime || Date.now()).toLocaleDateString(),
             log.description || 'System Log',
-            `${(log.durationHours || 0).toFixed(2)} hrs`,
-            `${(log.durationHours || 0).toFixed(2)} hrs`,
-            formatCurrency(invoice.totalAmount / (invoice.totalHours || 1)), // Approx rate if not saved
-            formatCurrency((log.durationHours || 0) * (invoice.totalAmount / (invoice.totalHours || 1)))
+            formatDuration(log.durationHours || 0),
+            formatDuration(log.durationHours || 0),
+            formatCurrency(invoice.totalAmount / (invoice.totalHours || 1)).replace('₹', 'Rs.'), // Approx rate if not saved
+            formatCurrency((log.durationHours || 0) * (invoice.totalAmount / (invoice.totalHours || 1))).replace('₹', 'Rs.')
         ]);
     } else {
         // Fallback for flat invoices without logs
         tableBody = [[
             dateStr,
             "Consolidated Project Payment",
-            `${(invoice.totalHours || 0).toFixed(2)} hrs`,
+            formatDuration(invoice.totalHours || 0),
             "-",
-            formatCurrency(invoice.totalAmount)
+            formatCurrency(invoice.totalAmount).replace('₹', 'Rs.')
         ]];
     }
 
@@ -170,7 +171,7 @@ export const generateInvoicePDF = (invoice) => {
     doc.text("Total Hours:", boxX + 5, finalY + 8);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0);
-    doc.text(`${(invoice.totalHours || 0).toFixed(2)} hrs`, pageWidth - 19, finalY + 8, { align: 'right' });
+    doc.text(formatDuration(invoice.totalHours || 0), pageWidth - 19, finalY + 8, { align: 'right' });
 
     doc.setDrawColor(240);
     doc.line(boxX + 5, finalY + 12, pageWidth - 19, finalY + 12);
@@ -179,7 +180,7 @@ export const generateInvoicePDF = (invoice) => {
     doc.setTextColor(...violetPrimary);
     doc.text("Total Amount:", boxX + 5, finalY + 19);
     doc.setFontSize(14);
-    doc.text(formatCurrency(invoice.totalAmount || 0), pageWidth - 19, finalY + 19, { align: 'right' });
+    doc.text(formatCurrency(invoice.totalAmount || 0).replace('₹', 'Rs.'), pageWidth - 19, finalY + 19, { align: 'right' });
 
     // --- 6. FOOTER ---
     const footerY = pageHeight - 15;

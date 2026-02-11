@@ -13,7 +13,7 @@ const InvoiceSchema = new mongoose.Schema({
   },
   client: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'client',
     required: true
   },
   freelancer: {

@@ -12,6 +12,7 @@ import FinancialDashboard from '../components/FinancialDashboard';
 import UpcomingDeadlines from '../components/UpcomingDeadlines';
 import Sidebar from '../components/Sidebar';
 import { formatCurrency } from '../utils/formatCurrency';
+import { formatDuration } from '../utils/formatDuration';
 
 
 const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
@@ -139,7 +140,7 @@ const ProjectCard = ({ project, user, isOwner, handleDelete, handleApply, handle
             </div>
             <div className="text-xs mt-3 space-y-1.5 font-medium text-slate-600 dark:text-slate-300">
               <div className="flex justify-between">
-                <span>Hours Logged:</span><span className="font-bold text-slate-800 dark:text-white">{burn.hours.toFixed(1)}h</span>
+                <span>Hours Logged:</span><span className="font-bold text-slate-800 dark:text-white">{formatDuration(burn.hours)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Cost:</span><span className="select-text cursor-text font-bold text-slate-800 dark:text-white">{formatCurrency(burn.cost)}</span>
@@ -370,7 +371,7 @@ const Dashboard = () => {
   const currentUserId = user ? getSafeId(user) : null;
 
   const myProjects = projects.filter(project => {
-    const projectOwnerId = getSafeId(project.owner);
+    const projectOwnerId = getSafeId(project.createdBy);
     const projectClientId = getSafeId(project.client);
     return String(currentUserId) === String(projectOwnerId) || String(currentUserId) === String(projectClientId);
   });
@@ -382,7 +383,7 @@ const Dashboard = () => {
   const allPastProjects = pastMyProjects;
 
   const checkIsOwner = (project) => {
-    const projectOwnerId = getSafeId(project.owner);
+    const projectOwnerId = getSafeId(project.createdBy);
     const projectClientId = getSafeId(project.client);
     return String(currentUserId) === String(projectOwnerId) || String(currentUserId) === String(projectClientId);
   };
@@ -423,12 +424,6 @@ const Dashboard = () => {
             <div>
               <h2 className={`text-3xl font-bold ${TEXT_HEADLINE} tracking-tight`}>Overview</h2>
               <p className={`${TEXT_SUB} mt-1`}>Welcome back, {user?.name}</p>
-            </div>
-
-            <div className="flex gap-3">
-              <Link to="/post-project" className={`${BUTTON_BASE} ${ACCENT_BG}`}>
-                <Plus className="w-5 h-5" /> New Project
-              </Link>
             </div>
           </header>
 

@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import api from '../api';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Clock, IndianRupee, Users, Plus,
-  Trash2, Menu, X, Sun, Moon, LogOut, Download, AlertTriangle,
-  CheckCircle, AlertCircle, Send, CheckSquare, User, ArrowDownCircle, ArrowUpCircle
+  IndianRupee,
+  Trash2, Menu, X, LogOut, Download,
+  Send, CheckCircle, ArrowDownCircle
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { generateInvoicePDF } from '../components/pdfGenerator';
 import { formatCurrency } from '../utils/formatCurrency';
+import { formatDuration } from '../utils/formatDuration';
 
 const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
 const CARD_HOVER = "hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-out";
@@ -33,9 +34,9 @@ const InvoiceStatusBadge = ({ status }) => {
   );
 };
 
-const InvoiceItemRender = ({ invoice, isIncome, handleDelete, handleStatusChange, setSelectedInvoice, setShowDetails, handlePrint }) => (
+const InvoiceItemRender = ({ invoice, handleDelete, handleStatusChange, setSelectedInvoice, setShowDetails, handlePrint }) => (
   <div
-    className={`${GLASS_CLASSES} p-6 rounded-2xl ${CARD_HOVER} cursor-pointer border-l-4 ${isIncome ? 'border-l-emerald-500' : 'border-l-orange-500'}`}
+    className={`${GLASS_CLASSES} p-6 rounded-2xl ${CARD_HOVER} cursor-pointer border-l-4 border-l-violet-500`}
     onClick={() => {
       setSelectedInvoice(invoice);
       setShowDetails(true);
@@ -44,41 +45,33 @@ const InvoiceItemRender = ({ invoice, isIncome, handleDelete, handleStatusChange
     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
       <div className="flex-1">
         <div className="flex items-center gap-3 mb-2">
-          {isIncome ? (
-            <ArrowDownCircle className="w-6 h-6 text-emerald-500" />
-          ) : (
-            <ArrowUpCircle className="w-6 h-6 text-orange-500" />
-          )}
+          <div className="p-2 bg-violet-100 dark:bg-violet-900/30 rounded-lg">
+            <IndianRupee className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+          </div>
           <h3 className={`select-text cursor-text text-lg font-bold ${TEXT_HEADLINE}`}>
             {invoice.invoiceNumber || `INV-${invoice._id.substring(0, 6).toUpperCase()}`}
           </h3>
           <InvoiceStatusBadge status={invoice.status} />
         </div>
 
-        <div className="flex flex-col gap-1 text-sm ml-9">
-          <p className={`${TEXT_SUB}`}>
-            <span className="font-semibold">{isIncome ? 'Project:' : 'Project:'}</span> {invoice.project?.title || 'Untitled Project'}
+        <div className="flex flex-col gap-1 text-sm ml-12">
+          <p className={`${TEXT_SUB} flex items-center gap-2`}>
+            <span className="font-semibold text-slate-700 dark:text-slate-300">Client:</span>
+            <span className="text-slate-900 dark:text-white font-medium">{invoice.client?.name || 'Unknown'}</span>
           </p>
           <p className={`${TEXT_SUB} flex items-center gap-2`}>
-            {isIncome ? (
-              <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                Received from {invoice.client?.name || 'Unknown'}
-              </span>
-            ) : (
-              <span className="text-orange-600 dark:text-orange-400 font-semibold flex items-center gap-1">
-                Paid to {invoice.freelancer?.name || 'Unknown'}
-              </span>
-            )}
+            <span className="font-semibold text-slate-700 dark:text-slate-300">Project:</span>
+            <span className="text-slate-900 dark:text-white font-medium">{invoice.project?.title || 'Untitled Project'}</span>
           </p>
           <p className={`${TEXT_SUB} text-xs mt-1 opacity-70`}>
-            {new Date(invoice.createdAt).toLocaleDateString()}
+            Created: {new Date(invoice.createdAt).toLocaleDateString()}
           </p>
         </div>
       </div>
 
-      <div className="flex flex-col md:items-end gap-3 ml-9 md:ml-0">
-        <p className={`select-text cursor-text text-2xl font-bold ${isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-orange-600 dark:text-orange-400'}`}>
-          {isIncome ? '+' : '-'} {formatCurrency(invoice.totalAmount)}
+      <div className="flex flex-col md:items-end gap-3 ml-12 md:ml-0">
+        <p className={`select-text cursor-text text-2xl font-bold text-violet-600 dark:text-yellow-400`}>
+          {formatCurrency(invoice.totalAmount)}
         </p>
 
         <div className="flex gap-2 flex-wrap justify-start md:justify-end">
@@ -92,7 +85,7 @@ const InvoiceItemRender = ({ invoice, isIncome, handleDelete, handleStatusChange
             <Download className="w-3 h-3" /> PDF
           </button>
 
-          {invoice.status === 'draft' && isIncome && (
+          {invoice.status === 'draft' && (
             <>
               <button
                 onClick={(e) => {
@@ -116,7 +109,7 @@ const InvoiceItemRender = ({ invoice, isIncome, handleDelete, handleStatusChange
             </>
           )}
 
-          {!isIncome && (invoice.status === 'sent' || invoice.status === 'overdue') && (
+          {(invoice.status === 'sent' || invoice.status === 'overdue') && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -135,7 +128,6 @@ const InvoiceItemRender = ({ invoice, isIncome, handleDelete, handleStatusChange
 
 export default function Invoices() {
   const [invoices, setInvoices] = useState([]);
-  const [activeTab, setActiveTab] = useState('received'); // 'received' or 'paid'
   const [user, setUser] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -248,36 +240,17 @@ export default function Invoices() {
     ));
   };
 
-  const calculateTotals = () => {
-    // Total Income vs Total Expense
-    let totalIncome = 0;
-    let totalExpense = 0;
-
-    if (!user) return { totalIncome, totalExpense };
-
-    invoices.forEach(inv => {
-      // Income = I am the freelancer
-      if (inv.freelancer?._id === user._id) {
-        if (inv.status === 'paid') totalIncome += inv.totalAmount;
-      }
-      // Expense = I am the client
-      else if (inv.client?._id === user._id) {
-        if (inv.status === 'paid') totalExpense += inv.totalAmount;
-      }
-    });
-
-    return { totalIncome, totalExpense };
+  const calculateTotalIncome = () => {
+    if (!user) return 0;
+    return invoices
+      .filter(inv => inv.freelancer?._id === user._id && inv.status === 'paid')
+      .reduce((acc, curr) => acc + curr.totalAmount, 0);
   };
 
-  const totals = calculateTotals();
+  const totalIncome = calculateTotalIncome();
 
-  // Filter Invoices based on Tabs
-  const receivedInvoices = invoices.filter(inv => user && inv.freelancer?._id === user._id);
-  const paidInvoices = invoices.filter(inv => user && inv.client?._id === user._id);
-
-  const displayedInvoices = activeTab === 'received' ? receivedInvoices : paidInvoices;
-
-
+  // Filter Invoices: Only show invoices where I am the freelancer (creator)
+  const myInvoices = invoices.filter(inv => user && inv.freelancer?._id === user._id);
 
   return (
     <div className="min-h-screen transition-colors duration-500 bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-gray-900 dark:via-black dark:to-gray-900 select-none">
@@ -304,75 +277,46 @@ export default function Invoices() {
         <main className="flex-1 overflow-y-auto p-4 md:p-8 relative">
           <header className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Transaction History</h2>
-              <p className="text-slate-600 dark:text-gray-400">Track your income and expenses</p>
+              <h2 className="text-3xl font-bold text-slate-800 dark:text-white">My Invoices</h2>
+              <p className="text-slate-600 dark:text-gray-400">Manage your generated invoices</p>
             </div>
-
           </header>
 
           <div className="max-w-5xl mx-auto">
 
             {/* Stats Overview */}
-            <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-4 mb-8">
-              <div className={`${GLASS_CLASSES} p-5 rounded-2xl flex items-center justify-between`}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+              <div className={`${GLASS_CLASSES} p-6 rounded-2xl flex items-center justify-between`}>
                 <div>
-                  <h3 className="text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Total Income</h3>
-                  <p className={`text-2xl font-bold ${TEXT_HEADLINE}`}>{formatCurrency(totals.totalIncome)}</p>
+                  <h3 className="text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Total Collected</h3>
+                  <p className={`text-3xl font-bold ${TEXT_HEADLINE}`}>{formatCurrency(totalIncome)}</p>
                 </div>
-                <div className="p-3 bg-emerald-100 dark:bg-emerald-500/20 rounded-xl text-emerald-600 dark:text-emerald-400">
-                  <ArrowDownCircle className="w-6 h-6" />
+                <div className="p-4 bg-emerald-100 dark:bg-emerald-500/20 rounded-xl text-emerald-600 dark:text-emerald-400">
+                  <ArrowDownCircle className="w-8 h-8" />
                 </div>
-              </div>
-              <div className={`${GLASS_CLASSES} p-5 rounded-2xl flex items-center justify-between`}>
-                <div>
-                  <h3 className="text-sm font-bold text-orange-600 dark:text-orange-400 uppercase tracking-widest mb-1">Total Expenses</h3>
-                  <p className={`text-2xl font-bold ${TEXT_HEADLINE}`}>{formatCurrency(totals.totalExpense)}</p>
-                </div>
-                <div className="p-3 bg-orange-100 dark:bg-orange-500/20 rounded-xl text-orange-600 dark:text-orange-400">
-                  <ArrowUpCircle className="w-6 h-6" />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center mb-6">
-              {/* TABS */}
-              <div className="flex bg-white/30 dark:bg-black/20 p-1.5 rounded-xl backdrop-blur-md">
-                <button
-                  onClick={() => setActiveTab('received')}
-                  className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'received' ? 'bg-white dark:bg-gray-800 shadow-md text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200'}`}
-                >
-                  Incoming Payments
-                </button>
-                <button
-                  onClick={() => setActiveTab('paid')}
-                  className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'paid' ? 'bg-white dark:bg-gray-800 shadow-md text-orange-600 dark:text-orange-400' : 'text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200'}`}
-                >
-                  Outgoing Payments
-                </button>
               </div>
             </div>
 
             {loading ? (
               <div className={`${GLASS_CLASSES} p-12 rounded-2xl text-center`}>
                 <div className="animate-spin w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-                <p className={TEXT_SUB}>Loading transactions...</p>
+                <p className={TEXT_SUB}>Loading invoices...</p>
               </div>
             ) : (
               <div className="space-y-4">
-                {displayedInvoices.length === 0 ? (
+                {myInvoices.length === 0 ? (
                   <div className={`${GLASS_CLASSES} p-12 rounded-2xl text-center`}>
                     <div className="w-16 h-16 bg-slate-100 dark:bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
                       <IndianRupee className="w-8 h-8 text-slate-400" />
                     </div>
-                    <h3 className={`text-lg font-bold ${TEXT_HEADLINE} mb-2`}>No transactions found</h3>
-                    <p className={TEXT_SUB}>You haven't {activeTab === 'received' ? 'received any payments' : 'paid any invoices'} yet.</p>
+                    <h3 className={`text-lg font-bold ${TEXT_HEADLINE} mb-2`}>No invoices found</h3>
+                    <p className={TEXT_SUB}>You haven't generated any invoices yet.</p>
                   </div>
                 ) : (
-                  displayedInvoices.map((invoice) => (
+                  myInvoices.map((invoice) => (
                     <InvoiceItemRender
                       key={invoice._id}
                       invoice={invoice}
-                      isIncome={activeTab === 'received'}
                       handleDelete={handleDelete}
                       handleStatusChange={handleStatusChange}
                       setSelectedInvoice={setSelectedInvoice}
@@ -407,10 +351,6 @@ export default function Invoices() {
               <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 bg-white/30 dark:bg-white/5 rounded-xl">
-                    <p className={`${TEXT_SUB} text-xs font-bold uppercase mb-1`}>Freelancer</p>
-                    <p className={`${TEXT_HEADLINE} font-semibold`}>{selectedInvoice.freelancer?.name || user?.name}</p>
-                  </div>
-                  <div className="p-4 bg-white/30 dark:bg-white/5 rounded-xl">
                     <p className={`${TEXT_SUB} text-xs font-bold uppercase mb-1`}>Client</p>
                     <p className={`${TEXT_HEADLINE} font-semibold`}>{selectedInvoice.client?.name}</p>
                   </div>
@@ -423,6 +363,10 @@ export default function Invoices() {
                     <p className={`${TEXT_HEADLINE} font-semibold`}>
                       {selectedInvoice.dueDate ? new Date(selectedInvoice.dueDate).toLocaleDateString() : 'N/A'}
                     </p>
+                  </div>
+                  <div className="p-4 bg-white/30 dark:bg-white/5 rounded-xl">
+                    <p className={`${TEXT_SUB} text-xs font-bold uppercase mb-1`}>Status</p>
+                    <InvoiceStatusBadge status={selectedInvoice.status} />
                   </div>
                 </div>
 
@@ -443,7 +387,7 @@ export default function Invoices() {
                           {selectedInvoice.items.map((item, idx) => (
                             <tr key={idx}>
                               <td className={`py-3 px-4 ${TEXT_HEADLINE}`}>{item.description}</td>
-                              <td className={`text-right py-3 px-4 ${TEXT_HEADLINE}`}>{item.hours?.toFixed(2)}</td>
+                              <td className={`text-right py-3 px-4 ${TEXT_HEADLINE}`}>{formatDuration(item.hours)}</td>
                               <td className={`text-right py-3 px-4 ${TEXT_HEADLINE}`}><span className="select-text cursor-text">{formatCurrency(item.hourlyRate)}</span></td>
                               <td className={`text-right py-3 px-4 ${TEXT_HEADLINE} font-bold`}><span className="select-text cursor-text">{formatCurrency(item.amount)}</span></td>
                             </tr>

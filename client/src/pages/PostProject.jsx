@@ -53,7 +53,13 @@ const Sidebar = ({ mobile, closeMobile, darkMode, toggleTheme, handleLogout }) =
 );
 
 const PostProject = () => {
-  const [formData, setFormData] = useState({ title: '', description: '', budget: '', deadline: '' });
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    budget: '',
+    deadline: '',
+    startDate: new Date().toISOString().split('T')[0]
+  });
   const [loading, setLoading] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -94,6 +100,12 @@ const PostProject = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
+    // Validation
+    if (new Date(formData.startDate) > new Date(formData.deadline)) {
+      setLoading(false);
+      return toast.error("Start Date cannot be after the Deadline");
+    }
 
     try {
       await api.post('/projects', formData);
@@ -182,7 +194,11 @@ const PostProject = () => {
 
 
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <label className={LABEL_CLASSES}>Start Date</label>
+                  <input type="date" name="startDate" required className={`${INPUT_CLASSES} dark:[color-scheme:dark]`} value={formData.startDate} onChange={handleChange} />
+                </div>
                 <div>
                   <label className={LABEL_CLASSES}>Budget (₹)</label>
                   <input type="number" name="budget" required className={INPUT_CLASSES} placeholder="5000" onChange={handleChange} />

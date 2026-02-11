@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import api from '../api';
+import { formatDuration } from '../utils/formatDuration';
 import Stopwatch from '../components/Stopwatch';
 import Sidebar from '../components/Sidebar';
 import { useNavigate, Link } from 'react-router-dom';
@@ -224,7 +225,7 @@ export default function TimeTracker() {
             <div className="flex items-center gap-4">
               <div className={`${GLASS_CLASSES} px-4 py-2 rounded-xl flex items-center gap-2 text-violet-600 dark:text-yellow-400 font-bold`}>
                 <Clock className="w-5 h-5" />
-                <span>{totalHours.toFixed(2)} Hrs Total</span>
+                <span>{formatDuration(totalHours)} Total</span>
               </div>
 
             </div>
@@ -349,7 +350,7 @@ export default function TimeTracker() {
                               {log.description || '-'}
                             </td>
                             <td className="p-4 text-right font-bold text-slate-700 dark:text-gray-200">
-                              {log.durationHours?.toFixed(2)} hrs
+                              {formatDuration(log.durationHours)}
                             </td>
                             <td className="p-4 text-center">
                               {log.billed ? (

@@ -4,7 +4,7 @@ import api from '../api';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   LayoutDashboard, Users, User, Mail, Menu, X, Sun, Moon,
-  LogOut, Clock, IndianRupee, CheckSquare, Plus, Lock // Added Plus and Lock
+  LogOut, Clock, IndianRupee, CheckSquare, Plus, Lock, ChevronDown, ChevronRight // Added Chevron icons
 } from 'lucide-react';
 import UpgradeButton from '../components/UpgradeButton'; // Import UpgradeButton
 
@@ -26,6 +26,9 @@ const Clients = () => {
   const [userPlan, setUserPlan] = useState('free');
   const [showAddClientModal, setShowAddClientModal] = useState(false);
   const [newClient, setNewClient] = useState({ name: '', email: '', phone: '', defaultHourlyRate: '' });
+  const [activeClients, setActiveClients] = useState([]);
+  const [pastClients, setPastClients] = useState([]);
+  const [showPastClients, setShowPastClients] = useState(false);
 
   const navigate = useNavigate();
 
@@ -66,11 +69,92 @@ const Clients = () => {
       const fetchClients = api.get('/clients');
       // 2. Fetch User Plan (Refresh from DB to be sure)
       const fetchUser = api.get(`/users/${storedUser._id}`);
+      // 3. Fetch Projects to check status
+      const fetchProjects = api.get('/projects');
 
-      Promise.all([fetchClients, fetchUser])
-        .then(([resClients, resUser]) => {
-          setClients(resClients.data);
-          setUserPlan(resUser.data.plan || 'free'); // Ensure plan is set
+      Promise.all([fetchClients, fetchUser, fetchProjects])
+        .then(([resClients, resUser, resProjects]) => {
+          const allClients = resClients.data;
+          const allProjects = resProjects.data;
+
+          // Helper to check if project is active
+          const isProjectActive = (project) => {
+            const status = project.status ? project.status.toLowerCase() : 'active';
+            if (status === 'completed') return false;
+            // Check if deadline passed
+            if (project.deadline && new Date(project.deadline) < new Date()) return false;
+            return true;
+          };
+
+          // Filter clients
+          const active = [];
+          const past = [];
+
+          allClients.forEach(client => {
+            // Find projects for this client
+            const clientProjects = allProjects.filter(p => {
+              const pClientId = p.client?._id || p.client;
+              return String(pClientId) === String(client._id);
+            });
+
+            // Check if ANY project is active
+            const hasActiveProject = clientProjects.some(p => isProjectActive(p));
+
+            if (hasActiveProject || clientProjects.length === 0) {
+              // Note: Decide where to put clients with NO projects.
+              // Logic: If no projects, they are technically not "past" yet, maybe "Active" or "New".
+              // User request: "if client do not have any active project it shall automatically converted into an collapsed section past client"
+              // Wait, "do not have any active project" implies (No projects) OR (Only past projects).
+              // Let's re-read: "if client do not have any active project" -> Past.
+
+              if (clientProjects.length === 0) {
+                // No projects = Past? Or Active?
+                // Usually "New" clients are Active.
+                // Let's put them in Active for now, unless user explicitly meant "Historic with no active work".
+                // Actually, if I just added a client, I want to see them to add a project.
+                // So: Has Active Projects OR Has NO Projects (New) -> Active.
+                // ONLY Completed/Expired Projects -> Past.
+
+                // However, the prompt says "if client do not have any active project it shall automatically converted into an collapsed section past client"
+                // This phrasing suggests strict "No Active Project" -> Past.
+                // BUT, hiding a newly created client immediately into "Past" is bad UX.
+                // Let's assume: Has Active Projects OR Is Brand New (No projects) -> Active.
+                // Only clients with projects that are ALL inactive -> Past.
+                active.push(client);
+              } else {
+                active.push(client);
+              }
+            } else {
+              // Logic check:
+              // clientProjects.some(active) is TRUE -> Active
+              // clientProjects.some(active) is FALSE -> Past (if they have projects)
+
+              // Refined Logic based on UX standard:
+              // - Active Project? -> Active List
+              // - No Projects? -> Active List (New Client)
+              // - Only Past Projects? -> Past List
+
+              const hasAnyProject = clientProjects.length > 0;
+              if (!hasAnyProject) {
+                // New client, keep active
+                active.push(client);
+              } else {
+                // Has projects, but none are active
+                past.push(client);
+              }
+            }
+          });
+
+          // Re-reading User Request: "if client do not have any active project it shall automatically converted into an collapsed section past client"
+          // It's ambiguous about new clients.
+          // If I strictly follow "do not have any active project", new clients go to past.
+          // I will stick to "No Projects = Active" because otherwise you create a client and it disappears. 
+
+          setClients(allClients); // Keep full list if needed, or just use active/past
+          setActiveClients(active);
+          setPastClients(past);
+
+          setUserPlan(resUser.data.plan || 'free');
           setLoading(false);
         })
         .catch(err => {
@@ -253,7 +337,7 @@ const Clients = () => {
             </div>
           ) : (
             <>
-              {clients.length === 0 ? (
+              {activeClients.length === 0 && pastClients.length === 0 ? (
                 <div className={`text-center py-20 ${GLASS_CLASSES} rounded-3xl`}>
                   <Users className="w-12 h-12 text-slate-300 dark:text-gray-600 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-slate-900 dark:text-white">
@@ -266,9 +350,10 @@ const Clients = () => {
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
-                  {clients.map((client) => {
-                    return (
+                <>
+                  {/* Active Clients Grid */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 mb-12">
+                    {activeClients.map((client) => (
                       <div
                         key={client._id}
                         onClick={() => navigate(`/clients/${client._id}`)}
@@ -300,9 +385,63 @@ const Clients = () => {
                           </div>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+                    ))}
+                  </div>
+
+                  {/* Past Clients Section */}
+                  {pastClients.length > 0 && (
+                    <div className="mb-12">
+                      <button
+                        onClick={() => setShowPastClients(!showPastClients)}
+                        className="flex items-center justify-between w-full text-xl font-bold text-slate-800 dark:text-white mb-6 opacity-80 hover:opacity-100 transition-opacity"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-6 h-6 text-slate-500" />
+                          Past Clients
+                        </div>
+                        {showPastClients ? <ChevronDown className="w-6 h-6" /> : <ChevronRight className="w-6 h-6" />}
+                      </button>
+
+                      {showPastClients && (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 animate-in slide-in-from-top-2 fade-in duration-300">
+                          {pastClients.map((client) => (
+                            <div
+                              key={client._id}
+                              onClick={() => navigate(`/clients/${client._id}`)}
+                              className={`${GLASS_CLASSES} p-6 rounded-2xl flex flex-col gap-4 transition-all cursor-pointer border-l-4 border-l-slate-400 opacity-60 grayscale-[0.8] hover:opacity-80`}
+                            >
+                              <div className="flex items-center gap-4">
+                                <div className="bg-slate-100 dark:bg-slate-700/20 p-4 rounded-full text-slate-600 dark:text-slate-400">
+                                  <User className="w-6 h-6" />
+                                </div>
+                                <div className="overflow-hidden">
+                                  <h3 className="font-bold text-slate-900 dark:text-white truncate text-lg">{client.name}</h3>
+                                  <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-gray-400 mt-1 truncate">
+                                    <Mail className="w-4 h-4 flex-shrink-0" />
+                                    <span className="truncate">{client.email}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="mt-2 pt-4 border-t border-white/20 dark:border-white/5 flex justify-between items-center">
+                                <div className="flex flex-col">
+                                  <span className="text-xs text-slate-500 dark:text-gray-500 uppercase font-bold tracking-wider">Mobile</span>
+                                  <span className="text-sm font-medium text-slate-700 dark:text-gray-300">{client.mobile || client.phone || 'N/A'}</span>
+                                </div>
+                                <div className="flex flex-col items-end">
+                                  <span className="text-xs text-slate-500 dark:text-gray-500 uppercase font-bold tracking-wider">Hourly Rate</span>
+                                  <div className="flex items-center gap-1 text-slate-600 dark:text-slate-400 font-bold">
+                                    <span>{formatCurrency(client.defaultHourlyRate || 0)}/hr</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}

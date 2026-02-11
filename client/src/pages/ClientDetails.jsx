@@ -5,7 +5,7 @@ import Sidebar from '../components/Sidebar';
 import { formatCurrency } from '../utils/formatCurrency';
 import {
     Menu, User, Mail, Phone, IndianRupee, Briefcase, ArrowRight, X,
-    Save, Edit, LogOut, Sun, Moon
+    Save, Edit, LogOut, Sun, Moon, Plus, Calendar, FileText, ChevronDown, ChevronRight
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -27,6 +27,16 @@ const ClientDetails = () => {
         phone: '',
         defaultHourlyRate: 0
     });
+    const [showProjectModal, setShowProjectModal] = useState(false);
+    const [projectFormData, setProjectFormData] = useState({
+        title: '',
+        description: '',
+        budget: '',
+        deadline: '',
+        startDate: new Date().toISOString().split('T')[0]
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showPastProjects, setShowPastProjects] = useState(false);
 
     const storedUser = (() => { try { return JSON.parse(localStorage.getItem('user')); } catch (e) { return null; } })();
 
@@ -132,6 +142,63 @@ const ClientDetails = () => {
         }
     };
 
+    const handleCreateProject = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+
+        if (new Date(projectFormData.deadline) < new Date(projectFormData.startDate)) {
+            setIsSubmitting(false);
+            return toast.error("Deadline cannot be earlier than start date");
+        }
+
+        try {
+            const payload = {
+                ...projectFormData,
+                client: clientId  // Automatically link to current client
+            };
+
+            await api.post('/projects', payload);
+            toast.success("Project created successfully! 🚀");
+
+            // Reset form and close modal
+            setProjectFormData({
+                title: '',
+                description: '',
+                budget: '',
+                deadline: '',
+                startDate: new Date().toISOString().split('T')[0]
+            });
+            setShowProjectModal(false);
+
+            // Refresh projects list
+            api.get('/projects').then(res => {
+                const clientProjects = res.data.filter(p => {
+                    const projectClientId = p.client?._id || p.client;
+                    return String(projectClientId) === String(clientId);
+                });
+
+                const sortedProjects = [...clientProjects].sort((a, b) => {
+                    const aActive = isProjectActive(a);
+                    const bActive = isProjectActive(b);
+
+                    if (aActive && !bActive) return -1;
+                    if (!aActive && bActive) return 1;
+
+                    const dateA = a.deadline ? new Date(a.deadline) : new Date('9999-12-31');
+                    const dateB = b.deadline ? new Date(b.deadline) : new Date('9999-12-31');
+                    return dateA - dateB;
+                });
+
+                setProjects(sortedProjects);
+            });
+        } catch (err) {
+            console.error("Error creating project:", err);
+            toast.error(err.response?.data?.message || "Failed to create project");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     if (!client) return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-gray-900 dark:via-black dark:to-gray-900 flex items-center justify-center">
             <div className="text-center">
@@ -177,6 +244,12 @@ const ClientDetails = () => {
                                 <span className="text-violet-600 dark:text-yellow-400">{client?.name || 'Unknown'}</span>
                             </div>
                         </div>
+                        <button
+                            onClick={() => setShowProjectModal(true)}
+                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 shadow-lg active:scale-95 bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black"
+                        >
+                            <Plus className="w-5 h-5" /> New Project
+                        </button>
                     </header>
 
                     {/* Client Info Card */}
@@ -361,33 +434,42 @@ const ClientDetails = () => {
                     {/* Past Projects Section */}
                     {pastProjects.length > 0 && (
                         <div className="mb-12">
-                            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2 opacity-80">
-                                <Briefcase className="w-6 h-6 text-slate-500" />
-                                Past Projects
-                            </h3>
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                {pastProjects.map((project) => (
-                                    <div
-                                        key={project._id}
-                                        onClick={() => navigate(`/projects/${project._id}`)}
-                                        className={`${GLASS_CLASSES} p-6 rounded-2xl transition-all cursor-pointer border-l-4 border-l-slate-400 opacity-60 grayscale-[0.8] hover:opacity-80`}
-                                    >
-                                        <div className="flex justify-between items-start mb-4">
-                                            <h4 className="text-lg font-bold text-slate-900 dark:text-white truncate pr-4">{project.title}</h4>
-                                            <span className="text-xs px-2 py-1 rounded-md font-bold uppercase bg-slate-100 text-slate-600">
-                                                {project.status === 'completed' ? 'Completed' : 'Expired'}
-                                            </span>
-                                        </div>
-                                        <p className="text-slate-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">{project.description}</p>
+                            <button
+                                onClick={() => setShowPastProjects(!showPastProjects)}
+                                className="flex items-center justify-between w-full text-xl font-bold text-slate-800 dark:text-white mb-6 opacity-80 hover:opacity-100 transition-opacity"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Briefcase className="w-6 h-6 text-slate-500" />
+                                    Past Projects
+                                </div>
+                                {showPastProjects ? <ChevronDown className="w-6 h-6" /> : <ChevronRight className="w-6 h-6" />}
+                            </button>
 
-                                        <div className="flex justify-between items-center pt-4 border-t border-gray-200/50 dark:border-white/10">
-                                            <div className="font-bold text-slate-800 dark:text-white flex items-center">
-                                                {formatCurrency(project.budget)}
+                            {showPastProjects && (
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in slide-in-from-top-2 fade-in duration-300">
+                                    {pastProjects.map((project) => (
+                                        <div
+                                            key={project._id}
+                                            onClick={() => navigate(`/projects/${project._id}`)}
+                                            className={`${GLASS_CLASSES} p-6 rounded-2xl transition-all cursor-pointer border-l-4 border-l-slate-400 opacity-60 grayscale-[0.8] hover:opacity-80`}
+                                        >
+                                            <div className="flex justify-between items-start mb-4">
+                                                <h4 className="text-lg font-bold text-slate-900 dark:text-white truncate pr-4">{project.title}</h4>
+                                                <span className="text-xs px-2 py-1 rounded-md font-bold uppercase bg-slate-100 text-slate-600">
+                                                    {project.status === 'completed' ? 'Completed' : 'Expired'}
+                                                </span>
+                                            </div>
+                                            <p className="text-slate-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">{project.description}</p>
+
+                                            <div className="flex justify-between items-center pt-4 border-t border-gray-200/50 dark:border-white/10">
+                                                <div className="font-bold text-slate-800 dark:text-white flex items-center">
+                                                    {formatCurrency(project.budget)}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -396,8 +478,122 @@ const ClientDetails = () => {
                             <Briefcase className="w-16 h-16 text-slate-300 dark:text-gray-600 mx-auto mb-4" />
                             <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">No Projects Yet</h3>
                             <p className="text-slate-500 dark:text-gray-400">This client doesn't have any projects assigned yet.</p>
+                            <button
+                                onClick={() => setShowProjectModal(true)}
+                                className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 shadow-lg active:scale-95 bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black"
+                            >
+                                <Plus className="w-5 h-5" /> Create First Project
+                            </button>
                         </div>
                     )}
+
+                    {/* Project Creation Modal */}
+                    {showProjectModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowProjectModal(false)}>
+                            <div className={`${GLASS_CLASSES} rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto`} onClick={(e) => e.stopPropagation()}>
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-2xl font-bold text-slate-800 dark:text-white">Create New Project</h3>
+                                    <button
+                                        onClick={() => setShowProjectModal(false)}
+                                        className="p-2 hover:bg-white/20 dark:hover:bg-white/10 rounded-lg transition"
+                                    >
+                                        <X className="w-6 h-6 text-slate-600 dark:text-gray-400" />
+                                    </button>
+                                </div>
+
+                                <form onSubmit={handleCreateProject} className="space-y-6">
+                                    <div>
+                                        <label className={LABEL_CLASSES}>Project Title</label>
+                                        <div className="relative">
+                                            <FileText className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
+                                            <input
+                                                required
+                                                type="text"
+                                                className={INPUT_CLASSES}
+                                                value={projectFormData.title}
+                                                onChange={(e) => setProjectFormData({ ...projectFormData, title: e.target.value })}
+                                                placeholder="e.g. E-commerce Website"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className={LABEL_CLASSES}>Description</label>
+                                        <textarea
+                                            required
+                                            rows="4"
+                                            className={INPUT_CLASSES}
+                                            value={projectFormData.description}
+                                            onChange={(e) => setProjectFormData({ ...projectFormData, description: e.target.value })}
+                                            placeholder="Project details..."
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <div>
+                                            <label className={LABEL_CLASSES}>Start Date</label>
+                                            <div className="relative">
+                                                <Calendar className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
+                                                <input
+                                                    required
+                                                    type="date"
+                                                    className={`${INPUT_CLASSES} dark:[color-scheme:dark]`}
+                                                    value={projectFormData.startDate}
+                                                    onChange={(e) => setProjectFormData({ ...projectFormData, startDate: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className={LABEL_CLASSES}>Budget (₹)</label>
+                                            <div className="relative">
+                                                <IndianRupee className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
+                                                <input
+                                                    required
+                                                    type="number"
+                                                    className={INPUT_CLASSES}
+                                                    value={projectFormData.budget}
+                                                    onChange={(e) => setProjectFormData({ ...projectFormData, budget: e.target.value })}
+                                                    placeholder="5000"
+                                                    min="0"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className={LABEL_CLASSES}>Deadline</label>
+                                            <div className="relative">
+                                                <Calendar className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
+                                                <input
+                                                    required
+                                                    type="date"
+                                                    className={`${INPUT_CLASSES} dark:[color-scheme:dark]`}
+                                                    value={projectFormData.deadline}
+                                                    onChange={(e) => setProjectFormData({ ...projectFormData, deadline: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-3 justify-end pt-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowProjectModal(false)}
+                                            className="px-5 py-2.5 bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-white/20 rounded-xl font-medium transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={isSubmitting}
+                                            className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black rounded-xl font-medium transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <Save className="w-5 h-5" /> {isSubmitting ? 'Creating...' : 'Create Project'}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
 
                 </main>
             </div>

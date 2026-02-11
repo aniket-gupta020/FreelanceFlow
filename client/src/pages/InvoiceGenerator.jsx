@@ -3,6 +3,7 @@ import { toast } from 'react-hot-toast';
 import api from '../api';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { formatCurrency } from '../utils/formatCurrency';
+import { formatDuration } from '../utils/formatDuration';
 import {
   LayoutDashboard, Clock, ChevronLeft, Save, Menu, X,
   Sun, Moon, LogOut, Briefcase, Plus, Trash2, FileText,
@@ -433,7 +434,7 @@ export default function InvoiceGenerator() {
                             <p className={`${TEXT_HEADLINE} font-semibold`}>{log.description || 'Work log'}</p>
                             <div className="flex items-center gap-2 mt-1">
                               <span className={`text-xs px-2 py-0.5 rounded-full bg-white/50 dark:bg-black/30 ${TEXT_SUB}`}>
-                                {log.durationHours.toFixed(2)} hrs
+                                {formatDuration(log.durationHours)}
                               </span>
                               <span className={`text-xs ${TEXT_SUB}`}>
                                 {new Date(log.startTime).toLocaleDateString()}
@@ -460,7 +461,7 @@ export default function InvoiceGenerator() {
                     <div className="flex justify-between items-center">
                       <span className={TEXT_SUB}>Total Hours:</span>
                       <span className={`${TEXT_HEADLINE} font-bold`}>
-                        {selectedLogs.reduce((sum, log) => sum + log.durationHours, 0).toFixed(2)} hrs
+                        {formatDuration(selectedLogs.reduce((sum, log) => sum + log.durationHours, 0))}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">

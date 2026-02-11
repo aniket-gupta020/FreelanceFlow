@@ -17,8 +17,8 @@ router.get('/', verifyToken, async (req, res) => {
       $or: [{ client: req.user.id }, { freelancer: req.user.id }]
     })
       .populate('project', 'title budget')
-      .populate('client', 'name email')
-      .populate('freelancer', 'name email')
+      .populate('client', 'name email mobile phone')
+      .populate('freelancer', 'name email mobile phone')
       .populate('logs') // ✅ See the work details
       .sort({ createdAt: -1 });
 
@@ -33,8 +33,8 @@ router.get('/:id', verifyToken, async (req, res) => {
   try {
     const invoice = await Invoice.findById(req.params.id)
       .populate('project', 'title budget deadline')
-      .populate('client', 'name email')
-      .populate('freelancer', 'name email')
+      .populate('client', 'name email mobile phone')
+      .populate('freelancer', 'name email mobile phone')
       .populate({
         path: 'logs',
         populate: { path: 'project', select: 'title' } // Deep populate to see project name in logs

@@ -3,6 +3,7 @@ import { PieChart, Calculator, Calendar, Users, DollarSign, Clock, Eye, CheckCir
 import { toast } from 'react-hot-toast';
 import api from '../api';
 import { generateInvoicePDF } from './pdfGenerator';
+import { formatDuration } from '../utils/formatDuration';
 
 const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
     // 1. Date State
@@ -227,7 +228,7 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
                                             <div className="p-2 bg-emerald-100 dark:bg-emerald-800 rounded-lg"><Clock className="w-4 h-4 text-emerald-600 dark:text-emerald-300" /></div>
                                             <span className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">Pending Hours</span>
                                         </div>
-                                        <div className="text-2xl font-black text-slate-800 dark:text-white">{summaryStats.hours.toFixed(2)} hrs</div>
+                                        <div className="text-2xl font-black text-slate-800 dark:text-white">{formatDuration(summaryStats.hours)}</div>
                                     </div>
                                     <div className="md:col-span-2 lg:col-span-1 bg-blue-50/50 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-500/20">
                                         <div className="flex items-center gap-3 mb-1">
@@ -264,7 +265,7 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
                                                     <div className="grid grid-cols-1 min-[450px]:grid-cols-2 gap-4">
                                                         <div className="bg-slate-50/50 dark:bg-white/5 p-3 rounded-xl border border-white/10">
                                                             <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Hours</div>
-                                                            <div className="font-mono font-bold text-slate-800 dark:text-slate-200">{user.totalHours.toFixed(2)}</div>
+                                                            <div className="font-mono font-bold text-slate-800 dark:text-slate-200">{formatDuration(user.totalHours)}</div>
                                                         </div>
                                                         <div className="bg-slate-50/50 dark:bg-white/5 p-3 rounded-xl border border-white/10">
                                                             <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Pending</div>
@@ -297,7 +298,7 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
                                                                 <div className="font-bold text-slate-800 dark:text-white">{user.name}</div>
                                                                 <div className="text-xs text-slate-500">{user.email}</div>
                                                             </td>
-                                                            <td className="p-5 text-right font-mono">{user.totalHours.toFixed(2)} hrs</td>
+                                                            <td className="p-5 text-right font-mono">{formatDuration(user.totalHours)}</td>
                                                             <td className="p-5 text-right font-bold text-emerald-600">Rs. {user.totalCost.toFixed(2)}</td>
                                                             <td className="p-5 text-center">
                                                                 <button onClick={() => openBillingModal(user)} className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-medium text-sm shadow-lg hover:shadow-xl transition-all">
