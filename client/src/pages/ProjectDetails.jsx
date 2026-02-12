@@ -409,7 +409,7 @@ const ProjectDetails = () => {
 
                     {/* Project Info */}
                     <div className={`${GLASS_CLASSES} p-8 rounded-3xl mb-8`}>
-                        <div className="flex justify-between items-start">
+                        <div className="flex flex-col lg:flex-row justify-between items-start gap-4">
                             <div>
                                 <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{project.title}</h1>
                                 <p className="text-slate-600 dark:text-gray-400 max-w-2xl">{project.description}</p>
@@ -515,10 +515,10 @@ const ProjectDetails = () => {
                         <div className="space-y-4">
                             {tasks.map((task) => (
                                 <div key={task._id} className={`${GLASS_CLASSES} p-4 rounded-xl flex items-center justify-between group hover:border-orange-400 dark:hover:border-yellow-500 transition-all hover:scale-[1.01] animate-fade-in-up`}>
-                                    <div className="flex items-center gap-4">
-                                        <div className={`w-2 h-2 rounded-full ${task.status === 'done' ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
-                                        <div>
-                                            <h4 className={`font-bold text-slate-800 dark:text-white ${task.status === 'done' ? 'line-through opacity-60' : ''}`}>{task.title}</h4>
+                                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                                        <div className={`w-2 h-2 shrink-0 rounded-full ${task.status === 'done' ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
+                                        <div className="min-w-0">
+                                            <h4 className={`font-bold text-slate-800 dark:text-white truncate ${task.status === 'done' ? 'line-through opacity-60' : ''}`} title={task.title}>{task.title}</h4>
                                             <p className="text-xs text-slate-500 dark:text-gray-400 line-clamp-1">{task.description}</p>
                                         </div>
                                     </div>
