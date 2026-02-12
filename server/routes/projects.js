@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const Project = require('../models/Project');
+const Client = require('../models/Client');
 const verifyToken = require('../middleware/verifyToken');
 
 // 1️⃣ GET ALL PROJECTS
@@ -46,6 +47,12 @@ router.post('/', verifyToken, async (req, res) => {
 
     const newProject = new Project(payload);
     const savedProject = await newProject.save();
+
+    // Recover client if they were previously "deleted"
+    if (req.body.client) {
+      await Client.findByIdAndUpdate(req.body.client, { isDeleted: false });
+    }
+
     res.status(200).json(savedProject);
   } catch (err) {
     res.status(500).json(err);
@@ -60,9 +67,7 @@ router.delete('/:id', verifyToken, async (req, res) => {
 
     const isOwner = String(project.client._id || project.client) === String(req.user.id);
 
-    // Note: You had an empty if block here in your original code.
-    // Ideally, you should uncomment the next line to enforce security:
-    // if (!isOwner) return res.status(403).json({ message: "You are not authorized to delete this project" });
+    if (!isOwner) return res.status(403).json({ message: "You are not authorized to delete this project" });
 
     await Project.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: 'Project deleted successfully' });
@@ -82,6 +87,10 @@ router.put('/:id', verifyToken, async (req, res) => {
     if (req.body.status === 'completed' && project.status !== 'completed') {
       updateData.completedAt = new Date();
     }
+
+    console.log("Updating Project ID:", req.params.id);
+    console.log("Update Payload:", updateData);
+    console.log("Hourly Rate in Payload:", req.body.hourlyRate);
 
     const updatedProject = await Project.findByIdAndUpdate(
       req.params.id,

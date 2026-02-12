@@ -84,13 +84,13 @@ const AutoTimeTracker = ({ projectId, onSave }) => {
     };
 
     return (
-        <div className="flex items-center gap-4 p-4 bg-violet-600/10 dark:bg-yellow-500/10 rounded-2xl border border-violet-600/20 dark:border-yellow-500/20 animate-pulse">
+        <div className="flex items-center gap-4 p-4 bg-orange-600/10 dark:bg-yellow-500/10 rounded-2xl border border-orange-600/20 dark:border-yellow-500/20 animate-pulse shadow-orange-500/10">
             <div className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-violet-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500"></span>
             </div>
             <div>
-                <div className="text-xs font-bold uppercase text-violet-600 dark:text-yellow-500 tracking-wider">Auto-Tracking Active</div>
+                <div className="text-xs font-bold uppercase text-orange-600 dark:text-yellow-500 tracking-wider">Auto-Tracking Active</div>
                 <div className="font-mono text-xl font-bold text-slate-700 dark:text-gray-200">
                     {formatTime(elapsed)}
                 </div>

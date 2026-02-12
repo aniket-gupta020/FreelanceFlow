@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import Sidebar from '../components/Sidebar';
+import LoadingPage from '../components/LoadingPage';
 import {
     Menu, CheckSquare, Plus, ArrowRight, X, Clock, IndianRupee, Briefcase, Calendar,
-    PlayCircle, FileText, Trash2, CheckCircle, AlertCircle
+    PlayCircle, FileText, Trash2, CheckCircle, AlertCircle, Edit, Save
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Stopwatch from '../components/Stopwatch';
@@ -13,8 +14,8 @@ import ProjectReportGenerator from '../components/ProjectReportGenerator';
 import { formatCurrency } from '../utils/formatCurrency';
 import { formatDuration } from '../utils/formatDuration';
 
-const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
-const INPUT_CLASSES = "w-full p-3 bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none transition-all dark:text-white";
+const GLASS_CLASSES = "bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl shadow-orange-500/10";
+const INPUT_CLASSES = "w-full p-3 bg-white/50 dark:bg-black/20 border border-orange-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all dark:text-white";
 const LABEL_CLASSES = "block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1";
 
 const ProjectDetails = () => {
@@ -32,9 +33,22 @@ const ProjectDetails = () => {
     const [newTaskDesc, setNewTaskDesc] = useState('');
     const [newTaskDeadline, setNewTaskDeadline] = useState('');
 
+    // Edit Project Modal State
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editFormData, setEditFormData] = useState({
+        title: '',
+        description: '',
+        status: '',
+        budget: '',
+        hourlyRate: '',
+        startDate: '',
+        deadline: ''
+    });
+
     // Time Tracking State
     const [manualForm, setManualForm] = useState({
         hours: '',
+        minutes: '',
         description: '',
         date: new Date().toISOString().split('T')[0]
     });
@@ -127,10 +141,76 @@ const ProjectDetails = () => {
         }
     };
 
+    const handleDeleteProject = () => {
+        toast.custom((t) => (
+            <div className={`${GLASS_CLASSES} p-6 rounded-2xl max-w-sm w-full animate-in fade-in zoom-in duration-300`}>
+                <div className="flex items-start gap-4">
+                    <div className="p-3 bg-red-500/10 rounded-full">
+                        <Trash2 className="w-6 h-6 text-red-500" />
+                    </div>
+                    <div className="flex-1">
+                        <h3 className="font-bold text-slate-800 dark:text-white mb-1">Delete Project?</h3>
+                        <p className="text-sm text-slate-600 dark:text-gray-400 mb-4">This action is permanent and will remove all associated tasks and logs.</p>
+                        <div className="flex gap-3">
+                            <button onClick={() => { toast.dismiss(t.id); performDeleteProject(); }} className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium text-sm transition-colors">Delete</button>
+                            <button onClick={() => toast.dismiss(t.id)} className="flex-1 px-4 py-2 bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-white/20 rounded-xl font-medium text-sm transition-colors">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        ));
+    };
+
+    const performDeleteProject = async () => {
+        try {
+            await api.delete(`/projects/${projectId}`);
+            toast.success("Project deleted successfully");
+            navigate(`/clients/${project.client?._id || project.client}`);
+        } catch (err) {
+            console.error(err);
+            toast.error(err.response?.data?.message || "Failed to delete project");
+        }
+    };
+
+    const openEditModal = () => {
+        if (project) {
+            setEditFormData({
+                title: project.title,
+                description: project.description,
+                status: project.status,
+                budget: project.budget,
+                hourlyRate: project.hourlyRate || project.client?.defaultHourlyRate || 0,
+                startDate: project.startDate?.split('T')[0] || '',
+                deadline: project.deadline?.split('T')[0] || ''
+            });
+            setIsEditModalOpen(true);
+        }
+    };
+
+    const handleUpdateProject = async (e) => {
+        e.preventDefault();
+        try {
+            await api.put(`/projects/${projectId}`, editFormData);
+            toast.success("Project Updated Successfully!");
+            setIsEditModalOpen(false);
+            fetchProjectData();
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to update project");
+        }
+    };
+
     const submitManual = async (e) => {
         e.preventDefault();
-        const hours = parseFloat(manualForm.hours);
-        if (isNaN(hours) || hours <= 0) return toast.error('Please enter valid hours');
+
+        const hrs = parseInt(manualForm.hours || 0);
+        const mins = parseInt(manualForm.minutes || 0);
+
+        if (hrs === 0 && mins === 0) return toast.error('Please enter valid time');
+
+        // Calculate total hours exactly as user expects: 1h 30m = 1.5 hours
+        const hours = hrs + (mins / 60);
+
         if (!manualForm.description.trim()) return toast.error('Description is required');
 
         // Validation: Cannot exceed project age (Now - StartDate/CreatedAt)
@@ -143,7 +223,7 @@ const ProjectDetails = () => {
 
                 // Allow a small buffer (e.g. 1 min) or just strict check
                 if (hours > projectAgeHours + 0.1) { // 0.1 hour buffer
-                    return toast.error(`Cannot log ${hours} hours. Project is only ${projectAgeHours.toFixed(2)} hours old.`);
+                    return toast.error(`Cannot log ${hours.toFixed(2)} hours. Project is only ${projectAgeHours.toFixed(2)} hours old.`);
                 }
             }
 
@@ -181,7 +261,7 @@ const ProjectDetails = () => {
                 description: manualForm.description.trim()
             });
             toast.success('Time logged successfully!');
-            setManualForm({ hours: '', description: '', date: new Date().toISOString().split('T')[0] });
+            setManualForm({ hours: '', minutes: '', description: '', date: new Date().toISOString().split('T')[0] });
             fetchProjectData();
         } catch (err) {
             console.error(err);
@@ -260,13 +340,14 @@ const ProjectDetails = () => {
         }
     };
 
-    if (!project) return <div className="p-10 text-center">Loading Project...</div>;
+    if (!project) return <LoadingPage />;
 
     const user = JSON.parse(localStorage.getItem('user'));
     const isCreator = user && (user._id === project.createdBy || user._id === project.createdBy?._id);
+    const isValidUser = isCreator; // Alias for clarity if logic expands
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors duration-500">
+        <div className="min-h-screen bg-gradient-to-br from-orange-100 via-yellow-100 to-orange-50 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors duration-500">
             <div className="flex h-screen overflow-hidden">
 
                 {/* Mobile Menu */}
@@ -289,26 +370,16 @@ const ProjectDetails = () => {
                 </aside>
 
                 <main className="flex-1 overflow-y-auto p-4 md:p-8 relative">
-                    <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                    <header className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-4">
                         <div className="flex items-center justify-between w-full md:w-auto gap-4">
                             <div>
                                 <h2 className="text-3xl font-bold text-slate-800 dark:text-white">Project Details</h2>
                                 <div className="flex items-center gap-2 text-slate-600 dark:text-gray-400 mt-1">
-                                    {!isCreator && (
-                                        <>
-                                            {project.client?.isDeleted ? (
-                                                <span className="text-gray-400 italic cursor-not-allowed" title="Account Deactivated">
-                                                    {project.client?.name} (Deactivated)
-                                                </span>
-                                            ) : (
-                                                <Link to={`/clients/${project.client?._id || project.client}`} className="hover:underline">
-                                                    {project.client?.name || 'Client'}
-                                                </Link>
-                                            )}
-                                            <span>/</span>
-                                        </>
-                                    )}
-                                    <span className="text-violet-600 dark:text-yellow-400">{project.title}</span>
+                                    <Link to={`/clients/${project.client?._id || project.client}`} className="hover:underline hover:text-orange-600 dark:hover:text-yellow-400 transition-colors truncate max-w-[120px] sm:max-w-[200px] inline-block align-bottom text-slate-600 dark:text-gray-400">
+                                        {project.client?.name || 'Client'}
+                                    </Link>
+                                    <span>/</span>
+                                    <span className="text-orange-600 dark:text-yellow-400 truncate max-w-[150px] sm:max-w-[300px] inline-block align-bottom">{project.title}</span>
                                 </div>
                             </div>
 
@@ -316,17 +387,23 @@ const ProjectDetails = () => {
 
                         <div className="flex gap-3">
                             {/* Only the user who CREATED the project can mark it as complete */}
-                            {project.status !== 'completed' && (() => {
-                                const user = JSON.parse(localStorage.getItem('user'));
-                                if (user && (user._id === project.createdBy || user._id === project.createdBy?._id)) {
-                                    return (
+                            {isValidUser && (
+                                <>
+                                    <button onClick={openEditModal} className="p-2.5 bg-white/50 hover:bg-white/80 dark:bg-white/10 dark:hover:bg-white/20 text-slate-700 dark:text-white rounded-xl transition-all shadow-sm">
+                                        <Edit className="w-5 h-5" />
+                                    </button>
+
+                                    <button onClick={handleDeleteProject} className="p-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl transition-all shadow-sm">
+                                        <Trash2 className="w-5 h-5" />
+                                    </button>
+
+                                    {project.status !== 'completed' && (
                                         <button onClick={handleMarkComplete} className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium shadow-lg transition-all active:scale-95">
                                             Mark as Complete
                                         </button>
-                                    );
-                                }
-                                return null;
-                            })()}
+                                    )}
+                                </>
+                            )}
                         </div>
                     </header>
 
@@ -342,7 +419,18 @@ const ProjectDetails = () => {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6 mt-8">
+                            <div className="bg-white/50 dark:bg-white/5 p-4 rounded-2xl flex items-center gap-4">
+                                <div className="p-3 bg-fuchsia-100 dark:bg-fuchsia-900/30 rounded-xl text-fuchsia-600 dark:text-fuchsia-400">
+                                    <IndianRupee className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <div className="text-sm text-slate-500 dark:text-gray-400">Hourly Rate</div>
+                                    <div className="font-bold text-lg text-slate-800 dark:text-white">
+                                        {formatCurrency(project.hourlyRate || project.client?.defaultHourlyRate || 0)}/hr
+                                    </div>
+                                </div>
+                            </div>
                             <div className="bg-white/50 dark:bg-white/5 p-4 rounded-2xl flex items-center gap-4">
                                 <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl text-blue-600 dark:text-blue-400">
                                     <Clock className="w-6 h-6" />
@@ -355,7 +443,7 @@ const ProjectDetails = () => {
                                 </div>
                             </div>
                             <div className="bg-white/50 dark:bg-white/5 p-4 rounded-2xl flex items-center gap-4">
-                                <div className="p-3 bg-violet-100 dark:bg-violet-900/30 rounded-xl text-violet-600 dark:text-violet-400">
+                                <div className="p-3 bg-orange-100 dark:bg-yellow-500/20 rounded-xl text-orange-600 dark:text-yellow-400">
                                     <IndianRupee className="w-6 h-6" />
                                 </div>
                                 <div>
@@ -396,7 +484,7 @@ const ProjectDetails = () => {
                     {/* Tasks List */}
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                            <CheckSquare className="w-6 h-6 text-violet-600 dark:text-yellow-400" />
+                            <CheckSquare className="w-6 h-6 text-orange-600 dark:text-yellow-400" />
                             Project Tasks
                         </h3>
 
@@ -405,7 +493,7 @@ const ProjectDetails = () => {
                             const user = JSON.parse(localStorage.getItem('user'));
                             if (user && (user._id === project.createdBy || user._id === project.createdBy?._id)) {
                                 return (
-                                    <button onClick={() => setIsTaskModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-medium shadow-lg transition-all active:scale-95">
+                                    <button onClick={() => setIsTaskModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black rounded-xl font-medium shadow-lg transition-all active:scale-95 hover:scale-105">
                                         <Plus className="w-4 h-4" /> Add Task
                                     </button>
                                 );
@@ -426,7 +514,7 @@ const ProjectDetails = () => {
                     ) : (
                         <div className="space-y-4">
                             {tasks.map((task) => (
-                                <div key={task._id} className={`${GLASS_CLASSES} p-4 rounded-xl flex items-center justify-between group hover:border-violet-400 transition-colors`}>
+                                <div key={task._id} className={`${GLASS_CLASSES} p-4 rounded-xl flex items-center justify-between group hover:border-orange-400 dark:hover:border-yellow-500 transition-all hover:scale-[1.01] animate-fade-in-up`}>
                                     <div className="flex items-center gap-4">
                                         <div className={`w-2 h-2 rounded-full ${task.status === 'done' ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
                                         <div>
@@ -470,16 +558,16 @@ const ProjectDetails = () => {
                             return (
                                 <>
                                     <h3 className="text-xl font-bold text-slate-800 dark:text-white mt-8 mb-6 flex items-center gap-2">
-                                        <Clock className="w-6 h-6 text-violet-600 dark:text-yellow-400" />
+                                        <Clock className="w-6 h-6 text-orange-600 dark:text-yellow-400" />
                                         Time Tracking
                                     </h3>
 
-                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                    <div className="grid grid-cols-1 2xl:grid-cols-3 gap-8">
                                         {/* Timer & Manual Entry */}
                                         <div className="space-y-6">
-                                            <div className={`${GLASS_CLASSES} rounded-3xl p-6 border-t-4 border-t-violet-500 dark:border-t-yellow-500`}>
+                                            <div className={`${GLASS_CLASSES} rounded-3xl p-6 border-t-4 border-t-orange-500 dark:border-t-yellow-500 shadow-orange-500/10`}>
                                                 <h3 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-                                                    <PlayCircle className="w-5 h-5 text-violet-500 dark:text-yellow-500" /> Live Timer
+                                                    <PlayCircle className="w-5 h-5 text-orange-500 dark:text-yellow-500" /> Live Timer
                                                 </h3>
                                                 <AutoTimeTracker projectId={projectId} onSave={fetchProjectData} />
                                             </div>
@@ -502,13 +590,25 @@ const ProjectDetails = () => {
                                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                         <div>
                                                             <label className={LABEL_CLASSES}>Hours</label>
-                                                            <input
-                                                                type="number" step="0.1"
-                                                                value={manualForm.hours}
-                                                                onChange={e => setManualForm({ ...manualForm, hours: e.target.value })}
-                                                                className={INPUT_CLASSES}
-                                                                placeholder="1.5"
-                                                            />
+                                                            <div className="flex gap-2">
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    value={manualForm.hours}
+                                                                    onChange={e => setManualForm({ ...manualForm, hours: e.target.value })}
+                                                                    className={INPUT_CLASSES}
+                                                                    placeholder="Hrs"
+                                                                />
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max="59"
+                                                                    value={manualForm.minutes}
+                                                                    onChange={e => setManualForm({ ...manualForm, minutes: e.target.value })}
+                                                                    className={INPUT_CLASSES}
+                                                                    placeholder="Mins"
+                                                                />
+                                                            </div>
                                                         </div>
                                                         <div>
                                                             <label className={LABEL_CLASSES}>Date</label>
@@ -528,7 +628,7 @@ const ProjectDetails = () => {
                                         </div>
 
                                         {/* Recent Logs List */}
-                                        <div className="lg:col-span-2">
+                                        <div className="2xl:col-span-2">
                                             <div className={`${GLASS_CLASSES} rounded-3xl overflow-hidden min-h-[400px] flex flex-col`}>
                                                 <div className="px-6 py-4 border-b border-white/20 dark:border-white/5 bg-white/20 dark:bg-white/5">
                                                     <h3 className="font-bold text-slate-800 dark:text-white">Recent Activity</h3>
@@ -547,7 +647,7 @@ const ProjectDetails = () => {
                                                                             <span className="text-sm font-bold text-slate-800 dark:text-gray-200">
                                                                                 {new Date(log.startTime).toLocaleDateString()}
                                                                             </span>
-                                                                            <span className="font-mono font-bold text-violet-600 dark:text-yellow-400">
+                                                                            <span className="font-mono font-bold text-orange-600 dark:text-yellow-400">
                                                                                 {formatDuration(log.durationHours)}
                                                                             </span>
                                                                         </div>
@@ -630,6 +730,107 @@ const ProjectDetails = () => {
 
                 </main>
 
+                {/* Edit Project Modal */}
+                {isEditModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsEditModalOpen(false)}></div>
+                        <div className={`relative w-full max-w-2xl ${GLASS_CLASSES} bg-white dark:bg-gray-900 p-8 rounded-3xl shadow-2xl animate-in zoom-in duration-200`}>
+                            <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-6">Edit Project Details</h2>
+                            <form onSubmit={handleUpdateProject} className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="md:col-span-2">
+                                        <label className={LABEL_CLASSES}>Project Title</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            className={INPUT_CLASSES}
+                                            value={editFormData.title}
+                                            onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+                                        />
+                                    </div>
+
+                                    <div className="md:col-span-2">
+                                        <label className={LABEL_CLASSES}>Description</label>
+                                        <textarea
+                                            required
+                                            rows="3"
+                                            className={INPUT_CLASSES}
+                                            value={editFormData.description}
+                                            onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className={LABEL_CLASSES}>Status</label>
+                                        <select
+                                            className={INPUT_CLASSES}
+                                            value={editFormData.status}
+                                            onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
+                                        >
+                                            <option value="active">Active</option>
+                                            <option value="completed">Completed</option>
+                                            <option value="hold">On Hold</option>
+                                            <option value="cancelled">Cancelled</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className={LABEL_CLASSES}>Hourly Rate (₹)</label>
+                                        <div className="relative">
+                                            <IndianRupee className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
+                                            <input
+                                                type="number"
+                                                className={`${INPUT_CLASSES} pl-10`}
+                                                value={editFormData.hourlyRate}
+                                                onChange={(e) => setEditFormData({ ...editFormData, hourlyRate: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className={LABEL_CLASSES}>Budget (₹)</label>
+                                        <div className="relative">
+                                            <IndianRupee className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
+                                            <input
+                                                type="number"
+                                                className={`${INPUT_CLASSES} pl-10`}
+                                                value={editFormData.budget}
+                                                onChange={(e) => setEditFormData({ ...editFormData, budget: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className={LABEL_CLASSES}>Deadline</label>
+                                        <input
+                                            type="date"
+                                            className={`${INPUT_CLASSES} dark:[color-scheme:dark]`}
+                                            value={editFormData.deadline}
+                                            onChange={(e) => setEditFormData({ ...editFormData, deadline: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end gap-3 pt-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsEditModalOpen(false)}
+                                        className="px-6 py-2.5 bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-white/20 rounded-xl font-medium transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white rounded-xl font-medium shadow-lg transition-all active:scale-95 hover:scale-105"
+                                    >
+                                        <Save className="w-5 h-5" /> Save Changes
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
                 {/* Add Task Modal */}
                 {isTaskModalOpen && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -642,7 +843,7 @@ const ProjectDetails = () => {
                                     <input
                                         type="text"
                                         required
-                                        className="w-full p-3 bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none dark:text-white"
+                                        className="w-full p-3 bg-white/50 dark:bg-black/20 border border-orange-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none dark:text-white"
                                         value={newTaskTitle}
                                         onChange={e => setNewTaskTitle(e.target.value)}
                                     />
@@ -650,7 +851,7 @@ const ProjectDetails = () => {
                                 <div>
                                     <label className="text-sm font-medium text-slate-700 dark:text-gray-300">Description</label>
                                     <textarea
-                                        className="w-full p-3 bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none dark:text-white"
+                                        className="w-full p-3 bg-white/50 dark:bg-black/20 border border-orange-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none dark:text-white"
                                         value={newTaskDesc}
                                         onChange={e => setNewTaskDesc(e.target.value)}
                                     />
@@ -660,12 +861,12 @@ const ProjectDetails = () => {
                                     <input
                                         type="date"
                                         required
-                                        className="w-full p-3 bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none dark:text-white"
+                                        className="w-full p-3 bg-white/50 dark:bg-black/20 border border-orange-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none dark:text-white"
                                         value={newTaskDeadline}
                                         onChange={e => setNewTaskDeadline(e.target.value)}
                                     />
                                 </div>
-                                <button type="submit" className="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl shadow-lg">
+                                <button type="submit" className="w-full py-3 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white font-bold rounded-xl shadow-lg active:scale-95">
                                     Create Task
                                 </button>
                             </form>

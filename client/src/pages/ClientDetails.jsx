@@ -5,12 +5,12 @@ import Sidebar from '../components/Sidebar';
 import { formatCurrency } from '../utils/formatCurrency';
 import {
     Menu, User, Mail, Phone, IndianRupee, Briefcase, ArrowRight, X,
-    Save, Edit, LogOut, Sun, Moon, Plus, Calendar, FileText, ChevronDown, ChevronRight
+    Save, Edit, LogOut, Sun, Moon, Plus, Calendar, FileText, ChevronDown, ChevronRight, CheckCircle
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
-const INPUT_CLASSES = "w-full p-3 pl-10 bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none transition-all dark:text-white";
+const GLASS_CLASSES = "bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl shadow-orange-500/10";
+const INPUT_CLASSES = "w-full p-3 pl-10 bg-white/50 dark:bg-black/20 border border-orange-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all dark:text-white";
 const LABEL_CLASSES = "block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1";
 
 const ClientDetails = () => {
@@ -24,8 +24,7 @@ const ClientDetails = () => {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
-        phone: '',
-        defaultHourlyRate: 0
+        phone: ''
     });
     const [showProjectModal, setShowProjectModal] = useState(false);
     const [projectFormData, setProjectFormData] = useState({
@@ -33,12 +32,35 @@ const ClientDetails = () => {
         description: '',
         budget: '',
         deadline: '',
-        startDate: new Date().toISOString().split('T')[0]
+        startDate: new Date().toISOString().split('T')[0],
+        hourlyRate: ''
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showPastProjects, setShowPastProjects] = useState(false);
+    const [invoices, setInvoices] = useState([]);
+    const [showPastInvoices, setShowPastInvoices] = useState(false);
+
+    // Fetch Invoices
+    useEffect(() => {
+        if (clientId) {
+            api.get('/invoices')
+                .then(res => {
+                    const clientInvoices = res.data.filter(inv =>
+                        (inv.client?._id || inv.client) === clientId
+                    );
+                    setInvoices(clientInvoices);
+                })
+                .catch(err => console.error("Error fetching invoices:", err));
+        }
+    }, [clientId]);
 
     const storedUser = (() => { try { return JSON.parse(localStorage.getItem('user')); } catch (e) { return null; } })();
+
+    useEffect(() => {
+        if (storedUser && storedUser.defaultHourlyRate) {
+            setProjectFormData(prev => ({ ...prev, hourlyRate: storedUser.defaultHourlyRate }));
+        }
+    }, []);
 
     useEffect(() => {
         if (darkMode) document.documentElement.classList.add('dark');
@@ -65,8 +87,7 @@ const ClientDetails = () => {
                     setFormData({
                         name: res.data.name || '',
                         email: res.data.email || '',
-                        phone: res.data.phone || res.data.mobile || '',
-                        defaultHourlyRate: res.data.defaultHourlyRate || 0
+                        phone: res.data.phone || res.data.mobile || ''
                     });
                 })
                 .catch(err => {
@@ -127,8 +148,21 @@ const ClientDetails = () => {
             return toast.error("Invalid Email format.");
         }
 
-        if (formData.phone && (!phoneRegex.test(formData.phone) || formData.phone.length < 10 || formData.phone.length > 15)) {
-            return toast.error("Invalid Phone Number. Use only numbers, +, -, (, ), and spaces.");
+        if (!formData.phone) {
+            return toast.error("Phone Number is required.");
+        }
+
+        const digitsOnly = formData.phone.replace(/\D/g, '');
+        // Strict check for India (starts with 91)
+        if (digitsOnly.startsWith('91')) {
+            if (digitsOnly.length !== 12) { // 91 + 10 digits = 12
+                return toast.error("For India (+91), please enter exactly 10 digits.");
+            }
+        } else {
+            // Generic validation for other codes
+            if (digitsOnly.length < 11 || digitsOnly.length > 15) {
+                return toast.error("Please enter a valid phone number (Min 10 digits + Country Code).");
+            }
         }
 
         try {
@@ -166,7 +200,8 @@ const ClientDetails = () => {
                 description: '',
                 budget: '',
                 deadline: '',
-                startDate: new Date().toISOString().split('T')[0]
+                startDate: new Date().toISOString().split('T')[0],
+                hourlyRate: storedUser?.defaultHourlyRate || ''
             });
             setShowProjectModal(false);
 
@@ -200,9 +235,9 @@ const ClientDetails = () => {
     };
 
     if (!client) return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-gray-900 dark:via-black dark:to-gray-900 flex items-center justify-center">
+        <div className="min-h-screen bg-gradient-to-br from-orange-100 via-yellow-100 to-orange-50 dark:from-gray-900 dark:via-black dark:to-gray-900 flex items-center justify-center">
             <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto"></div>
                 <p className="mt-4 text-slate-600 dark:text-gray-400">Loading client details...</p>
             </div>
         </div>
@@ -212,7 +247,7 @@ const ClientDetails = () => {
     const pastProjects = projects.filter(p => !isProjectActive(p));
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors duration-500">
+        <div className="min-h-screen bg-gradient-to-br from-orange-100 via-yellow-100 to-orange-50 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors duration-500">
             <div className="flex h-screen overflow-hidden">
 
                 {/* Mobile Menu */}
@@ -241,35 +276,38 @@ const ClientDetails = () => {
                             <div className="flex items-center gap-2 text-slate-600 dark:text-gray-400 mt-1">
                                 <Link to="/clients" className="hover:underline">My Clients</Link>
                                 <span>/</span>
-                                <span className="text-violet-600 dark:text-yellow-400">{client?.name || 'Unknown'}</span>
+                                <span className="text-orange-600 dark:text-yellow-400">{client?.name || 'Unknown'}</span>
                             </div>
                         </div>
-                        <button
-                            onClick={() => setShowProjectModal(true)}
-                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 shadow-lg active:scale-95 bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black"
-                        >
-                            <Plus className="w-5 h-5" /> New Project
-                        </button>
+                        <div className="fixed bottom-8 right-8 z-40 md:static">
+                            <button
+                                onClick={() => setShowProjectModal(true)}
+                                className="flex items-center justify-center gap-2 p-4 md:px-5 md:py-2.5 !rounded-full md:!rounded-xl font-medium transition-all duration-300 shadow-2xl md:shadow-lg active:scale-95 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black hover:scale-105"
+                            >
+                                <Plus className="w-6 h-6 md:w-5 md:h-5" />
+                                <span className="hidden md:inline">New Project</span>
+                            </button>
+                        </div>
                     </header>
 
                     {/* Client Info Card */}
                     <div className={`${GLASS_CLASSES} p-8 rounded-3xl mb-8 relative overflow-hidden`}>
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-violet-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
 
                         {!isEditing ? (
                             // View Mode
                             <div className="relative z-10">
-                                <div className="flex justify-between items-start mb-6">
-                                    <div className="flex gap-6 items-start">
-                                        <div className="bg-gradient-to-br from-violet-500 to-fuchsia-500 p-1 rounded-full shadow-2xl">
+                                <div className="flex flex-col lg:flex-row justify-between items-center lg:items-start mb-6 gap-6">
+                                    <div className="flex flex-col lg:flex-row gap-6 items-center lg:items-start w-full text-center lg:text-left">
+                                        <div className="bg-gradient-to-br from-orange-500 to-yellow-500 p-1 rounded-full shadow-2xl shrink-0">
                                             <div className="bg-white dark:bg-black p-4 rounded-full">
-                                                <User className="w-12 h-12 text-violet-600 dark:text-white" />
+                                                <User className="w-12 h-12 text-orange-600 dark:text-white" />
                                             </div>
                                         </div>
-                                        <div className="flex-1 space-y-4">
+                                        <div className="flex-1 space-y-4 w-full">
                                             <div>
                                                 <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{client.name}</h1>
-                                                <div className="flex flex-wrap gap-4 mt-3">
+                                                <div className="flex flex-wrap justify-center lg:justify-start gap-4 mt-3">
                                                     <div className="select-text cursor-text flex items-center gap-2 text-slate-600 dark:text-gray-400 bg-white/50 dark:bg-white/5 px-3 py-1 rounded-full text-sm">
                                                         <Mail className="w-4 h-4" /> {client.email}
                                                     </div>
@@ -281,15 +319,12 @@ const ClientDetails = () => {
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                                                <span className="select-text cursor-text">{formatCurrency(client.defaultHourlyRate || 0)}</span>
-                                                <span className="text-sm text-slate-500 font-normal self-end mb-1">/ hour (default)</span>
-                                            </div>
+
                                         </div>
                                     </div>
                                     <button
                                         onClick={() => setIsEditing(true)}
-                                        className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black rounded-xl font-medium transition-all shadow-lg active:scale-95"
+                                        className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black rounded-xl font-medium transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
                                     >
                                         <Edit className="w-4 h-4" /> Edit
                                     </button>
@@ -339,6 +374,7 @@ const ClientDetails = () => {
                                         <div className="relative">
                                             <Phone className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
                                             <input
+                                                required
                                                 type="text"
                                                 className={INPUT_CLASSES}
                                                 value={formData.phone}
@@ -353,19 +389,7 @@ const ClientDetails = () => {
                                         </div>
                                         <p className="text-xs text-slate-500 mt-1 pl-1">Numbers, +, -, (, ), and spaces only</p>
                                     </div>
-                                    <div>
-                                        <label className={LABEL_CLASSES}>Default Hourly Rate (₹)</label>
-                                        <div className="relative">
-                                            <IndianRupee className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
-                                            <input
-                                                type="number"
-                                                className={INPUT_CLASSES}
-                                                value={formData.defaultHourlyRate}
-                                                onChange={e => setFormData({ ...formData, defaultHourlyRate: e.target.value })}
-                                                placeholder="0.00"
-                                            />
-                                        </div>
-                                    </div>
+
                                 </div>
 
                                 <div className="flex gap-3 justify-end">
@@ -376,8 +400,7 @@ const ClientDetails = () => {
                                             setFormData({
                                                 name: client.name || '',
                                                 email: client.email || '',
-                                                phone: client.phone || client.mobile || '',
-                                                defaultHourlyRate: client.defaultHourlyRate || 0
+                                                phone: client.phone || client.mobile || ''
                                             });
                                         }}
                                         className="px-5 py-2.5 bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-white/20 rounded-xl font-medium transition-colors"
@@ -386,7 +409,7 @@ const ClientDetails = () => {
                                     </button>
                                     <button
                                         type="submit"
-                                        className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black rounded-xl font-medium transition-all shadow-lg active:scale-95"
+                                        className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black rounded-xl font-medium transition-all shadow-lg active:scale-95 hover:scale-105"
                                     >
                                         <Save className="w-5 h-5" /> Save Changes
                                     </button>
@@ -399,7 +422,7 @@ const ClientDetails = () => {
                     {activeProjects.length > 0 && (
                         <div className="mb-12">
                             <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
-                                <Briefcase className="w-6 h-6 text-violet-600 dark:text-yellow-400" />
+                                <Briefcase className="w-6 h-6 text-orange-600 dark:text-yellow-400" />
                                 Active Projects
                             </h3>
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -407,11 +430,11 @@ const ClientDetails = () => {
                                     <div
                                         key={project._id}
                                         onClick={() => navigate(`/projects/${project._id}`)}
-                                        className={`${GLASS_CLASSES} p-6 rounded-2xl group hover:scale-[1.01] transition-all cursor-pointer border-l-4 border-l-violet-500`}
+                                        className={`${GLASS_CLASSES} p-6 rounded-2xl group hover:scale-105 transition-all cursor-pointer border-l-4 border-l-orange-500 shadow-orange-500/10 animate-fade-in-up`}
                                     >
                                         <div className="flex justify-between items-start mb-4">
                                             <h4 className="text-lg font-bold text-slate-900 dark:text-white truncate pr-4">{project.title}</h4>
-                                            <span className="text-xs px-2 py-1 rounded-md font-bold uppercase bg-violet-100 text-violet-700">
+                                            <span className="text-xs px-2 py-1 rounded-md font-bold uppercase bg-orange-100 text-orange-700 shadow-orange-500/10">
                                                 Active
                                             </span>
                                         </div>
@@ -421,8 +444,97 @@ const ClientDetails = () => {
                                             <div className="font-bold text-slate-800 dark:text-white flex items-center">
                                                 <span className="select-text cursor-text">{formatCurrency(project.budget)}</span>
                                             </div>
-                                            <div className="flex items-center gap-1 text-violet-600 dark:text-yellow-400 text-sm font-medium group-hover:translate-x-1 transition-transform">
+                                            <div className="flex items-center gap-1 text-orange-600 dark:text-yellow-400 text-sm font-medium group-hover:translate-x-1 transition-transform">
                                                 Details <ArrowRight className="w-4 h-4" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Pending Payments Section */}
+                    {invoices.some(inv => inv.status !== 'paid') && (
+                        <div className="mb-12">
+                            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+                                <IndianRupee className="w-6 h-6 text-rose-500" />
+                                Pending Payments
+                            </h3>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {invoices.filter(inv => inv.status !== 'paid').map(invoice => (
+                                    <div key={invoice._id} className={`${GLASS_CLASSES} p-6 rounded-2xl border-l-4 border-l-rose-500`}>
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div>
+                                                <h4 className="text-lg font-bold text-slate-900 dark:text-white">{invoice.project?.title || 'Unknown Project'}</h4>
+                                                <p className="text-sm text-slate-500">{invoice.invoiceNumber}</p>
+                                            </div>
+                                            <div className="flex flex-col items-end gap-2">
+                                                <span className="text-xs px-2 py-1 rounded-md font-bold uppercase bg-rose-100 text-rose-700">
+                                                    {invoice.status}
+                                                </span>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+
+                                                        const handleMarkPaid = async () => {
+                                                            try {
+                                                                await api.put(`/invoices/${invoice._id}`, { status: 'paid', paidDate: new Date() });
+                                                                setInvoices(prev => prev.map(inv =>
+                                                                    inv._id === invoice._id ? { ...inv, status: 'paid', paidDate: new Date() } : inv
+                                                                ));
+                                                                toast.success("Invoice marked as Paid");
+                                                            } catch (err) {
+                                                                console.error(err);
+                                                                toast.error("Failed to update status");
+                                                            }
+                                                        };
+
+                                                        toast.custom((t) => (
+                                                            <div className={`${GLASS_CLASSES} p-6 rounded-2xl max-w-sm w-full animate-in fade-in zoom-in duration-300`}>
+                                                                <div className="flex items-start gap-4">
+                                                                    <div className="p-3 bg-orange-100 dark:bg-yellow-500/20 rounded-full text-orange-600 dark:text-yellow-400">
+                                                                        <IndianRupee className="w-6 h-6" />
+                                                                    </div>
+                                                                    <div className="flex-1">
+                                                                        <h3 className="font-bold text-slate-800 dark:text-white mb-1">Confirm Payment?</h3>
+                                                                        <p className="text-sm text-slate-600 dark:text-gray-400 mb-4">
+                                                                            Mark invoice <b>{invoice.invoiceNumber}</b> of <b>{formatCurrency(invoice.totalAmount)}</b> as PAID?
+                                                                        </p>
+                                                                        <div className="flex gap-3">
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    toast.dismiss(t.id);
+                                                                                    handleMarkPaid();
+                                                                                }}
+                                                                                className="flex-1 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium text-sm transition-colors"
+                                                                            >
+                                                                                Confirm
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={() => toast.dismiss(t.id)}
+                                                                                className="flex-1 px-4 py-2 bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-white/20 rounded-xl font-medium text-sm transition-colors"
+                                                                            >
+                                                                                Cancel
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ));
+                                                    }}
+                                                    className="flex items-center gap-1 px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/30 text-emerald-600 rounded-lg transition text-xs font-bold"
+                                                >
+                                                    <CheckCircle className="w-3 h-3" /> Mark Paid
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between items-center pt-4 border-t border-gray-200/50 dark:border-white/10">
+                                            <div className="font-bold text-slate-800 dark:text-white">
+                                                {formatCurrency(invoice.totalAmount)}
+                                            </div>
+                                            <div className="text-sm text-slate-500">
+                                                Due: {new Date(invoice.dueDate).toLocaleDateString()}
                                             </div>
                                         </div>
                                     </div>
@@ -450,8 +562,7 @@ const ClientDetails = () => {
                                     {pastProjects.map((project) => (
                                         <div
                                             key={project._id}
-                                            onClick={() => navigate(`/projects/${project._id}`)}
-                                            className={`${GLASS_CLASSES} p-6 rounded-2xl transition-all cursor-pointer border-l-4 border-l-slate-400 opacity-60 grayscale-[0.8] hover:opacity-80`}
+                                            className={`${GLASS_CLASSES} p-6 rounded-2xl transition-all border-l-4 border-l-slate-400 opacity-70`}
                                         >
                                             <div className="flex justify-between items-start mb-4">
                                                 <h4 className="text-lg font-bold text-slate-900 dark:text-white truncate pr-4">{project.title}</h4>
@@ -473,6 +584,48 @@ const ClientDetails = () => {
                         </div>
                     )}
 
+                    {/* Previous Invoices Section */}
+                    {invoices.some(inv => inv.status === 'paid') && (
+                        <div className="mb-12">
+                            <button
+                                onClick={() => setShowPastInvoices(!showPastInvoices)}
+                                className="flex items-center justify-between w-full text-xl font-bold text-slate-800 dark:text-white mb-6 opacity-80 hover:opacity-100 transition-opacity"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <FileText className="w-6 h-6 text-slate-500" />
+                                    Paid Invoices
+                                </div>
+                                {showPastInvoices ? <ChevronDown className="w-6 h-6" /> : <ChevronRight className="w-6 h-6" />}
+                            </button>
+
+                            {showPastInvoices && (
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in slide-in-from-top-2 fade-in duration-300">
+                                    {invoices.filter(inv => inv.status === 'paid').map(invoice => (
+                                        <div key={invoice._id} className={`${GLASS_CLASSES} p-6 rounded-2xl border-l-4 border-l-emerald-500 opacity-75 hover:opacity-100 transition-opacity`}>
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div>
+                                                    <h4 className="text-lg font-bold text-slate-900 dark:text-white">{invoice.project?.title || 'Unknown Project'}</h4>
+                                                    <p className="text-sm text-slate-500">{invoice.invoiceNumber}</p>
+                                                </div>
+                                                <span className="text-xs px-2 py-1 rounded-md font-bold uppercase bg-emerald-100 text-emerald-700">
+                                                    Paid
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between items-center pt-4 border-t border-gray-200/50 dark:border-white/10">
+                                                <div className="font-bold text-slate-800 dark:text-white">
+                                                    {formatCurrency(invoice.totalAmount)}
+                                                </div>
+                                                <div className="text-sm text-slate-500">
+                                                    Paid: {new Date(invoice.paidDate || invoice.updatedAt).toLocaleDateString()}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {projects.length === 0 && (
                         <div className={`${GLASS_CLASSES} rounded-3xl p-12 text-center`}>
                             <Briefcase className="w-16 h-16 text-slate-300 dark:text-gray-600 mx-auto mb-4" />
@@ -480,7 +633,7 @@ const ClientDetails = () => {
                             <p className="text-slate-500 dark:text-gray-400">This client doesn't have any projects assigned yet.</p>
                             <button
                                 onClick={() => setShowProjectModal(true)}
-                                className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 shadow-lg active:scale-95 bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black"
+                                className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 shadow-lg active:scale-95 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black hover:scale-105"
                             >
                                 <Plus className="w-5 h-5" /> Create First Project
                             </button>
@@ -529,7 +682,7 @@ const ClientDetails = () => {
                                         />
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
                                             <label className={LABEL_CLASSES}>Start Date</label>
                                             <div className="relative">
@@ -571,6 +724,20 @@ const ClientDetails = () => {
                                                 />
                                             </div>
                                         </div>
+                                        <div>
+                                            <label className={LABEL_CLASSES}>Hourly Rate (₹)</label>
+                                            <div className="relative">
+                                                <IndianRupee className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
+                                                <input
+                                                    type="number"
+                                                    className={INPUT_CLASSES}
+                                                    value={projectFormData.hourlyRate}
+                                                    onChange={(e) => setProjectFormData({ ...projectFormData, hourlyRate: e.target.value })}
+                                                    placeholder="500"
+                                                    min="0"
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div className="flex gap-3 justify-end pt-4">
@@ -584,7 +751,7 @@ const ClientDetails = () => {
                                         <button
                                             type="submit"
                                             disabled={isSubmitting}
-                                            className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black rounded-xl font-medium transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black rounded-xl font-medium transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
                                         >
                                             <Save className="w-5 h-5" /> {isSubmitting ? 'Creating...' : 'Create Project'}
                                         </button>

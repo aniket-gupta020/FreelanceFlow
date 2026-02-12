@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PieChart, Calculator, Calendar, Users, DollarSign, Clock, Eye, CheckCircle, X } from 'lucide-react';
+import { PieChart, Calculator, Calendar, Users, IndianRupee, Clock, Eye, CheckCircle, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../api';
 import { generateInvoicePDF } from './pdfGenerator';
@@ -50,7 +50,7 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
             if (!log.user) return;
 
             const userId = log.user._id || log.user;
-            const rate = log.user.defaultHourlyRate || 0;
+            const rate = project.hourlyRate || log.user.defaultHourlyRate || 0;
             const hours = log.durationHours || 0;
 
             if (!userMap[userId]) {
@@ -86,12 +86,13 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
             setSummaryStats({ cost: 0, hours: 0, freelancers: 0 });
         } else {
             setGeneratedReport(reportArray);
+            const totalLogs = reportArray.reduce((acc, user) => acc + user.logs.length, 0);
             setSummaryStats({
                 cost: totalProjectCost,
                 hours: totalProjectHours,
-                freelancers: reportArray.length
+                logCount: totalLogs
             });
-            toast.success(`Found ${reportArray.length} freelancers with pending work.`);
+            toast.success("Found unbilled work for this period.");
         }
     };
 
@@ -166,13 +167,13 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
         <>
             <div className="relative overflow-hidden rounded-3xl backdrop-blur-xl bg-white/40 dark:bg-black/40 border border-white/50 dark:border-white/10 shadow-2xl transition-all duration-300 mb-8">
                 {/* Top Gradient Line */}
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-indigo-500"></div>
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 via-yellow-500 to-orange-600"></div>
 
                 <div className="p-8">
                     {/* Header */}
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                    <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-8">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl shadow-lg shadow-violet-500/20 text-white">
+                            <div className="p-3 bg-gradient-to-br from-orange-500 to-yellow-500 rounded-2xl shadow-lg shadow-orange-500/20 text-white">
                                 <PieChart className="w-6 h-6" />
                             </div>
                             <div>
@@ -187,24 +188,24 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
                     </div>
 
                     {/* Controls */}
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-8 p-1">
-                        <div className="md:col-span-6 lg:col-span-4 group relative">
-                            <label className="absolute -top-2.5 left-4 bg-white dark:bg-gray-900 px-2 text-xs font-bold text-violet-600 z-10 transition-all">START DATE</label>
-                            <div className="flex items-center bg-white/50 dark:bg-black/20 border-2 border-transparent group-hover:border-violet-500/50 rounded-2xl">
+                    <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 mb-8 p-1">
+                        <div className="xl:col-span-6 2xl:col-span-4 group relative">
+                            <label className="absolute -top-2.5 left-4 bg-white dark:bg-gray-900 px-2 text-xs font-bold text-orange-600 z-10 transition-all">START DATE</label>
+                            <div className="flex items-center bg-white/50 dark:bg-black/20 border-2 border-transparent group-hover:border-orange-500/50 rounded-2xl">
                                 <Calendar className="w-5 h-5 text-slate-400 ml-4" />
                                 <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full p-4 bg-transparent outline-none text-slate-700 dark:text-white dark:[color-scheme:dark]" />
                             </div>
                         </div>
 
-                        <div className="md:col-span-6 lg:col-span-4 group relative">
-                            <label className="absolute -top-2.5 left-4 bg-white dark:bg-gray-900 px-2 text-xs font-bold text-violet-600 z-10 transition-all">END DATE</label>
-                            <div className="flex items-center bg-white/50 dark:bg-black/20 border-2 border-transparent group-hover:border-violet-500/50 rounded-2xl">
+                        <div className="xl:col-span-6 2xl:col-span-4 group relative">
+                            <label className="absolute -top-2.5 left-4 bg-white dark:bg-gray-900 px-2 text-xs font-bold text-orange-600 z-10 transition-all">END DATE</label>
+                            <div className="flex items-center bg-white/50 dark:bg-black/20 border-2 border-transparent group-hover:border-orange-500/50 rounded-2xl">
                                 <Calendar className="w-5 h-5 text-slate-400 ml-4" />
                                 <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full p-4 bg-transparent outline-none text-slate-700 dark:text-white dark:[color-scheme:dark]" />
                             </div>
                         </div>
 
-                        <div className="md:col-span-12 lg:col-span-4">
+                        <div className="xl:col-span-12 2xl:col-span-4">
                             <button onClick={handleCalculate} className="w-full h-full min-h-[56px] flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-900 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-black rounded-2xl font-bold text-sm md:text-base xl:text-lg shadow-xl transition-all active:scale-[0.98] whitespace-nowrap">
                                 <Calculator className="w-4 h-4 md:w-5 md:h-5" /> Find Unbilled Work
                             </button>
@@ -215,10 +216,10 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
                     {generatedReport && (
                         <div className="animate-in fade-in slide-in-from-bottom-6 duration-500">
                             {generatedReport.length > 0 && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                                    <div className="bg-violet-50/50 dark:bg-violet-900/10 p-4 rounded-2xl border border-violet-100 dark:border-violet-500/20">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-4 mb-6">
+                                    <div className="bg-orange-50/50 dark:bg-yellow-500/10 p-4 rounded-2xl border border-orange-100 dark:border-orange-500/20">
                                         <div className="flex items-center gap-3 mb-1">
-                                            <div className="p-2 bg-violet-100 dark:bg-violet-800 rounded-lg"><DollarSign className="w-4 h-4 text-violet-600 dark:text-violet-300" /></div>
+                                            <div className="p-2 bg-orange-100 dark:bg-yellow-500/20 rounded-lg"><IndianRupee className="w-4 h-4 text-orange-600 dark:text-yellow-400" /></div>
                                             <span className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">Pending Amount</span>
                                         </div>
                                         <div className="text-2xl font-black text-slate-800 dark:text-white">Rs. {summaryStats.cost.toFixed(2)}</div>
@@ -230,12 +231,12 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
                                         </div>
                                         <div className="text-2xl font-black text-slate-800 dark:text-white">{formatDuration(summaryStats.hours)}</div>
                                     </div>
-                                    <div className="md:col-span-2 lg:col-span-1 bg-blue-50/50 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-500/20">
+                                    <div className="sm:col-span-2 2xl:col-span-1 bg-orange-50/50 dark:bg-yellow-500/10 p-4 rounded-2xl border border-orange-100 dark:border-orange-500/20">
                                         <div className="flex items-center gap-3 mb-1">
-                                            <div className="p-2 bg-blue-100 dark:bg-blue-800 rounded-lg"><Users className="w-4 h-4 text-blue-600 dark:text-blue-300" /></div>
-                                            <span className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">Freelancers</span>
+                                            <div className="p-2 bg-orange-100 dark:bg-yellow-500/20 rounded-lg"><Clock className="w-4 h-4 text-orange-600 dark:text-yellow-400" /></div>
+                                            <span className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">Unbilled Sessions</span>
                                         </div>
-                                        <div className="text-2xl font-black text-slate-800 dark:text-white">{summaryStats.freelancers}</div>
+                                        <div className="text-2xl font-black text-slate-800 dark:text-white">{summaryStats.logCount}</div>
                                     </div>
                                 </div>
                             )}
@@ -246,8 +247,8 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
                                     <div className="p-12 text-center text-slate-500">No unbilled work found for this period.</div>
                                 ) : (
                                     <>
-                                        {/* Mobile/Tablet Card View (< 1024px) */}
-                                        <div className="block lg:hidden divide-y divide-white/40 dark:divide-white/5">
+                                        {/* Mobile/Tablet Card View (< 1536px) */}
+                                        <div className="block 2xl:hidden divide-y divide-white/40 dark:divide-white/5">
                                             {generatedReport.map((user) => (
                                                 <div key={user.id} className="p-5 flex flex-col gap-4">
                                                     {/* Header: Name & Rate - Wrap on very small screens */}
@@ -256,7 +257,7 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
                                                             <div className="font-bold text-slate-800 dark:text-white text-lg break-words">{user.name}</div>
                                                             <div className="text-sm text-slate-500 break-all">{user.email}</div>
                                                         </div>
-                                                        <div className="self-start px-3 py-1 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 rounded-full text-xs font-bold whitespace-nowrap">
+                                                        <div className="self-start px-3 py-1 bg-orange-100 dark:bg-yellow-500/30 text-orange-700 dark:text-yellow-300 rounded-full text-xs font-bold whitespace-nowrap shadow-orange-500/10">
                                                             Rs. {user.rate}/hr
                                                         </div>
                                                     </div>
@@ -273,19 +274,19 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
                                                         </div>
                                                     </div>
 
-                                                    <button onClick={() => openBillingModal(user)} className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-medium shadow-lg transition-transform active:scale-[0.98]">
+                                                    <button onClick={() => openBillingModal(user)} className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white rounded-xl font-medium shadow-lg transition-transform active:scale-[0.98] hover:scale-105">
                                                         <Eye className="w-4 h-4" /> View Details & Pay
                                                     </button>
                                                 </div>
                                             ))}
                                         </div>
 
-                                        {/* Desktop Table View (>= 1024px) */}
-                                        <div className="hidden lg:block">
+                                        {/* Desktop Table View (>= 1536px) */}
+                                        <div className="hidden 2xl:block">
                                             <table className="w-full text-left border-collapse">
                                                 <thead className="bg-slate-50/80 dark:bg-white/5 border-b border-white/20 dark:border-white/5 text-xs font-bold uppercase text-slate-500 dark:text-slate-400">
                                                     <tr>
-                                                        <th className="p-5">Freelancer</th>
+                                                        <th className="p-5">Work Details</th>
                                                         <th className="p-5 text-right">Hours</th>
                                                         <th className="p-5 text-right">Pending Payout</th>
                                                         <th className="p-5 text-center">Action</th>
@@ -293,7 +294,7 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
                                                 </thead>
                                                 <tbody className="divide-y divide-white/40 dark:divide-white/5">
                                                     {generatedReport.map((user) => (
-                                                        <tr key={user.id} className="hover:bg-violet-50/40 dark:hover:bg-violet-900/10 transition-colors">
+                                                        <tr key={user.id} className="hover:bg-orange-50/40 dark:hover:bg-white/5 transition-colors">
                                                             <td className="p-5">
                                                                 <div className="font-bold text-slate-800 dark:text-white">{user.name}</div>
                                                                 <div className="text-xs text-slate-500">{user.email}</div>
@@ -301,7 +302,7 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
                                                             <td className="p-5 text-right font-mono">{formatDuration(user.totalHours)}</td>
                                                             <td className="p-5 text-right font-bold text-emerald-600">Rs. {user.totalCost.toFixed(2)}</td>
                                                             <td className="p-5 text-center">
-                                                                <button onClick={() => openBillingModal(user)} className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-medium text-sm shadow-lg hover:shadow-xl transition-all">
+                                                                <button onClick={() => openBillingModal(user)} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white rounded-xl font-medium text-sm shadow-lg hover:shadow-xl transition-all hover:scale-105">
                                                                     <Eye className="w-4 h-4" /> View & Pay
                                                                 </button>
                                                             </td>
@@ -339,7 +340,7 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
                                             <input type="checkbox"
                                                 checked={selectedLogs.length === selectedUser.logs.length}
                                                 onChange={(e) => e.target.checked ? setSelectedLogs(selectedUser.logs.map(l => l._id)) : setSelectedLogs([])}
-                                                className="rounded border-gray-300 text-violet-600 focus:ring-violet-500"
+                                                className="rounded border-orange-300 text-orange-600 focus:ring-orange-500"
                                             />
                                         </th>
                                         <th className="pb-3">Date</th>
@@ -351,9 +352,9 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
                                     {selectedUser.logs.map(log => {
                                         const isSelected = selectedLogs.includes(log._id);
                                         return (
-                                            <tr key={log._id} className={isSelected ? 'bg-violet-50/50' : ''}>
+                                            <tr key={log._id} className={isSelected ? 'bg-orange-50/50' : ''}>
                                                 <td className="py-3 pl-2">
-                                                    <input type="checkbox" checked={isSelected} onChange={() => toggleLogSelection(log._id)} className="rounded border-gray-300 text-violet-600 focus:ring-violet-500" />
+                                                    <input type="checkbox" checked={isSelected} onChange={() => toggleLogSelection(log._id)} className="rounded border-orange-300 text-orange-600 focus:ring-orange-500" />
                                                 </td>
                                                 <td className="py-3 text-sm">{new Date(log.startTime).toLocaleDateString()}</td>
                                                 <td className="py-3 text-sm">{log.description}</td>
@@ -368,11 +369,11 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
                         <div className="flex justify-between items-center pt-4 border-t border-gray-100">
                             <div>
                                 <div className="text-sm text-slate-500">Invoice Total</div>
-                                <div className="text-2xl font-bold text-violet-600">
+                                <div className="text-2xl font-bold text-orange-600 dark:text-yellow-400">
                                     Rs. {(selectedUser.logs.filter(l => selectedLogs.includes(l._id)).reduce((sum, l) => sum + (l.durationHours * selectedUser.rate), 0)).toFixed(2)}
                                 </div>
                             </div>
-                            <button onClick={() => handleProcessPayment('bill')} className="px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-bold shadow-lg flex items-center gap-2">
+                            <button onClick={() => handleProcessPayment('bill')} className="px-6 py-3 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white rounded-xl font-bold shadow-lg flex items-center gap-2 hover:scale-105 active:scale-95 transition-all">
                                 <CheckCircle className="w-5 h-5" /> Generate Bill
                             </button>
                         </div>

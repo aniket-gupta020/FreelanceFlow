@@ -8,15 +8,15 @@ import {
   CheckSquare, User
 } from 'lucide-react';
 
-const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
-const INPUT_CLASSES = "w-full p-3 bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none transition-all dark:text-white";
+const GLASS_CLASSES = "bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl shadow-orange-500/10";
+const INPUT_CLASSES = "w-full p-3 bg-white/50 dark:bg-black/20 border border-orange-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all dark:text-white";
 const LABEL_CLASSES = "block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1";
-const BUTTON_BASE = "flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 shadow-lg active:scale-95";
+const BUTTON_BASE = "flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 shadow-lg active:scale-95 hover:scale-105";
 
 const Sidebar = ({ mobile, closeMobile, darkMode, toggleTheme, handleLogout }) => (
   <div className="flex flex-col h-full">
     <div className="p-6 flex items-center justify-between">
-      <h1 className="text-2xl font-bold text-violet-600 dark:text-yellow-400 flex items-center gap-2">
+      <h1 className="text-2xl font-bold text-orange-600 dark:text-yellow-400 flex items-center gap-2">
         <LayoutDashboard className="w-8 h-8" /> FreelanceFlow
       </h1>
       {mobile && <button onClick={closeMobile}><X className="w-6 h-6 dark:text-white" /></button>}
@@ -164,7 +164,7 @@ const EditProject = () => {
   };
 
   return (
-    <div className="min-h-screen transition-colors duration-500 bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-gray-900 dark:via-black dark:to-gray-900 select-none">
+    <div className="min-h-screen transition-colors duration-500 bg-gradient-to-br from-orange-100 via-yellow-100 to-orange-50 dark:from-gray-900 dark:via-black dark:to-gray-900 select-none">
       <div className="flex h-screen overflow-hidden">
 
         <div className={`fixed inset-0 z-50 md:hidden pointer-events-none`}>
@@ -221,7 +221,7 @@ const EditProject = () => {
                 <button type="button" onClick={() => navigate('/')} className="px-6 py-2.5 text-slate-600 dark:text-gray-300 font-medium hover:bg-white/20 rounded-xl transition">
                   Cancel
                 </button>
-                <button type="submit" disabled={loading} className={`${BUTTON_BASE} bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black justify-center`}>
+                <button type="submit" disabled={loading} className={`${BUTTON_BASE} bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black justify-center`}>
                   <Save className="w-5 h-5" /> {loading ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>

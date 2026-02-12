@@ -10,18 +10,18 @@ import {
   Users, IndianRupee, Calendar, CheckSquare, CheckCircle, User
 } from 'lucide-react';
 
-const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
-const INPUT_CLASSES = "w-full p-3 bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none transition-all dark:text-white";
+const GLASS_CLASSES = "bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl shadow-orange-500/10";
+const INPUT_CLASSES = "w-full p-3 bg-white/50 dark:bg-black/20 border border-orange-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all dark:text-white";
 const LABEL_CLASSES = "block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1";
-const BUTTON_BASE = "flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 shadow-lg active:scale-95";
+const BUTTON_BASE = "flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 shadow-lg active:scale-95 hover:scale-105";
 const TEXT_HEADLINE = "text-slate-800 dark:text-white";
 const TEXT_SUB = "text-slate-600 dark:text-gray-400";
-const ACCENT_BG = "bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black";
+const ACCENT_BG = "bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black";
 
 const Sidebar = ({ mobile, closeMobile, darkMode, toggleTheme, handleLogout }) => (
   <div className="flex flex-col h-full">
     <div className="p-6 flex items-center justify-between">
-      <h1 className="text-2xl font-bold text-violet-600 dark:text-yellow-400 flex items-center gap-2">
+      <h1 className="text-2xl font-bold text-orange-600 dark:text-yellow-400 flex items-center gap-2">
         <LayoutDashboard className="w-8 h-8" /> FreelanceFlow
       </h1>
       {mobile && <button onClick={closeMobile}><X className="w-6 h-6 dark:text-white" /></button>}
@@ -39,7 +39,7 @@ const Sidebar = ({ mobile, closeMobile, darkMode, toggleTheme, handleLogout }) =
       <Link to="/time" className="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-gray-400 hover:bg-white/20 dark:hover:bg-white/5 rounded-xl font-medium transition-all">
         <Clock className="w-5 h-5" /> Time Tracking
       </Link>
-      <Link to="/invoices" className="flex items-center gap-3 px-4 py-3 bg-violet-600 dark:bg-yellow-500 text-white dark:text-black rounded-xl font-medium shadow-lg shadow-indigo-500/20">
+      <Link to="/invoices" className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-orange-500 to-yellow-500 dark:bg-yellow-500 text-white dark:text-black rounded-xl font-medium shadow-lg shadow-orange-500/20">
         <IndianRupee className="w-5 h-5" /> Invoices
       </Link>
       <Link to="/profile" className="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-gray-400 hover:bg-white/20 dark:hover:bg-white/5 rounded-xl font-medium transition-all">
@@ -153,13 +153,16 @@ export default function InvoiceGenerator() {
     if (selected && selected.client) {
       const clientId = selected.client._id || selected.client;
       const clientDisplayName = selected.client.name || 'Unknown Client';
+      const defaultRate = selected.hourlyRate || selected.client?.defaultHourlyRate || '';
       setFormData(prev => ({
         ...prev,
-        clientId: clientId
+        clientId: clientId,
+        hourlyRate: defaultRate
       }));
       setClientName(clientDisplayName);
     } else {
       setClientName('');
+      setFormData(prev => ({ ...prev, hourlyRate: '' }));
     }
 
     fetchUnbilledTimeLogs(projectId);
@@ -281,7 +284,7 @@ export default function InvoiceGenerator() {
   };
 
   return (
-    <div className={`min-h-screen transition-colors duration-500 bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-gray-900 dark:via-black dark:to-gray-900 select-none`}>
+    <div className={`min-h-screen transition-colors duration-500 bg-gradient-to-br from-orange-100 via-yellow-100 to-orange-50 dark:from-gray-900 dark:via-black dark:to-gray-900 select-none`}>
       <div className="flex h-screen overflow-hidden">
 
         {/* Mobile Menu Overlay */}
@@ -322,7 +325,7 @@ export default function InvoiceGenerator() {
 
               <div className={`${GLASS_CLASSES} p-8 rounded-3xl space-y-6`}>
                 <h2 className={`text-xl font-bold ${TEXT_HEADLINE} flex items-center gap-2`}>
-                  <FileText className="w-5 h-5 text-violet-600 dark:text-yellow-400" /> Invoice Details
+                  <FileText className="w-5 h-5 text-orange-600 dark:text-yellow-400" /> Invoice Details
                 </h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -411,7 +414,7 @@ export default function InvoiceGenerator() {
               {formData.projectId && (
                 <div className={`${GLASS_CLASSES} p-8 rounded-3xl space-y-6`}>
                   <h2 className={`text-xl font-bold ${TEXT_HEADLINE} flex items-center gap-2`}>
-                    <Clock className="w-5 h-5 text-violet-600 dark:text-yellow-400" /> Select Work to Bill
+                    <Clock className="w-5 h-5 text-orange-600 dark:text-yellow-400" /> Select Work to Bill
                   </h2>
 
                   {timeLogs.length === 0 ? (
@@ -424,9 +427,9 @@ export default function InvoiceGenerator() {
                         <div
                           key={log._id}
                           onClick={() => toggleTimeLog(log._id)}
-                          className={`flex items-start gap-4 p-4 rounded-xl transition-all cursor-pointer border border-transparent ${selectedTimeLogs.has(log._id) ? 'bg-violet-100/50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800' : 'bg-white/30 dark:bg-white/5 hover:bg-white/50 dark:hover:bg-white/10'}`}
+                          className={`flex items-start gap-4 p-4 rounded-xl transition-all cursor-pointer border border-transparent ${selectedTimeLogs.has(log._id) ? 'bg-orange-100/50 dark:bg-yellow-500/20 border-orange-200 dark:border-yellow-600 shadow-orange-500/10' : 'bg-white/30 dark:bg-white/5 hover:bg-white/50 dark:hover:bg-white/10'}`}
                         >
-                          <div className={`mt-1 w-5 h-5 rounded flex items-center justify-center border ${selectedTimeLogs.has(log._id) ? 'bg-violet-600 border-violet-600' : 'border-gray-400 bg-white dark:bg-black/20'}`}>
+                          <div className={`mt-1 w-5 h-5 rounded flex items-center justify-center border ${selectedTimeLogs.has(log._id) ? 'bg-orange-600 border-orange-600' : 'border-gray-400 bg-white dark:bg-black/20'}`}>
                             {selectedTimeLogs.has(log._id) && <CheckSquare className="w-3.5 h-3.5 text-white" />}
                           </div>
 
@@ -478,9 +481,9 @@ export default function InvoiceGenerator() {
                         <span className={`${TEXT_HEADLINE} font-bold`}>{formatCurrency(totals.taxAmount)}</span>
                       </div>
                     )}
-                    <div className="border-t border-gray-300 dark:border-white/10 pt-3 flex justify-between items-center bg-violet-100 dark:bg-violet-500/10 p-4 rounded-xl">
+                    <div className="border-t border-gray-300 dark:border-white/10 pt-3 flex justify-between items-center bg-orange-100 dark:bg-yellow-500/10 p-4 rounded-xl">
                       <span className={`${TEXT_HEADLINE} font-bold text-lg`}>Total Amount:</span>
-                      <span className="text-2xl font-bold text-violet-600 dark:text-yellow-400">
+                      <span className="text-2xl font-bold text-orange-600 dark:text-yellow-400">
                         {formatCurrency(totals.totalAmount)}
                       </span>
                     </div>

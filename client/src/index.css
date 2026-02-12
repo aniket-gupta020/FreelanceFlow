@@ -7,3 +7,21 @@
     @apply select-none;
   }
 }
+
+@layer utilities {
+  .animate-fade-in-up {
+    @apply opacity-0 translate-y-5;
+    animation: fadeInUp 0.5s ease-out forwards;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

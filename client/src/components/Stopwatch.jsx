@@ -3,7 +3,7 @@ import api from '../api';
 import { toast } from 'react-hot-toast';
 import { Play, Pause, Save, X, Clock } from 'lucide-react';
 
-const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
+const GLASS_CLASSES = "bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl shadow-orange-500/10";
 
 export default function Stopwatch({ defaultProjectId, onStop }) {
   const [isRunning, setIsRunning] = useState(false);
@@ -146,8 +146,8 @@ export default function Stopwatch({ defaultProjectId, onStop }) {
     toast.custom((t) => (
       <div className={`${GLASS_CLASSES} p-6 rounded-2xl max-w-sm w-full animate-in fade-in zoom-in duration-300 pointer-events-auto`}>
         <div className="flex items-start gap-4">
-          <div className="p-3 bg-indigo-500/10 rounded-full">
-            <Clock className="w-6 h-6 text-indigo-500" />
+          <div className="p-3 bg-orange-500/10 rounded-full">
+            <Clock className="w-6 h-6 text-orange-500" />
           </div>
           <div className="flex-1">
             <h3 className="font-bold text-slate-800 dark:text-white mb-1">Timer Paused</h3>
@@ -161,13 +161,13 @@ export default function Stopwatch({ defaultProjectId, onStop }) {
             <div className="flex gap-2">
               <button
                 onClick={() => handleSaveLog(t.id)}
-                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium text-sm transition-colors shadow-lg shadow-indigo-500/20"
+                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black rounded-xl font-medium text-sm transition-all shadow-lg shadow-orange-500/20"
               >
                 <Save className="w-4 h-4" /> Save
               </button>
               <button
                 onClick={() => handleResume(t.id)}
-                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium text-sm transition-colors shadow-lg shadow-emerald-500/20"
+                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 border border-orange-200 dark:border-yellow-500 text-orange-600 dark:text-yellow-400 hover:bg-orange-50 dark:hover:bg-white/5 rounded-xl font-medium text-sm transition-all"
               >
                 <Play className="w-4 h-4" /> Resume
               </button>
@@ -243,14 +243,14 @@ export default function Stopwatch({ defaultProjectId, onStop }) {
         {!isRunning ? (
           <button
             onClick={handleStart}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-500/30 transition active:scale-95"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white rounded-xl font-bold shadow-lg shadow-orange-500/30 transition active:scale-95 hover:scale-105"
           >
             <Play className="w-5 h-5 fill-current" /> Start
           </button>
         ) : (
           <button
             onClick={handlePauseAndShowToast}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold shadow-lg shadow-amber-500/30 transition active:scale-95 animate-pulse"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold shadow-lg shadow-orange-500/30 transition active:scale-95 animate-pulse"
           >
             <Pause className="w-5 h-5 fill-current" /> Stop / Pause
           </button>

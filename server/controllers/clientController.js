@@ -1,5 +1,6 @@
 const Client = require('../models/Client');
 const User = require('../models/User');
+const Project = require('../models/Project');
 
 // @desc    Create a new client
 // @route   POST /api/clients
@@ -10,12 +11,14 @@ exports.createClient = async (req, res) => {
 
         // 1. Get User Plan & Current Client Count
         const user = await User.findById(userId);
-        const clientCount = await Client.countDocuments({ user: userId });
+        const clientCount = await Client.countDocuments({
+            user: userId
+        });
 
         // 2. Enforce Limits (Free Plan: Max 2 Clients)
         if (user.plan === 'free' && clientCount >= 2) {
             return res.status(403).json({
-                message: "Free limit reached. Upgrade to Pro to add more clients.",
+                message: "Free limit reached (including deleted clients). Upgrade to Pro to add more clients.",
                 isLimitReached: true
             });
         }
@@ -105,7 +108,7 @@ exports.updateClient = async (req, res) => {
     }
 };
 
-// @desc    Delete a client
+// @desc    Soft Delete a client
 // @route   DELETE /api/clients/:id
 // @access  Private
 exports.deleteClient = async (req, res) => {
@@ -121,8 +124,29 @@ exports.deleteClient = async (req, res) => {
             return res.status(401).json({ message: "Not authorized" });
         }
 
-        await Client.findByIdAndDelete(req.params.id);
-        res.status(200).json({ message: "Client deleted" });
+        // Automatically mark active projects as COMPLETED
+        // This moves them from "Active" to "Past" in the dashboard
+        const updateResult = await Project.updateMany(
+            {
+                client: client._id,
+                status: { $not: { $regex: /^completed$/i } } // Case-insensitive check
+            },
+            {
+                $set: {
+                    status: 'completed',
+                    completedAt: new Date(),
+                    deadline: new Date() // Set deadline to now so it doesn't show as upcoming
+                }
+            }
+        );
+
+        console.log(`[DEBUG] Explicitly marked projects as COMPLETED for client ${client.name} (ID: ${client._id})`);
+        console.log(`[DEBUG] Update Result: Modified ${updateResult.modifiedCount} projects.`);
+
+        // Soft delete
+        await Client.findByIdAndUpdate(req.params.id, { isDeleted: true });
+
+        res.status(200).json({ message: "Client moved to trash" });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Server Error" });

@@ -4,18 +4,19 @@ import api from '../api';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   LayoutDashboard, Users, User, Mail, Menu, X, Sun, Moon,
-  LogOut, Clock, IndianRupee, CheckSquare, Plus, Lock, ChevronDown, ChevronRight // Added Chevron icons
+  LogOut, Clock, IndianRupee, CheckSquare, Plus, Lock, ChevronDown, ChevronRight, UserMinus, History, Search
 } from 'lucide-react';
 import UpgradeButton from '../components/UpgradeButton'; // Import UpgradeButton
 
 
 // Styling Constants
-const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
-const BUTTON_BASE = "flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 shadow-lg active:scale-95";
-const ACCENT_BG = "bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black";
+const GLASS_CLASSES = "bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl shadow-orange-500/10";
+const BUTTON_BASE = "flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 shadow-lg active:scale-95 hover:scale-105";
+const ACCENT_BG = "bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black";
 
 
 import Sidebar from '../components/Sidebar';
+import LoadingPage from '../components/LoadingPage';
 import { formatCurrency } from '../utils/formatCurrency';
 
 const Clients = () => {
@@ -25,10 +26,14 @@ const Clients = () => {
   // NEW STATE FOR FREELANCERS
   const [userPlan, setUserPlan] = useState('free');
   const [showAddClientModal, setShowAddClientModal] = useState(false);
-  const [newClient, setNewClient] = useState({ name: '', email: '', phone: '', defaultHourlyRate: '' });
+  const [newClient, setNewClient] = useState({ name: '', email: '', phone: '+91 ' });
+  const [searchQuery, setSearchQuery] = useState('');
   const [activeClients, setActiveClients] = useState([]);
   const [pastClients, setPastClients] = useState([]);
   const [showPastClients, setShowPastClients] = useState(false);
+  const [deletedClients, setDeletedClients] = useState([]);
+  const [showDeletedClients, setShowDeletedClients] = useState(false);
+  const [allProjects, setAllProjects] = useState([]); // Store all projects for status checks
 
   const navigate = useNavigate();
 
@@ -81,6 +86,7 @@ const Clients = () => {
           const isProjectActive = (project) => {
             const status = project.status ? project.status.toLowerCase() : 'active';
             if (status === 'completed') return false;
+            if (status === 'expired') return false; // Explicit check for expired
             // Check if deadline passed
             if (project.deadline && new Date(project.deadline) < new Date()) return false;
             return true;
@@ -89,6 +95,7 @@ const Clients = () => {
           // Filter clients
           const active = [];
           const past = [];
+          const deleted = [];
 
           allClients.forEach(client => {
             // Find projects for this client
@@ -100,59 +107,32 @@ const Clients = () => {
             // Check if ANY project is active
             const hasActiveProject = clientProjects.some(p => isProjectActive(p));
 
-            if (hasActiveProject || clientProjects.length === 0) {
-              // Note: Decide where to put clients with NO projects.
-              // Logic: If no projects, they are technically not "past" yet, maybe "Active" or "New".
-              // User request: "if client do not have any active project it shall automatically converted into an collapsed section past client"
-              // Wait, "do not have any active project" implies (No projects) OR (Only past projects).
-              // Let's re-read: "if client do not have any active project" -> Past.
+            // Priority logic: Active projects always bring a client to the "Active" section
+            if (hasActiveProject) {
+              active.push(client);
+              return;
+            }
 
-              if (clientProjects.length === 0) {
-                // No projects = Past? Or Active?
-                // Usually "New" clients are Active.
-                // Let's put them in Active for now, unless user explicitly meant "Historic with no active work".
-                // Actually, if I just added a client, I want to see them to add a project.
-                // So: Has Active Projects OR Has NO Projects (New) -> Active.
-                // ONLY Completed/Expired Projects -> Past.
+            // If no active projects, use the isDeleted flag
+            if (client.isDeleted) {
+              deleted.push(client);
+              return;
+            }
 
-                // However, the prompt says "if client do not have any active project it shall automatically converted into an collapsed section past client"
-                // This phrasing suggests strict "No Active Project" -> Past.
-                // BUT, hiding a newly created client immediately into "Past" is bad UX.
-                // Let's assume: Has Active Projects OR Is Brand New (No projects) -> Active.
-                // Only clients with projects that are ALL inactive -> Past.
-                active.push(client);
-              } else {
-                active.push(client);
-              }
+            if (clientProjects.length === 0) {
+              // Active: New client with no projects
+              active.push(client);
             } else {
-              // Logic check:
-              // clientProjects.some(active) is TRUE -> Active
-              // clientProjects.some(active) is FALSE -> Past (if they have projects)
-
-              // Refined Logic based on UX standard:
-              // - Active Project? -> Active List
-              // - No Projects? -> Active List (New Client)
-              // - Only Past Projects? -> Past List
-
-              const hasAnyProject = clientProjects.length > 0;
-              if (!hasAnyProject) {
-                // New client, keep active
-                active.push(client);
-              } else {
-                // Has projects, but none are active
-                past.push(client);
-              }
+              // Past: Has only inactive projects
+              past.push(client);
             }
           });
-
-          // Re-reading User Request: "if client do not have any active project it shall automatically converted into an collapsed section past client"
-          // It's ambiguous about new clients.
-          // If I strictly follow "do not have any active project", new clients go to past.
-          // I will stick to "No Projects = Active" because otherwise you create a client and it disappears. 
 
           setClients(allClients); // Keep full list if needed, or just use active/past
           setActiveClients(active);
           setPastClients(past);
+          setDeletedClients(deleted);
+          setAllProjects(allProjects); // Save for later checks
 
           setUserPlan(resUser.data.plan || 'free');
           setLoading(false);
@@ -201,13 +181,29 @@ const Clients = () => {
   // ADD CLIENT HANDLER
   const handleAddClient = async (e) => {
     e.preventDefault();
+
+    // Phone validation
+    const digitsOnly = newClient.phone.replace(/\D/g, '');
+
+    // Strict check for India (starts with 91)
+    if (digitsOnly.startsWith('91')) {
+      if (digitsOnly.length !== 12) { // 91 + 10 digits = 12
+        return toast.error("For India (+91), please enter exactly 10 digits.");
+      }
+    } else {
+      // Generic validation for other codes (assuming min 1 digit code + 10 digit number = 11)
+      if (digitsOnly.length < 11 || digitsOnly.length > 15) {
+        return toast.error("Please enter a valid phone number (Min 10 digits + Country Code).");
+      }
+    }
+
     try {
       const res = await api.post('/clients', newClient);
       const newClientId = res.data._id;
 
       toast.success("Client added successfully!");
       setShowAddClientModal(false);
-      setNewClient({ name: '', email: '', phone: '', defaultHourlyRate: '' });
+      setNewClient({ name: '', email: '', phone: '+91 ' });
 
       // Navigate to the newly created client's profile
       navigate(`/clients/${newClientId}`);
@@ -260,11 +256,120 @@ const Clients = () => {
   };
 
   // CALCULATE LIMITS
-  const clientCount = clients.length;
+  const clientCount = activeClients.length + pastClients.length + deletedClients.length; // Count ALL clients including deleted ones
   const isLimitReached = isFreelancer && userPlan === 'free' && clientCount >= 2;
 
+  const handleDeleteClient = async (e, clientId) => {
+    e.stopPropagation();
+
+    // Check if client has active projects
+    const hasActiveProjects = allProjects.some(p =>
+      (p.client?._id || p.client) === clientId &&
+      p.status?.toLowerCase() !== 'completed' &&
+      new Date(p.deadline) > new Date()
+    );
+
+    const performDelete = async () => {
+      try {
+        await api.delete(`/clients/${clientId}`);
+        toast.success("Client moved to Previous Clients");
+
+        // Update local state without refetching
+        const clientToDelete = clients.find(c => c._id === clientId);
+        if (clientToDelete) {
+          const updatedClient = { ...clientToDelete, isDeleted: true };
+          setClients(prev => prev.map(c => c._id === clientId ? updatedClient : c));
+
+          // Move from active/past to deleted
+          setActiveClients(prev => prev.filter(c => c._id !== clientId));
+          setPastClients(prev => prev.filter(c => c._id !== clientId));
+          setDeletedClients(prev => [...prev, updatedClient]);
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error(err.response?.data?.message || "Failed to remove client");
+      }
+    };
+
+    const showSecondWarning = () => {
+      toast.custom((t) => (
+        <div className={`${GLASS_CLASSES} p-6 rounded-2xl max-w-sm w-full border-2 border-red-500/50 animate-in fade-in zoom-in duration-300`}>
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-red-500/20 rounded-full">
+              <Lock className="w-6 h-6 text-red-500" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-red-600 dark:text-red-400 mb-1">
+                Final Warning!
+              </h3>
+              <p className="text-sm text-slate-700 dark:text-gray-300 mb-4">
+                This client has <b>active work</b>. Moving them to Previous Clients will instantly <b>mark all projects as completed</b>. Continue?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    toast.dismiss(t.id);
+                    performDelete();
+                  }}
+                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm transition-colors"
+                >
+                  Yes, Complete All
+                </button>
+                <button
+                  onClick={() => toast.dismiss(t.id)}
+                  className="flex-1 px-4 py-2 bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-white/20 rounded-xl font-medium text-sm transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ), { duration: Infinity });
+    };
+
+    toast.custom((t) => (
+      <div className={`${GLASS_CLASSES} p-6 rounded-2xl max-w-sm w-full animate-in fade-in zoom-in duration-300`}>
+        <div className="flex items-start gap-4">
+          <div className="p-3 bg-red-500/10 rounded-full">
+            <UserMinus className="w-6 h-6 text-red-500" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-bold text-slate-800 dark:text-white mb-1">
+              Remove Client?
+            </h3>
+            <p className="text-sm text-slate-600 dark:text-gray-400 mb-4">
+              Have you completed work with this client?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  toast.dismiss(t.id);
+                  if (hasActiveProjects) {
+                    showSecondWarning();
+                  } else {
+                    performDelete();
+                  }
+                }}
+                className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium text-sm transition-colors"
+              >
+                Yes
+              </button>
+              <button
+                onClick={() => toast.dismiss(t.id)}
+                className="flex-1 px-4 py-2 bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-white/20 rounded-xl font-medium text-sm transition-colors"
+              >
+                No
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    ), { duration: Infinity });
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors duration-500">
+    <div className="min-h-screen bg-gradient-to-br from-orange-100 via-yellow-100 to-orange-50 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors duration-500">
       <div className="flex h-screen overflow-hidden">
 
         <div className={`fixed inset-0 z-50 md:hidden pointer-events-none`}>
@@ -302,26 +407,45 @@ const Clients = () => {
               </p>
             </div>
 
-            {/* ADD CLIENT BUTTON (Only for Freelancers) */}
+            {/* Floating Action Button for Mobile */}
             {isFreelancer && (
-              <div className="flex items-center gap-4">
+              <div className="fixed bottom-8 right-8 z-40 md:static">
                 {isLimitReached ? (
-                  <div className="flex items-center gap-2 px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-800">
-                    <Lock className="w-4 h-4" />
-                    <span className="text-sm font-bold">Limit Reached</span>
+                  <div className="flex flex-col items-end gap-1">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-800 shadow-2xl md:shadow-none">
+                      <Lock className="w-4 h-4" />
+                      <span className="text-sm font-bold">Limit Reached</span>
+                    </div>
+                    <p className="text-[10px] font-bold text-red-500 dark:text-red-400 uppercase tracking-tighter mr-2">
+                      {clientCount}/2 Clients created
+                    </p>
                   </div>
                 ) : (
                   <button
                     onClick={() => setShowAddClientModal(true)}
-                    className={`${BUTTON_BASE} ${ACCENT_BG}`}
+                    className={`${BUTTON_BASE} ${ACCENT_BG} shadow-2xl md:shadow-lg !rounded-full md:!rounded-xl p-4 md:px-5 md:py-2.5`}
                   >
-                    <Plus className="w-5 h-5" />
-                    New Client
+                    <Plus className="w-6 h-6 md:w-5 md:h-5" />
+                    <span className="hidden md:inline">New Client</span>
                   </button>
                 )}
               </div>
             )}
           </header>
+
+          {/* Search Bar */}
+          <div className="relative w-full mb-8">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search clients by name, email, phone, or project..."
+              className="block w-full pl-10 pr-3 py-2 border border-orange-200 dark:border-white/10 rounded-xl leading-5 bg-white/50 dark:bg-black/20 text-slate-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent sm:text-sm transition-all shadow-sm"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
 
           {/* UPGRADE BANNER (If Limit Reached) */}
           {isLimitReached && (
@@ -330,119 +454,228 @@ const Clients = () => {
             </div>
           )}
 
-          {/* LOADING STATE */}
           {loading ? (
-            <div className="text-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-            </div>
+            <LoadingPage />
           ) : (
             <>
-              {activeClients.length === 0 && pastClients.length === 0 ? (
-                <div className={`text-center py-20 ${GLASS_CLASSES} rounded-3xl`}>
-                  <Users className="w-12 h-12 text-slate-300 dark:text-gray-600 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-slate-900 dark:text-white">
-                    {isFreelancer ? "No Clients Yet" : "No Freelancers Found"}
-                  </h3>
-                  <p className="text-slate-500 dark:text-gray-400">
-                    {isFreelancer
-                      ? "Add your first client to start tracking time and invoicing."
-                      : "Once people apply to your projects, they will appear here."}
-                  </p>
-                </div>
-              ) : (
-                <>
-                  {/* Active Clients Grid */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 mb-12">
-                    {activeClients.map((client) => (
-                      <div
-                        key={client._id}
-                        onClick={() => navigate(`/clients/${client._id}`)}
-                        className={`${GLASS_CLASSES} p-6 rounded-2xl flex flex-col gap-4 hover:scale-[1.02] transition-all cursor-pointer group`}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="bg-violet-100 dark:bg-yellow-500/20 p-4 rounded-full text-violet-600 dark:text-yellow-400 group-hover:rotate-12 transition-transform">
-                            <User className="w-6 h-6" />
-                          </div>
-                          <div className="overflow-hidden">
-                            <h3 className="font-bold text-slate-900 dark:text-white truncate text-lg">{client.name}</h3>
-                            <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-gray-400 mt-1 truncate">
-                              <Mail className="w-4 h-4 flex-shrink-0" />
-                              <span className="truncate">{client.email}</span>
-                            </div>
-                          </div>
-                        </div>
+              {(() => {
+                // Filter functions
+                const filterList = (list) => {
+                  if (!searchQuery) return list;
+                  const lowerQuery = searchQuery.toLowerCase();
 
-                        <div className="mt-2 pt-4 border-t border-white/20 dark:border-white/5 flex justify-between items-center">
-                          <div className="flex flex-col">
-                            <span className="text-xs text-slate-500 dark:text-gray-500 uppercase font-bold tracking-wider">Mobile</span>
-                            <span className="text-sm font-medium text-slate-700 dark:text-gray-300">{client.mobile || client.phone || 'N/A'}</span>
-                          </div>
-                          <div className="flex flex-col items-end">
-                            <span className="text-xs text-slate-500 dark:text-gray-500 uppercase font-bold tracking-wider">Hourly Rate</span>
-                            <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
-                              <span>{formatCurrency(client.defaultHourlyRate || 0)}/hr</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  return list.filter(client => {
+                    // 1. Check basic fields
+                    if (
+                      client.name?.toLowerCase().includes(lowerQuery) ||
+                      client.email?.toLowerCase().includes(lowerQuery) ||
+                      (client.phone || client.mobile)?.includes(lowerQuery)
+                    ) {
+                      return true;
+                    }
 
-                  {/* Past Clients Section */}
-                  {pastClients.length > 0 && (
-                    <div className="mb-12">
-                      <button
-                        onClick={() => setShowPastClients(!showPastClients)}
-                        className="flex items-center justify-between w-full text-xl font-bold text-slate-800 dark:text-white mb-6 opacity-80 hover:opacity-100 transition-opacity"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-6 h-6 text-slate-500" />
-                          Past Clients
-                        </div>
-                        {showPastClients ? <ChevronDown className="w-6 h-6" /> : <ChevronRight className="w-6 h-6" />}
-                      </button>
+                    // 2. Check projects
+                    const clientProjects = allProjects.filter(p =>
+                      (p.client?._id || p.client) === client._id
+                    );
 
-                      {showPastClients && (
-                        <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 animate-in slide-in-from-top-2 fade-in duration-300">
-                          {pastClients.map((client) => (
-                            <div
-                              key={client._id}
-                              onClick={() => navigate(`/clients/${client._id}`)}
-                              className={`${GLASS_CLASSES} p-6 rounded-2xl flex flex-col gap-4 transition-all cursor-pointer border-l-4 border-l-slate-400 opacity-60 grayscale-[0.8] hover:opacity-80`}
-                            >
-                              <div className="flex items-center gap-4">
-                                <div className="bg-slate-100 dark:bg-slate-700/20 p-4 rounded-full text-slate-600 dark:text-slate-400">
-                                  <User className="w-6 h-6" />
-                                </div>
-                                <div className="overflow-hidden">
-                                  <h3 className="font-bold text-slate-900 dark:text-white truncate text-lg">{client.name}</h3>
-                                  <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-gray-400 mt-1 truncate">
-                                    <Mail className="w-4 h-4 flex-shrink-0" />
-                                    <span className="truncate">{client.email}</span>
-                                  </div>
-                                </div>
-                              </div>
+                    return clientProjects.some(p => p.title?.toLowerCase().includes(lowerQuery));
+                  });
+                };
 
-                              <div className="mt-2 pt-4 border-t border-white/20 dark:border-white/5 flex justify-between items-center">
-                                <div className="flex flex-col">
-                                  <span className="text-xs text-slate-500 dark:text-gray-500 uppercase font-bold tracking-wider">Mobile</span>
-                                  <span className="text-sm font-medium text-slate-700 dark:text-gray-300">{client.mobile || client.phone || 'N/A'}</span>
-                                </div>
-                                <div className="flex flex-col items-end">
-                                  <span className="text-xs text-slate-500 dark:text-gray-500 uppercase font-bold tracking-wider">Hourly Rate</span>
-                                  <div className="flex items-center gap-1 text-slate-600 dark:text-slate-400 font-bold">
-                                    <span>{formatCurrency(client.defaultHourlyRate || 0)}/hr</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                const filteredActive = filterList(activeClients);
+                const filteredPast = filterList(pastClients);
+                const filteredDeleted = filterList(deletedClients);
+
+                const hasResults = filteredActive.length > 0 || filteredPast.length > 0 || filteredDeleted.length > 0;
+
+                if (!hasResults && searchQuery) {
+                  return (
+                    <div className={`text-center py-20 ${GLASS_CLASSES} rounded-3xl`}>
+                      <Search className="w-12 h-12 text-slate-300 dark:text-gray-600 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-slate-900 dark:text-white">No Clients Found</h3>
+                      <p className="text-slate-500 dark:text-gray-400">
+                        No matches found for "{searchQuery}"
+                      </p>
                     </div>
-                  )}
-                </>
-              )}
+                  );
+                }
+
+                if (activeClients.length === 0 && pastClients.length === 0 && deletedClients.length === 0) {
+                  return (
+                    <div className={`text-center py-20 ${GLASS_CLASSES} rounded-3xl`}>
+                      <Users className="w-12 h-12 text-slate-300 dark:text-gray-600 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-slate-900 dark:text-white">
+                        {isFreelancer ? "No Clients Yet" : "No Freelancers Found"}
+                      </h3>
+                      <p className="text-slate-500 dark:text-gray-400">
+                        {isFreelancer
+                          ? "Add your first client to start tracking time and invoicing."
+                          : "Once people apply to your projects, they will appear here."}
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="flex flex-col gap-12">
+                    {/* Active Clients Grid */}
+                    {filteredActive.length > 0 && (
+                      <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
+                        {filteredActive.map((client) => (
+                          <div
+                            key={client._id}
+                            onClick={() => navigate(`/clients/${client._id}`)}
+                            className={`${GLASS_CLASSES} p-6 rounded-2xl flex flex-col gap-4 hover:scale-105 transition-all cursor-pointer group animate-fade-in-up`}
+                          >
+                            {/* Client Card Content (Same as before) */}
+                            <div className="flex items-center gap-4">
+                              <div className="bg-orange-100 dark:bg-yellow-500/20 p-4 rounded-full text-orange-600 dark:text-yellow-400 group-hover:rotate-12 transition-transform">
+                                <User className="w-6 h-6" />
+                              </div>
+                              <div className="overflow-hidden flex-1">
+                                <div className="flex justify-between items-start">
+                                  <h3 className="font-bold text-slate-900 dark:text-white truncate text-lg">{client.name}</h3>
+                                  <button
+                                    onClick={(e) => handleDeleteClient(e, client._id)}
+                                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                    title="Remove Client"
+                                  >
+                                    <UserMinus className="w-4 h-4" />
+                                  </button>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-gray-400 mt-1 truncate">
+                                  <Mail className="w-4 h-4 flex-shrink-0" />
+                                  <span className="truncate">{client.email}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="mt-2 pt-4 border-t border-white/20 dark:border-white/5 flex justify-between items-center">
+                              <div className="flex flex-col">
+                                <span className="text-xs text-slate-500 dark:text-gray-500 uppercase font-bold tracking-wider">Mobile</span>
+                                <span className="text-sm font-medium text-slate-700 dark:text-gray-300">{client.mobile || client.phone || 'N/A'}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Past Clients Section */}
+                    {filteredPast.length > 0 && (
+                      <div>
+                        <button
+                          onClick={() => setShowPastClients(!showPastClients)}
+                          className="flex items-center justify-between w-full text-xl font-bold text-slate-800 dark:text-white mb-6 opacity-80 hover:opacity-100 transition-opacity"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-6 h-6 text-slate-500" />
+                            Past Clients
+                          </div>
+                          {showPastClients || searchQuery ? <ChevronDown className="w-6 h-6" /> : <ChevronRight className="w-6 h-6" />}
+                        </button>
+
+                        {(showPastClients || searchQuery) && (
+                          <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 animate-in slide-in-from-top-2 fade-in duration-300">
+                            {filteredPast.map((client) => (
+                              <div
+                                key={client._id}
+                                onClick={() => navigate(`/clients/${client._id}`)}
+                                className={`${GLASS_CLASSES} p-6 rounded-2xl flex flex-col gap-4 transition-all cursor-pointer border-l-4 border-l-slate-400 opacity-60 grayscale-[0.8] hover:opacity-80`}
+                              >
+                                {/* Client Card Content (Same as before) */}
+                                <div className="flex items-center gap-4">
+                                  <div className="bg-slate-100 dark:bg-slate-700/20 p-4 rounded-full text-slate-600 dark:text-slate-400">
+                                    <User className="w-6 h-6" />
+                                  </div>
+                                  <div className="overflow-hidden flex-1">
+                                    <div className="flex justify-between items-start">
+                                      <h3 className="font-bold text-slate-900 dark:text-white truncate text-lg">{client.name}</h3>
+                                      <button
+                                        onClick={(e) => handleDeleteClient(e, client._id)}
+                                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                        title="Remove Client"
+                                      >
+                                        <UserMinus className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-gray-400 mt-1 truncate">
+                                      <Mail className="w-4 h-4 flex-shrink-0" />
+                                      <span className="truncate">{client.email}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="mt-2 pt-4 border-t border-white/20 dark:border-white/5 flex justify-between items-center">
+                                  <div className="flex flex-col">
+                                    <span className="text-xs text-slate-500 dark:text-gray-500 uppercase font-bold tracking-wider">Mobile</span>
+                                    <span className="text-sm font-medium text-slate-700 dark:text-gray-300">{client.mobile || client.phone || 'N/A'}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Previous Clients Section */}
+                    {filteredDeleted.length > 0 && (
+                      <div>
+                        <button
+                          onClick={() => setShowDeletedClients(!showDeletedClients)}
+                          className="flex items-center justify-between w-full text-xl font-bold text-slate-800 dark:text-white mb-6 opacity-80 hover:opacity-100 transition-opacity"
+                        >
+                          <div className="flex items-center gap-2">
+                            <History className="w-6 h-6 text-red-500" />
+                            Previous Clients
+                          </div>
+                          {showDeletedClients || searchQuery ? <ChevronDown className="w-6 h-6" /> : <ChevronRight className="w-6 h-6" />}
+                        </button>
+
+                        {(showDeletedClients || searchQuery) && (
+                          <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 animate-in slide-in-from-top-2 fade-in duration-300">
+                            {filteredDeleted.map((client) => (
+                              <div
+                                key={client._id}
+                                onClick={() => navigate(`/clients/${client._id}`)}
+                                className={`${GLASS_CLASSES} p-6 rounded-2xl flex flex-col gap-4 transition-all cursor-pointer hover:scale-[1.02] border-l-4 border-l-red-500 group`}
+                              >
+                                {/* Client Card Content (Same as before) */}
+                                <div className="flex items-center gap-4">
+                                  <div className="bg-red-100 dark:bg-red-900/20 p-4 rounded-full text-red-600 dark:text-red-400 group-hover:rotate-12 transition-transform">
+                                    <User className="w-6 h-6" />
+                                  </div>
+                                  <div className="overflow-hidden flex-1">
+                                    <div className="flex justify-between items-start">
+                                      <h3 className="font-bold text-slate-900 dark:text-white truncate text-lg">{client.name}</h3>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-gray-400 mt-1 truncate">
+                                      <Mail className="w-4 h-4 flex-shrink-0" />
+                                      <span className="truncate">{client.email}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="mt-2 pt-4 border-t border-white/20 dark:border-white/5 flex justify-between items-center">
+                                  <div className="flex flex-col">
+                                    <span className="text-xs text-slate-500 dark:text-gray-500 uppercase font-bold tracking-wider">Mobile</span>
+                                    <span className="text-sm font-medium text-slate-700 dark:text-gray-300">{client.mobile || client.phone || 'N/A'}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-bold text-red-500 uppercase">Previous</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </>
           )}
 
@@ -471,7 +704,7 @@ const Clients = () => {
                           setNewClient({ ...newClient, name: val });
                         }
                       }}
-                      className="w-full p-2 rounded-xl bg-white/50 dark:bg-black/20 border border-slate-200 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
+                      className="w-full p-2 rounded-xl bg-white/50 dark:bg-black/20 border border-orange-200 dark:border-gray-700 focus:ring-2 focus:ring-orange-500 outline-none transition-all dark:text-white"
                       placeholder="e.g. Guptaji's Company"
                     />
                     <p className="text-xs text-slate-500 mt-1 pl-1">Letters and spaces only</p>
@@ -483,39 +716,27 @@ const Clients = () => {
                       type="email"
                       value={newClient.email}
                       onChange={e => setNewClient({ ...newClient, email: e.target.value })}
-                      className="w-full p-2 rounded-xl bg-white/50 dark:bg-black/20 border border-slate-200 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
+                      className="w-full p-2 rounded-xl bg-white/50 dark:bg-black/20 border border-orange-200 dark:border-gray-700 focus:ring-2 focus:ring-orange-500 outline-none transition-all dark:text-white"
                       placeholder="Factory@Guptaji.com"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Phone (Optional)</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Phone</label>
                     <input
+                      required
                       type="tel"
                       value={newClient.phone}
                       onChange={e => {
                         const val = e.target.value;
-                        // Only allow numbers and phone special characters
-                        if (/^[0-9+\(\)\s-]*$/.test(val)) {
+                        // Allow + at start, then numbers, spaces, - and ()
+                        if (/^[+]?[0-9\s-()]*$/.test(val)) {
                           setNewClient({ ...newClient, phone: val });
                         }
                       }}
-                      className="w-full p-2 rounded-xl bg-white/50 dark:bg-black/20 border border-slate-200 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
-                      placeholder="+91 0987654321"
+                      className="w-full p-2 rounded-xl bg-white/50 dark:bg-black/20 border border-orange-200 dark:border-gray-700 focus:ring-2 focus:ring-orange-500 outline-none transition-all dark:text-white"
+                      placeholder="+91 9876543210"
                     />
-                    <p className="text-xs text-slate-500 mt-1 pl-1">Numbers, +, -, (, ), and spaces only</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Default Hourly Rate</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-slate-500">₹</span>
-                      <input
-                        type="number"
-                        value={newClient.defaultHourlyRate}
-                        onChange={e => setNewClient({ ...newClient, defaultHourlyRate: e.target.value })}
-                        className="w-full pl-8 p-2 rounded-xl bg-white/50 dark:bg-black/20 border border-slate-200 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
-                        placeholder="0.00"
-                      />
-                    </div>
+                    <p className="text-xs text-slate-500 mt-1 pl-1">Format: Country Code + Number (e.g. +91 9876543210)</p>
                   </div>
 
                   <button

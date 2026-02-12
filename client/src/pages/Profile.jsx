@@ -8,11 +8,13 @@ import {
   ChevronDown, ChevronUp
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
+import LoadingPage from '../components/LoadingPage';
 
-const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
-const INPUT_CLASSES = "w-full p-3 pl-10 bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none transition-all dark:text-white";
+const GLASS_CLASSES = "bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl shadow-orange-500/10";
+const INPUT_CLASSES = "w-full p-3 pl-10 bg-white/50 dark:bg-black/20 border border-orange-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all dark:text-white";
 const LABEL_CLASSES = "block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1";
-const BUTTON_BASE = "flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 shadow-lg active:scale-95";
+const BUTTON_BASE = "flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 shadow-lg active:scale-95 hover:scale-105";
+const ACCENT_BG = "bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black shadow-orange-500/20";
 
 
 
@@ -87,8 +89,19 @@ const Profile = () => {
       return toast.error("Invalid Name. Please use letters only.");
     }
 
-    if (formData.mobile && (!mobileRegex.test(formData.mobile) || formData.mobile.length < 10 || formData.mobile.length > 15)) {
-      return toast.error("Invalid Mobile Number.");
+    if (formData.mobile) {
+      const digitsOnly = formData.mobile.replace(/\D/g, '');
+      // Strict check for India (starts with 91)
+      if (digitsOnly.startsWith('91')) {
+        if (digitsOnly.length !== 12) { // 91 + 10 digits = 12
+          return toast.error("For India (+91), please enter exactly 10 digits.");
+        }
+      } else {
+        // Generic validation for other codes
+        if (digitsOnly.length < 11 || digitsOnly.length > 15) {
+          return toast.error("Invalid Mobile Number. Min 10 digits + Country Code required.");
+        }
+      }
     }
 
     try {
@@ -295,10 +308,10 @@ const Profile = () => {
     ));
   };
 
-  if (loading) return <div className="p-10 text-center">Loading...</div>;
+  if (loading) return <LoadingPage />;
 
   return (
-    <div className="min-h-screen transition-colors duration-500 bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-gray-900 dark:via-black dark:to-gray-900 select-none">
+    <div className="min-h-screen transition-colors duration-500 bg-gradient-to-br from-orange-100 via-yellow-100 to-orange-50 dark:from-gray-900 dark:via-black dark:to-gray-900 select-none">
       <div className="flex h-screen overflow-hidden">
 
         <div className={`fixed inset-0 z-50 md:hidden pointer-events-none`}>
@@ -336,12 +349,12 @@ const Profile = () => {
 
             <div className="lg:col-span-1">
               <div className={`${GLASS_CLASSES} rounded-3xl p-8 text-center sticky top-8`}>
-                <div className="w-28 h-28 bg-violet-600 dark:bg-yellow-500 rounded-full mx-auto flex items-center justify-center text-white dark:text-black text-4xl font-bold mb-4 shadow-lg">
+                <div className="w-28 h-28 bg-gradient-to-br from-orange-500 to-yellow-500 rounded-full mx-auto flex items-center justify-center text-white dark:text-black text-4xl font-bold mb-4 shadow-lg">
                   {user.name.charAt(0).toUpperCase()}
                 </div>
                 <h2 className="text-xl font-bold text-slate-800 dark:text-white">{user.name}</h2>
                 <p className="select-text cursor-text text-slate-500 dark:text-gray-400 mb-4 break-all">{user.email}</p>
-                <span className="inline-block px-4 py-1.5 bg-violet-100 text-violet-700 dark:bg-yellow-500/20 dark:text-yellow-400 rounded-full text-xs font-bold uppercase tracking-wide">
+                <span className="inline-block px-4 py-1.5 bg-orange-100 text-orange-700 dark:bg-yellow-500/20 dark:text-yellow-400 rounded-full text-xs font-bold uppercase tracking-wide">
                   {user.role} Account
                 </span>
               </div>
@@ -395,7 +408,7 @@ const Profile = () => {
                   <button
                     type="button"
                     onClick={() => setIsChangePasswordOpen(!isChangePasswordOpen)}
-                    className="flex items-center gap-2 text-violet-600 dark:text-yellow-400 font-medium hover:underline focus:outline-none"
+                    className="flex items-center gap-2 text-orange-600 dark:text-yellow-400 font-medium hover:underline focus:outline-none"
                   >
                     {isChangePasswordOpen ? "Cancel Password Change" : "Change Password"}
                     {isChangePasswordOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -454,11 +467,12 @@ const Profile = () => {
                       <input
                         type="text"
                         className={INPUT_CLASSES}
-                        placeholder="+91 7414908640"
+                        placeholder="+91 9876543210"
                         value={formData.mobile}
                         onChange={e => {
                           const val = e.target.value;
-                          if (/^[0-9+\(\)\s-]*$/.test(val)) {
+                          // Allow + at start, then numbers, spaces, - and ()
+                          if (/^[+]?[0-9\s-()]*$/.test(val)) {
                             setFormData({ ...formData, mobile: val });
                           }
                         }}
@@ -478,7 +492,7 @@ const Profile = () => {
 
                   <button
                     type="submit"
-                    className={`${BUTTON_BASE} bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black w-full sm:w-auto justify-center`}
+                    className={`${BUTTON_BASE} ${ACCENT_BG} w-full sm:w-auto justify-center`}
                   >
                     <Save className="w-5 h-5" /> Save Changes
                   </button>
@@ -495,8 +509,8 @@ const Profile = () => {
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
             <div className={`${GLASS_CLASSES} w-full max-w-md p-6 rounded-2xl shadow-2xl scale-100 animate-in zoom-in-95 duration-200`}>
               <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-violet-100 dark:bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Lock className="w-8 h-8 text-violet-600 dark:text-yellow-400" />
+                <div className="w-16 h-16 bg-orange-100 dark:bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Lock className="w-8 h-8 text-orange-600 dark:text-yellow-400" />
                 </div>
                 <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
                   {otpAction === 'delete' ? 'Confirm Deletion' : 'Security Verification'}
@@ -523,7 +537,7 @@ const Profile = () => {
                 <div className="flex gap-3 pt-2">
                   <button
                     onClick={handleVerifyAction}
-                    className={`flex-1 py-3 ${otpAction === 'delete' ? 'bg-red-600 hover:bg-red-700' : 'bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600'} text-white dark:text-black rounded-xl font-bold shadow-lg transition-transform active:scale-95`}
+                    className={`flex-1 py-3 ${otpAction === 'delete' ? 'bg-red-600 hover:bg-red-700' : ACCENT_BG} rounded-xl font-bold shadow-lg transition-transform active:scale-95`}
                   >
                     {otpAction === 'delete' ? 'Verify & Delete' : 'Verify & Save'}
                   </button>

@@ -22,14 +22,14 @@ const Sidebar = ({ mobile, closeMobile, darkMode, toggleTheme, handleLogout, use
     })();
 
     const LINK_CLASSES = (path) => `flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-300 ${isActive(path)
-        ? "bg-violet-600 dark:bg-yellow-500 text-white dark:text-black shadow-lg shadow-indigo-500/20"
+        ? "bg-gradient-to-r from-orange-500 to-yellow-500 text-white dark:bg-yellow-500 dark:text-black shadow-lg shadow-orange-500/20"
         : "text-slate-600 dark:text-gray-400 hover:bg-white/20 dark:hover:bg-white/5"
         }`;
 
     return (
         <div className="flex flex-col h-full">
             <div className="p-6 flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-violet-600 dark:text-yellow-400 flex items-center gap-2">
+                <h1 className="text-2xl font-bold text-orange-600 dark:text-yellow-400 flex items-center gap-2">
                     <LayoutDashboard className="w-8 h-8" /> FreelanceFlow
                 </h1>
                 {mobile && <button onClick={closeMobile}><X className="w-6 h-6 dark:text-white" /></button>}

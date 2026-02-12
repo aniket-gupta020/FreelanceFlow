@@ -5,12 +5,12 @@ import { useNavigate, Link } from 'react-router-dom';
 import { LayoutDashboard, Mail, Lock, ArrowRight, Sun, Moon, KeyRound } from 'lucide-react';
 
 // 🎨 DESIGN SYSTEM CONSTANTS (Matches Login/Register)
-const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-2xl";
+const GLASS_CLASSES = "bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl shadow-orange-500/10";
 const INPUT_GROUP = "relative flex items-center group";
-const INPUT_ICON = "absolute left-3 w-5 h-5 text-gray-400 group-focus-within:text-violet-500 dark:group-focus-within:text-yellow-400 transition-colors";
-const INPUT_CLASSES = "w-full pl-10 p-3 bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500 dark:focus:ring-yellow-400 outline-none transition-all dark:text-white backdrop-blur-sm placeholder:text-gray-400";
+const INPUT_ICON = "absolute left-3 w-5 h-5 text-gray-400 group-focus-within:text-orange-500 dark:group-focus-within:text-yellow-400 transition-colors";
+const INPUT_CLASSES = "w-full pl-10 p-3 bg-white/50 dark:bg-black/20 border border-orange-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-orange-500 dark:focus:ring-yellow-400 outline-none transition-all dark:text-white backdrop-blur-sm placeholder:text-gray-400";
 const LABEL_CLASSES = "block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1 ml-1";
-const BUTTON_CLASSES = "w-full py-3.5 bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black font-bold rounded-xl transition-all shadow-lg shadow-violet-500/30 dark:shadow-yellow-500/20 flex items-center justify-center gap-2 active:scale-95";
+const BUTTON_CLASSES = "w-full py-3.5 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black font-bold rounded-xl transition-all shadow-lg shadow-orange-500/30 dark:shadow-yellow-500/20 flex items-center justify-center gap-2 active:scale-95";
 
 const BACKEND_URL = "https://freelanceflow-oy9e.onrender.com/api/auth";
 
@@ -84,7 +84,7 @@ const ForgotPassword = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors duration-500 flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="min-h-screen bg-gradient-to-br from-orange-100 via-yellow-100 to-orange-50 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors duration-500 flex items-center justify-center p-4 relative overflow-hidden">
 
             {/* Floating Theme Toggle */}
             <button
@@ -103,12 +103,12 @@ const ForgotPassword = () => {
             <div className={`w-full max-w-md ${GLASS_CLASSES} rounded-3xl p-8 relative overflow-hidden`}>
 
                 {/* Breathing Background Blobs */}
-                <div className="absolute -top-20 -right-20 w-40 h-40 bg-violet-500/30 rounded-full blur-3xl animate-pulse"></div>
+                <div className="absolute -top-20 -right-20 w-40 h-40 bg-orange-500/30 rounded-full blur-3xl animate-pulse"></div>
                 <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-pink-500/30 rounded-full blur-3xl animate-pulse delay-700"></div>
 
                 {/* Header Section */}
                 <div className="text-center mb-8 relative z-10">
-                    <div className="inline-flex p-3 rounded-2xl bg-violet-100 dark:bg-white/10 text-violet-600 dark:text-yellow-400 mb-4 shadow-inner ring-1 ring-black/5 dark:ring-white/10">
+                    <div className="inline-flex p-3 rounded-2xl bg-orange-100 dark:bg-white/10 text-orange-600 dark:text-yellow-400 mb-4 shadow-inner ring-1 ring-black/5 dark:ring-white/10">
                         <LayoutDashboard className="w-8 h-8" />
                     </div>
                     <h1 className="text-3xl font-bold text-slate-800 dark:text-white tracking-tight">Recover Account</h1>
@@ -191,7 +191,7 @@ const ForgotPassword = () => {
                 {/* Footer Link */}
                 <p className="text-center mt-8 text-slate-600 dark:text-gray-400 relative z-10 text-sm">
                     Remembered your password?{' '}
-                    <Link to="/login" className="font-bold text-violet-600 dark:text-yellow-400 hover:underline transition-all">
+                    <Link to="/login" className="font-bold text-orange-600 dark:text-yellow-400 hover:underline transition-all">
                         Login here
                     </Link>
                 </p>

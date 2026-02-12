@@ -63,7 +63,7 @@ export default function ReceivedInvoices() {
     return (
         <div className={`${GLASS_CLASSES} rounded-3xl p-6`}>
             <div className="flex items-center gap-3 mb-4">
-                <FileText className="w-5 h-5 text-indigo-500" />
+                <FileText className="w-5 h-5 text-orange-500" />
                 <h3 className={`text-xl font-bold ${TEXT_HEADLINE}`}>Received Invoices</h3>
             </div>
 
@@ -106,7 +106,7 @@ export default function ReceivedInvoices() {
                                 </div>
                                 <button
                                     onClick={() => generateInvoicePDF(invoice)}
-                                    className={`${BUTTON_BASE} bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20`}
+                                    className={`${BUTTON_BASE} bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-yellow-400 border border-orange-500/20`}
                                     title="Download PDF"
                                 >
                                     <Download className="w-4 h-4" />

@@ -6,28 +6,29 @@ import {
   LayoutDashboard, Clock, IndianRupee, Users, Plus,
   Trash2, Pencil, Briefcase, Menu, X, Sun, Moon,
   LogOut, AlertTriangle, CheckSquare, User,
-  ChevronDown, ChevronRight
+  ChevronDown, ChevronRight, Database
 } from 'lucide-react';
 import FinancialDashboard from '../components/FinancialDashboard';
 import UpcomingDeadlines from '../components/UpcomingDeadlines';
 import Sidebar from '../components/Sidebar';
+import LoadingPage from '../components/LoadingPage';
 import { formatCurrency } from '../utils/formatCurrency';
 import { formatDuration } from '../utils/formatDuration';
 
 
-const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
-const CARD_HOVER = "hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-out";
+const GLASS_CLASSES = "bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl shadow-orange-500/5";
+const CARD_HOVER = "hover:scale-105 active:scale-[0.98] transition-all duration-300 ease-out hover:shadow-2xl hover:shadow-orange-500/20";
 const BUTTON_BASE = "flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 shadow-lg active:scale-95";
 
 const TEXT_HEADLINE = "text-slate-800 dark:text-white";
 const TEXT_SUB = "text-slate-600 dark:text-gray-400";
-const ACCENT_COLOR = "text-violet-600 dark:text-yellow-400";
-const ACCENT_BG = "bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black";
+const ACCENT_COLOR = "text-orange-600 dark:text-yellow-400";
+const ACCENT_BG = "bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black";
 
 const StatCard = ({ title, value, subtext, type, icon: Icon }) => {
   const styles = {
-    blue: "bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400",
-    emerald: "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400",
+    blue: "bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400",
+    emerald: "bg-yellow-100 dark:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400",
     rose: "bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400",
   };
   const activeStyle = styles[type] || styles.blue;
@@ -54,7 +55,7 @@ const ProjectCard = ({ project, user, isOwner, handleDelete, handleApply, handle
   return (
     <div
       onClick={onClick}
-      className={`bg-white/40 dark:bg-white/5 border border-white/50 dark:border-white/10 rounded-2xl p-6 relative group ${CARD_HOVER} ${onClick ? 'cursor-pointer' : ''}`}
+      className={`bg-white/80 dark:bg-white/5 border border-white/50 dark:border-white/10 rounded-2xl p-6 relative group animate-fade-in-up ${CARD_HOVER} ${onClick ? 'cursor-pointer' : ''}`}
     >
       <div className="absolute top-4 right-4 flex gap-2 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity duration-300">
         {isOwner ? (
@@ -106,7 +107,7 @@ const ProjectCard = ({ project, user, isOwner, handleDelete, handleApply, handle
                 Deadline Exceeded
               </span>
             ) : hasApplied ? (
-              <span className="px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-bold uppercase tracking-wider">
+              <span className="px-3 py-1 rounded-full bg-orange-100 dark:bg-yellow-500/20 text-orange-600 dark:text-yellow-400 text-xs font-bold uppercase tracking-wider shadow-orange-500/10">
                 Applied
               </span>
             ) : (
@@ -124,7 +125,7 @@ const ProjectCard = ({ project, user, isOwner, handleDelete, handleApply, handle
       <p className={`text-sm ${TEXT_SUB} mb-4 line-clamp-2 leading-relaxed`}>{project.description}</p>
 
       {(() => {
-        const clientRate = project.client?.defaultHourlyRate || 0;
+        const clientRate = project.hourlyRate || project.client?.defaultHourlyRate || 0;
         const burn = calculateBurnRate(project._id, project.budget, clientRate);
         const burnPercent = project.budget > 0 ? Math.round((burn.cost / project.budget) * 100) : 0;
         const displayProgress = Math.min(Math.max(burnPercent, 0), 100);
@@ -186,7 +187,7 @@ const ProjectCard = ({ project, user, isOwner, handleDelete, handleApply, handle
                 <Link
                   to={`/clients/${applicant._id}`}
                   onClick={(e) => e.stopPropagation()}
-                  className="font-medium text-sm text-slate-800 dark:text-white hover:text-violet-600 dark:hover:text-yellow-400 hover:underline transition-colors"
+                  className="font-medium text-sm text-slate-800 dark:text-white hover:text-orange-600 dark:hover:text-yellow-400 hover:underline transition-colors"
                 >
                   {applicant.name}
                 </Link>
@@ -209,6 +210,8 @@ const Dashboard = () => {
   const [expandedProjectId, setExpandedProjectId] = useState(null);
   const [projectTimeLogs, setProjectTimeLogs] = useState({});
   const [showPreviousProjects, setShowPreviousProjects] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isSampleLoaded, setIsSampleLoaded] = useState(false);
   const navigate = useNavigate();
 
   const [darkMode, setDarkMode] = useState(() => {
@@ -255,6 +258,14 @@ const Dashboard = () => {
         setProjectTimeLogs(logsByProject);
       })
       .catch(err => console.error("Error fetching timelogs:", err));
+
+    api.get('/sample-data/status')
+      .then(res => setIsSampleLoaded(res.data.isLoaded))
+      .catch(err => console.error("Error fetching sample status:", err))
+      .finally(() => {
+        // Minimum delay for branding as requested
+        setTimeout(() => setLoading(false), 800);
+      });
   }, [navigate]);
 
 
@@ -366,6 +377,34 @@ const Dashboard = () => {
     ));
   };
 
+  const handleLoadSampleData = async () => {
+    const toastId = toast.loading("Loading sample data...");
+    try {
+      await api.post('/sample-data/load');
+      setIsSampleLoaded(true);
+      toast.success("Sample data loaded! 🚀", { id: toastId });
+      // Refresh projects
+      const res = await api.get('/projects');
+      setProjects(res.data);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to load sample data", { id: toastId });
+    }
+  };
+
+  const handleUnloadSampleData = async () => {
+    const toastId = toast.loading("Removing sample data...");
+    try {
+      await api.delete('/sample-data/unload');
+      setIsSampleLoaded(false);
+      toast.success("Sample data removed", { id: toastId });
+      // Refresh projects
+      const res = await api.get('/projects');
+      setProjects(res.data);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to remove sample data", { id: toastId });
+    }
+  };
+
 
   const getSafeId = (id) => id?._id || id?.id || id;
   const currentUserId = user ? getSafeId(user) : null;
@@ -389,8 +428,10 @@ const Dashboard = () => {
   };
 
 
+  if (loading) return <LoadingPage />;
+
   return (
-    <div className={`min-h-screen transition-colors duration-500 ease-in-out bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-gray-900 dark:via-black dark:to-gray-900 select-none`}>
+    <div className={`min-h-screen transition-colors duration-500 ease-in-out bg-gradient-to-br from-orange-100 via-yellow-100 to-orange-50 dark:from-gray-900 dark:via-black dark:to-gray-900 select-none`}>
       <div className="flex h-screen overflow-hidden">
 
         {/* Mobile Menu Overlay */}
@@ -425,6 +466,26 @@ const Dashboard = () => {
               <h2 className={`text-3xl font-bold ${TEXT_HEADLINE} tracking-tight`}>Overview</h2>
               <p className={`${TEXT_SUB} mt-1`}>Welcome back, {user?.name}</p>
             </div>
+
+            <button
+              onClick={isSampleLoaded ? handleUnloadSampleData : handleLoadSampleData}
+              className={`${BUTTON_BASE} ${isSampleLoaded
+                ? 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 hover:bg-red-500/20'
+                : ACCENT_BG
+                } backdrop-blur-md shadow-xl`}
+            >
+              {isSampleLoaded ? (
+                <>
+                  <Trash2 className="w-4 h-4" />
+                  <span>Unload Sample Data</span>
+                </>
+              ) : (
+                <>
+                  <Database className="w-4 h-4" />
+                  <span>Load Sample Data</span>
+                </>
+              )}
+            </button>
           </header>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">

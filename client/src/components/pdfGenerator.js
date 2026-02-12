@@ -111,25 +111,42 @@ export const generateInvoicePDF = (invoice) => {
     doc.text(`PROJECT: ${(project.title || "").toUpperCase()}`, 18, startY + 37.5);
 
     // --- 4. DATA TABLE ---
-    // If logs are populated, map them. If not (flat invoice), create a generic row.
+    // Extract hourly rate from items (preferred) or calculate from totals
+    const hourlyRate = (invoice.items && invoice.items.length > 0)
+        ? invoice.items[0].hourlyRate
+        : (invoice.totalAmount / (invoice.totalHours || 1));
+
     let tableBody = [];
     if (logs && logs.length > 0) {
-        tableBody = logs.map(log => [
-            new Date(log.startTime || Date.now()).toLocaleDateString(),
-            log.description || 'System Log',
-            formatDuration(log.durationHours || 0),
-            formatDuration(log.durationHours || 0),
-            formatCurrency(invoice.totalAmount / (invoice.totalHours || 1)).replace('₹', 'Rs.'), // Approx rate if not saved
-            formatCurrency((log.durationHours || 0) * (invoice.totalAmount / (invoice.totalHours || 1))).replace('₹', 'Rs.')
+        tableBody = logs.map(log => {
+            const duration = log.durationHours || 0;
+            const logAmount = duration * hourlyRate;
+
+            return [
+                new Date(log.startTime || Date.now()).toLocaleDateString(),
+                log.description || 'System Log',
+                formatDuration(duration),
+                formatCurrency(hourlyRate).replace('₹', 'Rs.'),
+                formatCurrency(logAmount).replace('₹', 'Rs.')
+            ];
+        });
+    } else if (invoice.items && invoice.items.length > 0) {
+        // Fallback: If logs are missing but items exist (legacy support or different data structure)
+        tableBody = invoice.items.map(item => [
+            dateStr, // Items don't always have date, use invoice date
+            item.description,
+            formatDuration(item.hours),
+            formatCurrency(item.hourlyRate).replace('₹', 'Rs.'),
+            formatCurrency(item.amount).replace('₹', 'Rs.')
         ]);
     } else {
-        // Fallback for flat invoices without logs
+        // Fallback for flat invoices without logs/items
         tableBody = [[
             dateStr,
             "Consolidated Project Payment",
             formatDuration(invoice.totalHours || 0),
-            "-",
-            formatCurrency(invoice.totalAmount).replace('₹', 'Rs.')
+            formatCurrency(hourlyRate).replace('₹', 'Rs.'), // Rate
+            formatCurrency(invoice.totalAmount).replace('₹', 'Rs.') // Total
         ]];
     }
 

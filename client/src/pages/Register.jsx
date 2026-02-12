@@ -4,17 +4,17 @@ import { toast } from 'react-hot-toast';
 import { useNavigate, Link } from 'react-router-dom';
 import { LayoutDashboard, User, Mail, Lock, ArrowRight, Eye, EyeOff, Sun, Moon } from 'lucide-react';
 
-const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
+const GLASS_CLASSES = "bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl shadow-orange-500/10";
 const INPUT_GROUP = "relative flex items-center";
 const INPUT_ICON = "absolute left-3 w-5 h-5 text-gray-400 dark:text-gray-500";
-const INPUT_CLASSES = "w-full pl-10 p-3 bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none transition-all dark:text-white";
+const INPUT_CLASSES = "w-full pl-10 p-3 bg-white/50 dark:bg-black/20 border border-orange-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all dark:text-white";
 const LABEL_CLASSES = "block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1";
 
 const Register = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [mobile, setMobile] = useState('');
+  const [mobile, setMobile] = useState('+91 ');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -57,10 +57,23 @@ const Register = () => {
       return;
     }
 
-    if (mobile && (!mobileRegex.test(mobile) || mobile.length < 10 || mobile.length > 15)) {
-      toast.error("Invalid Mobile Number.");
-      setLoading(false);
-      return;
+    if (mobile) {
+      const digitsOnly = mobile.replace(/\D/g, '');
+      // Strict check for India (starts with 91)
+      if (digitsOnly.startsWith('91')) {
+        if (digitsOnly.length !== 12) { // 91 + 10 digits = 12
+          toast.error("For India (+91), please enter exactly 10 digits.");
+          setLoading(false);
+          return;
+        }
+      } else {
+        // Generic validation for other codes
+        if (digitsOnly.length < 11 || digitsOnly.length > 15) {
+          toast.error("Invalid Mobile Number. Min 10 digits + Country Code required.");
+          setLoading(false);
+          return;
+        }
+      }
     }
 
     if (password.length < 6) {
@@ -89,7 +102,7 @@ const Register = () => {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors duration-500 flex items-center justify-center p-4 select-none relative">
+    <div className="min-h-screen bg-gradient-to-br from-orange-100 via-yellow-100 to-orange-50 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors duration-500 flex items-center justify-center p-4 select-none relative">
 
       <button
         onClick={toggleTheme}
@@ -105,11 +118,11 @@ const Register = () => {
 
       <div className={`w-full max-w-md ${GLASS_CLASSES} rounded-3xl p-8 relative overflow-hidden`}>
 
-        <div className="absolute -top-10 -right-10 w-32 h-32 bg-pink-500/30 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-violet-500/30 rounded-full blur-3xl"></div>
+        <div className="absolute -top-10 -right-10 w-32 h-32 bg-orange-500/30 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-yellow-500/30 rounded-full blur-3xl"></div>
 
         <div className="text-center mb-8 relative z-10">
-          <div className="inline-flex p-3 rounded-2xl bg-violet-100 dark:bg-white/10 text-violet-600 dark:text-yellow-400 mb-4 shadow-inner">
+          <div className="inline-flex p-3 rounded-2xl bg-orange-100 dark:bg-white/10 text-orange-600 dark:text-yellow-400 mb-4 shadow-inner">
             <LayoutDashboard className="w-8 h-8" />
           </div>
           <h1 className="text-3xl font-bold text-slate-800 dark:text-white">
@@ -181,11 +194,12 @@ const Register = () => {
               <input
                 type="text"
                 className={INPUT_CLASSES}
-                placeholder="+91 (741)4908640"
+                placeholder="+91 9876543210"
                 value={mobile}
                 onChange={(e) => {
                   const val = e.target.value;
-                  if (/^[0-9+\(\)\s-]*$/.test(val)) {
+                  // Allow + at start, then numbers, spaces, - and ()
+                  if (/^[+]?[0-9\s-()]*$/.test(val)) {
                     setMobile(val);
                   }
                 }}
@@ -196,7 +210,7 @@ const Register = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black font-bold rounded-xl transition-all shadow-lg shadow-violet-500/30 flex items-center justify-center gap-2 mt-4"
+            className="w-full py-3.5 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black font-bold rounded-xl transition-all shadow-lg shadow-orange-500/30 flex items-center justify-center gap-2 mt-4"
           >
             {loading ? 'Creating Account...' : 'Register'}
             {!loading && <ArrowRight className="w-5 h-5" />}
@@ -205,7 +219,7 @@ const Register = () => {
 
         <p className="text-center mt-8 text-slate-600 dark:text-gray-400 relative z-10">
           Already have an account?{' '}
-          <Link to="/login" className="font-bold text-violet-600 dark:text-yellow-400 hover:underline">
+          <Link to="/login" className="font-bold text-orange-600 dark:text-yellow-400 hover:underline">
             Login here
           </Link>
         </p>

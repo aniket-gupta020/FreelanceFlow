@@ -40,7 +40,7 @@ function App() {
                 style={{
                   background: 'rgba(255, 255, 255, 0.40)',
                   backdropFilter: 'blur(12px)',
-                  border: t.type === 'error' ? '1px solid rgba(239, 68, 68, 0.3)' : t.type === 'success' ? '1px solid rgba(139, 92, 246, 0.3)' : '1px solid rgba(255, 255, 255, 0.5)',
+                  border: t.type === 'error' ? '1px solid rgba(239, 68, 68, 0.3)' : t.type === 'success' ? '1px solid rgba(234, 88, 12, 0.3)' : '1px solid rgba(255, 255, 255, 0.5)',
                   boxShadow: '0 10px 40px -10px rgba(0,0,0,0.2)',
                   color: '#333',
                   fontSize: '15px',

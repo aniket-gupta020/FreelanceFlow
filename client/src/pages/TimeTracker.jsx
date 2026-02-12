@@ -12,10 +12,10 @@ import {
   CheckSquare, User, Trash2
 } from 'lucide-react';
 
-const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
-const INPUT_CLASSES = "w-full p-3 pl-10 bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none transition-all dark:text-white";
+const GLASS_CLASSES = "bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl shadow-orange-500/10";
+const INPUT_CLASSES = "w-full p-3 pl-10 bg-white/50 dark:bg-black/20 border border-orange-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all dark:text-white";
 const LABEL_CLASSES = "block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1";
-const BUTTON_BASE = "flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 shadow-lg active:scale-95";
+const BUTTON_BASE = "flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 shadow-lg active:scale-95 hover:scale-105";
 
 export default function TimeTracker() {
   const [projects, setProjects] = useState([]);
@@ -197,7 +197,7 @@ export default function TimeTracker() {
 
 
   return (
-    <div className="min-h-screen transition-colors duration-500 bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-gray-900 dark:via-black dark:to-gray-900 select-none">
+    <div className="min-h-screen transition-colors duration-500 bg-gradient-to-br from-orange-100 via-yellow-100 to-orange-50 dark:from-gray-900 dark:via-black dark:to-gray-900 select-none">
       <div className="flex h-screen overflow-hidden">
         <div className={`fixed inset-0 z-50 md:hidden pointer-events-none`}>
           <div className={`absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0'}`} onClick={() => setIsMobileMenuOpen(false)} />
@@ -223,7 +223,7 @@ export default function TimeTracker() {
             </div>
 
             <div className="flex items-center gap-4">
-              <div className={`${GLASS_CLASSES} px-4 py-2 rounded-xl flex items-center gap-2 text-violet-600 dark:text-yellow-400 font-bold`}>
+              <div className={`${GLASS_CLASSES} px-4 py-2 rounded-xl flex items-center gap-2 text-orange-600 dark:text-yellow-400 font-bold shadow-orange-500/10`}>
                 <Clock className="w-5 h-5" />
                 <span>{formatDuration(totalHours)} Total</span>
               </div>
@@ -249,9 +249,9 @@ export default function TimeTracker() {
                 </div>
               </div>
 
-              <div className={`${GLASS_CLASSES} rounded-3xl p-6 border-t-4 border-t-violet-500 dark:border-t-yellow-500`}>
+              <div className={`${GLASS_CLASSES} rounded-3xl p-6 border-t-4 border-t-orange-500 dark:border-t-yellow-500 shadow-orange-500/10`}>
                 <h3 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-                  <PlayCircle className="w-5 h-5 text-violet-500 dark:text-yellow-500" /> Live Timer
+                  <PlayCircle className="w-5 h-5 text-orange-500 dark:text-yellow-500" /> Live Timer
                 </h3>
                 <Stopwatch defaultProjectId={selectedProjectId} onStop={fetchData} />
               </div>
@@ -268,7 +268,7 @@ export default function TimeTracker() {
                       placeholder="Task details..."
                       value={manualForm.description}
                       onChange={e => setManualForm({ ...manualForm, description: e.target.value })}
-                      className={`w-full p-3 bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white`}
+                      className={`w-full p-3 bg-white/50 dark:bg-black/20 border border-orange-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none dark:text-white`}
                     />
                   </div>
 
@@ -315,7 +315,7 @@ export default function TimeTracker() {
               <div className={`${GLASS_CLASSES} rounded-3xl overflow-hidden min-h-[500px] flex flex-col`}>
                 <div className="px-6 py-4 border-b border-white/20 dark:border-white/5 bg-white/20 dark:bg-white/5 flex justify-between items-center">
                   <h3 className="font-bold text-slate-800 dark:text-white">Recent Activity</h3>
-                  <button onClick={fetchData} className="text-sm text-violet-600 dark:text-yellow-400 hover:underline">Refresh</button>
+                  <button onClick={fetchData} className="text-sm text-orange-600 dark:text-yellow-400 hover:underline">Refresh</button>
                 </div>
 
                 <div className="overflow-x-auto flex-1">

@@ -38,7 +38,7 @@ const UpgradeButton = () => {
     };
 
     return (
-        <div className="p-4 border rounded-lg shadow-md bg-gradient-to-r from-purple-500 to-indigo-600 text-white text-center">
+        <div className="p-4 border rounded-lg shadow-xl bg-gradient-to-r from-orange-500 to-yellow-600 text-white text-center hover:scale-105 transition-transform duration-300">
             <h3 className="text-xl font-bold mb-2">Upgrade to Pro 🚀</h3>
             <p className="mb-4 text-sm opacity-90">Unlimited Clients & PDF Invoices for just ₹1/mo</p>
 
@@ -47,7 +47,7 @@ const UpgradeButton = () => {
                 disabled={loading}
                 className={`px-6 py-2 rounded-full font-bold transition-all shadow-lg ${loading
                     ? "bg-gray-400 cursor-wait"
-                    : "bg-white text-indigo-600 hover:bg-gray-100 hover:scale-105"
+                    : "bg-white text-orange-600 hover:bg-gray-100 hover:scale-110"
                     }`}
             >
                 {loading ? (

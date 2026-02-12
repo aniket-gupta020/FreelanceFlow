@@ -13,6 +13,7 @@ const tasksRoute = require('./routes/tasks');
 const dashboardRoute = require('./routes/dashboard');
 const paymentRoute = require('./routes/payment');
 const clientRoute = require('./routes/clients');
+const sampleDataRoute = require('./routes/sampleData');
 
 const app = express();
 
@@ -56,6 +57,7 @@ app.use('/api/tasks', tasksRoute);
 app.use('/api/dashboard', dashboardRoute);
 app.use('/api/payment', paymentRoute);
 app.use('/api/clients', clientRoute);
+app.use('/api/sample-data', sampleDataRoute);
 
 app.get('/', (req, res) => {
   res.send('FreelanceFlow API is Running 🚀');

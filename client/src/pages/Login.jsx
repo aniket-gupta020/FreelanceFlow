@@ -4,10 +4,10 @@ import { toast } from 'react-hot-toast';
 import { useNavigate, Link } from 'react-router-dom';
 import { LayoutDashboard, Mail, Lock, ArrowRight, Sun, Moon, Eye, EyeOff, KeyRound } from 'lucide-react';
 
-const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
+const GLASS_CLASSES = "bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl shadow-orange-500/10";
 const INPUT_GROUP = "relative flex items-center";
 const INPUT_ICON = "absolute left-3 w-5 h-5 text-gray-400 dark:text-gray-500";
-const INPUT_CLASSES = "w-full pl-10 p-3 bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none transition-all dark:text-white";
+const INPUT_CLASSES = "w-full pl-10 p-3 bg-white/50 dark:bg-black/20 border border-orange-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all dark:text-white";
 const LABEL_CLASSES = "block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1";
 
 const BACKEND_URL = "https://freelanceflow-oy9e.onrender.com/api/auth";
@@ -97,7 +97,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors duration-500 flex items-center justify-center p-4 relative">
+    <div className="min-h-screen bg-gradient-to-br from-orange-100 via-yellow-100 to-orange-50 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors duration-500 flex items-center justify-center p-4 relative">
 
       <button
         onClick={toggleTheme}
@@ -113,11 +113,11 @@ const Login = () => {
 
       <div className={`w-full max-w-md ${GLASS_CLASSES} rounded-3xl p-8 relative overflow-hidden`}>
 
-        <div className="absolute -top-10 -right-10 w-32 h-32 bg-violet-500/30 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-pink-500/30 rounded-full blur-3xl"></div>
+        <div className="absolute -top-10 -right-10 w-32 h-32 bg-orange-500/30 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-yellow-500/30 rounded-full blur-3xl"></div>
 
         <div className="text-center mb-8 relative z-10">
-          <div className="inline-flex p-3 rounded-2xl bg-violet-100 dark:bg-white/10 text-violet-600 dark:text-yellow-400 mb-4 shadow-inner">
+          <div className="inline-flex p-3 rounded-2xl bg-orange-100 dark:bg-white/10 text-orange-600 dark:text-yellow-400 mb-4 shadow-inner">
             <LayoutDashboard className="w-8 h-8" />
           </div>
           <h1 className="text-3xl font-bold text-slate-800 dark:text-white">Welcome Back</h1>
@@ -129,7 +129,7 @@ const Login = () => {
           <button
             type="button"
             className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${loginMethod === 'password'
-              ? 'bg-white dark:bg-gray-700 shadow text-violet-600 dark:text-white'
+              ? 'bg-white dark:bg-gray-700 shadow text-orange-600 dark:text-white'
               : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
               }`}
             onClick={() => { setLoginMethod('password'); setStep(1); }}
@@ -139,7 +139,7 @@ const Login = () => {
           <button
             type="button"
             className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${loginMethod === 'otp'
-              ? 'bg-white dark:bg-gray-700 shadow text-violet-600 dark:text-white'
+              ? 'bg-white dark:bg-gray-700 shadow text-orange-600 dark:text-white'
               : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
               }`}
             onClick={() => setLoginMethod('otp')}
@@ -169,7 +169,7 @@ const Login = () => {
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label className={LABEL_CLASSES}>Password</label>
-                <Link to="/forgot-password" className="text-xs font-semibold text-violet-600 dark:text-yellow-400 hover:underline">
+                <Link to="/forgot-password" className="text-xs font-semibold text-orange-600 dark:text-yellow-400 hover:underline">
                   Forgot Password?
                 </Link>
               </div>
@@ -205,7 +205,7 @@ const Login = () => {
                   onChange={(e) => setOtp(e.target.value)}
                 />
               </div>
-              <button type="button" onClick={() => setStep(1)} className="text-xs text-violet-600 hover:underline mt-2">
+              <button type="button" onClick={() => setStep(1)} className="text-xs text-orange-600 hover:underline mt-2">
                 Use a different email?
               </button>
             </div>
@@ -214,7 +214,7 @@ const Login = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black font-bold rounded-xl transition-all shadow-lg shadow-violet-500/30 flex items-center justify-center gap-2"
+            className="w-full py-3.5 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black font-bold rounded-xl transition-all shadow-lg shadow-orange-500/30 flex items-center justify-center gap-2"
           >
             {loading ? 'Processing...' : (loginMethod === 'otp' && step === 1 ? 'Send OTP' : 'Sign In')}
             {!loading && <ArrowRight className="w-5 h-5" />}
@@ -223,7 +223,7 @@ const Login = () => {
 
         <p className="text-center mt-8 text-slate-600 dark:text-gray-400 relative z-10">
           Don't have an account?{' '}
-          <Link to="/register" className="font-bold text-violet-600 dark:text-yellow-400 hover:underline">
+          <Link to="/register" className="font-bold text-orange-600 dark:text-yellow-400 hover:underline">
             Create one
           </Link>
         </p>

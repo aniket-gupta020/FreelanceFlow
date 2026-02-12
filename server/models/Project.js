@@ -18,6 +18,10 @@ const ProjectSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  hourlyRate: {
+    type: Number,
+    default: 0
+  },
   deadline: {
     type: Date,
     required: true

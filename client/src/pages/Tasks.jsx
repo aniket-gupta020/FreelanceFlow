@@ -8,15 +8,15 @@ import {
   Calendar, AlertCircle, CheckSquare, User, ChevronDown, Briefcase
 } from 'lucide-react';
 
-const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
-const INPUT_CLASSES = "w-full p-3 pl-10 bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none transition-all dark:text-white";
+const GLASS_CLASSES = "bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl shadow-orange-500/10";
+const INPUT_CLASSES = "w-full p-3 pl-10 bg-white/50 dark:bg-black/20 border border-orange-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all dark:text-white";
 const LABEL_CLASSES = "block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1";
 const BUTTON_BASE = "flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 shadow-lg active:scale-95";
 
 const Sidebar = ({ mobile, closeMobile, darkMode, toggleTheme, handleLogout }) => (
   <div className="flex flex-col h-full">
     <div className="p-6 flex items-center justify-between">
-      <h1 className="text-2xl font-bold text-violet-600 dark:text-yellow-400 flex items-center gap-2">
+      <h1 className="text-2xl font-bold text-orange-600 dark:text-yellow-400 flex items-center gap-2">
         <LayoutDashboard className="w-8 h-8" /> FreelanceFlow
       </h1>
       {mobile && <button onClick={closeMobile}><X className="w-6 h-6 dark:text-white" /></button>}
@@ -26,7 +26,7 @@ const Sidebar = ({ mobile, closeMobile, darkMode, toggleTheme, handleLogout }) =
         <LayoutDashboard className="w-5 h-5" /> Dashboard
       </Link>
 
-      <div className="flex items-center gap-3 px-4 py-3 bg-violet-600 dark:bg-yellow-500 text-white dark:text-black rounded-xl font-medium shadow-lg shadow-indigo-500/20">
+      <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-orange-500 to-yellow-500 dark:bg-yellow-500 text-white dark:text-black rounded-xl font-medium shadow-lg shadow-orange-500/20">
         <CheckSquare className="w-5 h-5" /> Tasks
       </div>
 
@@ -210,7 +210,7 @@ const Tasks = () => {
   };
 
   return (
-    <div className="min-h-screen transition-colors duration-500 bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-gray-900 dark:via-black dark:to-gray-900 select-none">
+    <div className="min-h-screen transition-colors duration-500 bg-gradient-to-br from-orange-100 via-yellow-100 to-orange-50 dark:from-gray-900 dark:via-black dark:to-gray-900 select-none">
       <div className="flex h-screen overflow-hidden">
 
         {/* Mobile Menu Overlay */}
@@ -261,14 +261,14 @@ const Tasks = () => {
                 </div>
               </div>
 
-              <div className={`${GLASS_CLASSES} rounded-3xl p-6 border-t-4 border-violet-500 dark:border-yellow-500`}>
+              <div className={`${GLASS_CLASSES} rounded-3xl p-6 border-t-4 border-orange-500 dark:border-yellow-500 shadow-orange-500/10`}>
                 <h3 className="font-bold text-slate-800 dark:text-white mb-4">Add New Task</h3>
                 <form onSubmit={handleCreateTask} className="space-y-4">
                   <div>
                     <label className={LABEL_CLASSES}>Title</label>
                     <input
                       type="text"
-                      className="w-full p-3 bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none dark:text-white"
+                      className="w-full p-3 bg-white/50 dark:bg-black/20 border border-orange-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none dark:text-white"
                       placeholder="e.g. Fix Login Bug"
                       value={newTask.title}
                       onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
@@ -277,7 +277,7 @@ const Tasks = () => {
                   <div>
                     <label className={LABEL_CLASSES}>Description</label>
                     <textarea
-                      className="w-full p-3 bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none dark:text-white"
+                      className="w-full p-3 bg-white/50 dark:bg-black/20 border border-orange-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none dark:text-white"
                       placeholder="Details..."
                       rows="3"
                       value={newTask.description}
@@ -298,7 +298,7 @@ const Tasks = () => {
                   </div>
                   <button
                     type="submit"
-                    className={`w-full ${BUTTON_BASE} bg-violet-600 hover:bg-violet-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black justify-center mt-2`}
+                    className={`w-full ${BUTTON_BASE} bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black justify-center mt-2 hover:scale-105`}
                   >
                     <Plus className="w-5 h-5" /> Add Task
                   </button>

@@ -81,6 +81,14 @@ router.post('/register', async (req, res) => {
       }
     }
 
+    // 1.5 Check if mobile already exists 📱
+    if (mobile) {
+      const existingMobile = await User.findOne({ mobile, isDeleted: false });
+      if (existingMobile) {
+        return res.status(400).json({ message: 'Mobile number already registered! Please login.' });
+      }
+    }
+
     // 2. Hash Password & Create User Directly
     const salt = await bcrypt.genSalt(10);
     const hashed = await bcrypt.hash(password, salt);

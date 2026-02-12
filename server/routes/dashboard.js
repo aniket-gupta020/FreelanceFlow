@@ -57,22 +57,42 @@ router.get('/deadlines', verifyToken, async (req, res) => {
     try {
         const userId = req.user.id;
 
-        // Find projects where I am the freelancer
-        const workProjects = await Project.find({
-            freelancer: userId,
-            client: { $ne: userId }
-        }).select('_id');
+        // Find projects where I am the freelancer OR the creator (client)
+        // AND the project is NOT completed
+        const projects = await Project.find({
+            $or: [
+                { freelancer: userId },
+                { createdBy: userId }
+            ],
+            status: { $ne: 'completed' },
+            deadline: { $gt: new Date() } // Only future project deadlines
+        }).select('title deadline');
 
-        const workProjectIds = workProjects.map(p => p._id);
+        const projectIds = projects.map(p => p._id);
 
+        // Fetch upcoming tasks for these projects
         const tasks = await Task.find({
-            project: { $in: workProjectIds },
-            dueDate: { $gt: new Date() }
+            project: { $in: projectIds },
+            dueDate: { $gt: new Date() },
+            status: { $ne: 'done' }
         })
             .sort({ dueDate: 1 })
             .populate('project', 'title');
 
-        res.status(200).json(tasks);
+        // Map projects to look like tasks for the UI
+        const projectDeadlines = projects.map(p => ({
+            _id: p._id,
+            title: "Project Deadline",
+            project: { title: p.title },
+            dueDate: p.deadline,
+            isProjectDeadline: true // Optional flag for UI distinctions
+        }));
+
+        // Combine and Sort by Date
+        const allDeadlines = [...tasks, ...projectDeadlines].sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+        // Return top 10 soonest deadlines
+        res.status(200).json(allDeadlines.slice(0, 10));
 
     } catch (err) {
         console.error("Deadlines Error:", err);

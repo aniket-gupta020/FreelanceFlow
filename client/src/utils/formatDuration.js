@@ -11,12 +11,13 @@
 export const formatDuration = (totalHours) => {
     if (isNaN(totalHours) || totalHours < 0) return "0 hr 0 min";
 
-    const hours = Math.floor(totalHours);
-    const minutes = Math.round((totalHours - hours) * 60);
+    const totalSeconds = Math.round(totalHours * 3600);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
 
-    // Handle edge case where rounding minutes makes it 60
-    if (minutes === 60) {
-        return `${hours + 1} hr 0 min`;
+    if (seconds > 0) {
+        return `${hours} hr ${minutes} min ${seconds} sec`;
     }
 
     return `${hours} hr ${minutes} min`;
