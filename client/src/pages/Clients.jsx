@@ -6,10 +6,9 @@ import {
   LayoutDashboard, Users, User, Mail, Menu, X, Sun, Moon,
   LogOut, Clock, IndianRupee, CheckSquare, Plus, Lock, ChevronDown, ChevronRight, UserMinus, History, Search
 } from 'lucide-react';
-import UpgradeButton from '../components/UpgradeButton'; // Import UpgradeButton
+import UpgradeButton from '../components/UpgradeButton';
 
 
-// Styling Constants
 const GLASS_CLASSES = "bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl shadow-orange-500/10";
 const BUTTON_BASE = "flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 shadow-lg active:scale-95 hover:scale-105";
 const ACCENT_BG = "bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white dark:text-black";
@@ -23,7 +22,6 @@ const Clients = () => {
   const [clients, setClients] = useState([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  // NEW STATE FOR FREELANCERS
   const [userSubscription, setUserSubscription] = useState('free');
   const [showAddClientModal, setShowAddClientModal] = useState(false);
   const [newClient, setNewClient] = useState({ name: '', email: '', phone: '+91 ' });
@@ -33,13 +31,12 @@ const Clients = () => {
   const [showPastClients, setShowPastClients] = useState(false);
   const [deletedClients, setDeletedClients] = useState([]);
   const [showDeletedClients, setShowDeletedClients] = useState(false);
-  const [allProjects, setAllProjects] = useState([]); // Store all projects for status checks
+  const [allProjects, setAllProjects] = useState([]);
 
   const navigate = useNavigate();
 
   const storedUser = (() => { try { return JSON.parse(localStorage.getItem('user')); } catch (e) { return null; } })();
 
-  // Robust check for user role
   const isFreelancer = storedUser?.role === 'freelancer';
 
   useEffect(() => { if (!storedUser) navigate('/login'); }, [navigate, storedUser]);
@@ -63,18 +60,14 @@ const Clients = () => {
     });
   };
 
-  // FETCH DATA BASED ON ROLE
   useEffect(() => {
     if (!storedUser?._id) return;
 
     setLoading(true);
 
     if (isFreelancer) {
-      // 1. Fetch My Clients
       const fetchClients = api.get('/clients');
-      // 2. Fetch User Plan (Refresh from DB to be sure)
       const fetchUser = api.get(`/users/${storedUser._id}`);
-      // 3. Fetch Projects to check status
       const fetchProjects = api.get('/projects');
 
       Promise.all([fetchClients, fetchUser, fetchProjects])
@@ -82,57 +75,51 @@ const Clients = () => {
           const allClients = resClients.data;
           const allProjects = resProjects.data;
 
-          // Helper to check if project is active
           const isProjectActive = (project) => {
             const status = project.status ? project.status.toLowerCase() : 'active';
             if (status === 'completed') return false;
-            if (status === 'expired') return false; // Explicit check for expired
-            // Check if deadline passed
+            if (status === 'expired') return false;
             if (project.deadline && new Date(project.deadline) < new Date()) return false;
             return true;
           };
 
-          // Filter clients
           const active = [];
           const past = [];
           const deleted = [];
 
           allClients.forEach(client => {
-            // Find projects for this client
             const clientProjects = allProjects.filter(p => {
               const pClientId = p.client?._id || p.client;
               return String(pClientId) === String(client._id);
             });
 
-            // Check if ANY project is active
             const hasActiveProject = clientProjects.some(p => isProjectActive(p));
 
-            // Priority logic: Active projects always bring a client to the "Active" section
             if (hasActiveProject) {
               active.push(client);
               return;
             }
 
-            // If no active projects, use the isDeleted flag
+
             if (client.isDeleted) {
               deleted.push(client);
               return;
             }
 
             if (clientProjects.length === 0) {
-              // Active: New client with no projects
+
               active.push(client);
             } else {
-              // Past: Has only inactive projects
+
               past.push(client);
             }
           });
 
-          setClients(allClients); // Keep full list if needed, or just use active/past
+          setClients(allClients);
           setActiveClients(active);
           setPastClients(past);
           setDeletedClients(deleted);
-          setAllProjects(allProjects); // Save for later checks
+          setAllProjects(allProjects);
 
           setUserSubscription(resUser.data.subscription || resUser.data.plan || 'free');
           setLoading(false);
@@ -144,22 +131,22 @@ const Clients = () => {
         });
 
     } else {
-      // EXISTING LOGIC FOR CLIENT ROLE (View Freelancers)
+
       api.get('/projects')
         .then(res => {
           const myFreelancers = [];
           const seenIds = new Set();
 
-          // 1. Filter projects where I am the client
+
           const myProjects = res.data.filter(p =>
             p.client && (p.client._id === storedUser._id || p.client === storedUser._id)
           );
 
-          // 2. Extract applicants from my projects
+
           myProjects.forEach(p => {
             if (p.applicants && p.applicants.length > 0) {
               p.applicants.forEach(applicant => {
-                const appData = typeof applicant === 'object' ? applicant : null; // Handle if populate failed or it's just ID (though backend populates it)
+                const appData = typeof applicant === 'object' ? applicant : null;
                 if (appData && appData._id && !seenIds.has(appData._id)) {
                   seenIds.add(appData._id);
                   myFreelancers.push(appData);
@@ -178,20 +165,20 @@ const Clients = () => {
     }
   }, [storedUser?._id, isFreelancer]);
 
-  // ADD CLIENT HANDLER
+
   const handleAddClient = async (e) => {
     e.preventDefault();
 
-    // Phone validation
+
     const digitsOnly = newClient.phone.replace(/\D/g, '');
 
-    // Strict check for India (starts with 91)
+
     if (digitsOnly.startsWith('91')) {
-      if (digitsOnly.length !== 12) { // 91 + 10 digits = 12
+      if (digitsOnly.length !== 12) {
         return toast.error("For India (+91), please enter exactly 10 digits.");
       }
     } else {
-      // Generic validation for other codes (assuming min 1 digit code + 10 digit number = 11)
+
       if (digitsOnly.length < 11 || digitsOnly.length > 15) {
         return toast.error("Please enter a valid phone number (Min 10 digits + Country Code).");
       }
@@ -205,13 +192,13 @@ const Clients = () => {
       setShowAddClientModal(false);
       setNewClient({ name: '', email: '', phone: '+91 ' });
 
-      // Navigate to the newly created client's profile
+
       navigate(`/clients/${newClientId}`);
     } catch (err) {
       console.error(err);
-      // Check for limit error
+
       if (err.response?.status === 403) {
-        toast.error(err.response.data.message); // "Free limit reached"
+        toast.error(err.response.data.message);
       } else {
         toast.error("Failed to add client");
       }
@@ -255,14 +242,14 @@ const Clients = () => {
     ));
   };
 
-  // CALCULATE LIMITS
-  const clientCount = activeClients.length + pastClients.length + deletedClients.length; // Count ALL clients including deleted ones
+
+  const clientCount = activeClients.length + pastClients.length + deletedClients.length;
   const isLimitReached = isFreelancer && userSubscription === 'free' && clientCount >= 2;
 
   const handleDeleteClient = async (e, clientId) => {
     e.stopPropagation();
 
-    // Check if client has active projects
+
     const hasActiveProjects = allProjects.some(p =>
       (p.client?._id || p.client) === clientId &&
       p.status?.toLowerCase() !== 'completed' &&
@@ -274,13 +261,13 @@ const Clients = () => {
         await api.delete(`/clients/${clientId}`);
         toast.success("Client moved to Previous Clients");
 
-        // Update local state without refetching
+
         const clientToDelete = clients.find(c => c._id === clientId);
         if (clientToDelete) {
           const updatedClient = { ...clientToDelete, isDeleted: true };
           setClients(prev => prev.map(c => c._id === clientId ? updatedClient : c));
 
-          // Move from active/past to deleted
+
           setActiveClients(prev => prev.filter(c => c._id !== clientId));
           setPastClients(prev => prev.filter(c => c._id !== clientId));
           setDeletedClients(prev => [...prev, updatedClient]);
@@ -459,13 +446,13 @@ const Clients = () => {
           ) : (
             <>
               {(() => {
-                // Filter functions
+
                 const filterList = (list) => {
                   if (!searchQuery) return list;
                   const lowerQuery = searchQuery.toLowerCase();
 
                   return list.filter(client => {
-                    // 1. Check basic fields
+
                     if (
                       client.name?.toLowerCase().includes(lowerQuery) ||
                       client.email?.toLowerCase().includes(lowerQuery) ||
@@ -474,7 +461,7 @@ const Clients = () => {
                       return true;
                     }
 
-                    // 2. Check projects
+
                     const clientProjects = allProjects.filter(p =>
                       (p.client?._id || p.client) === client._id
                     );
@@ -699,7 +686,7 @@ const Clients = () => {
                       value={newClient.name}
                       onChange={e => {
                         const val = e.target.value;
-                        // Only allow letters and spaces
+
                         if (/^[a-zA-Z\s]*$/.test(val)) {
                           setNewClient({ ...newClient, name: val });
                         }
@@ -728,7 +715,7 @@ const Clients = () => {
                       value={newClient.phone}
                       onChange={e => {
                         const val = e.target.value;
-                        // Allow + at start, then numbers, spaces, - and ()
+
                         if (/^[+]?[0-9\s-()]*$/.test(val)) {
                           setNewClient({ ...newClient, phone: val });
                         }

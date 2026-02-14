@@ -31,9 +31,6 @@ export default function ReceivedInvoices() {
     const fetchInvoices = async () => {
         try {
             const res = await api.get('/invoices');
-            // The API returns all invoices related to the user (both sent and received)
-            // We need to filter for invoices where the current user is the client (Received)
-            // Note: We need the user ID to filter.
             const storedUser = JSON.parse(localStorage.getItem('user'));
             const currentUser = storedUser.user || storedUser;
 

@@ -14,7 +14,7 @@ const TempUserSchema = new mongoose.Schema({
     },
     registrationData: {
         name: { type: String, required: true },
-        password: { type: String, required: true }, // Hashed password
+        password: { type: String, required: true },
         role: { type: String, default: 'freelancer' },
         defaultHourlyRate: { type: Number, default: 0 },
         subscription: { type: String, default: 'free' }

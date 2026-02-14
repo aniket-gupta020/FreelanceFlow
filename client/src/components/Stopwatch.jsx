@@ -7,13 +7,11 @@ const GLASS_CLASSES = "bg-white/60 dark:bg-black/40 backdrop-blur-xl border bord
 
 export default function Stopwatch({ defaultProjectId, onStop }) {
   const [isRunning, setIsRunning] = useState(false);
-  const [time, setTime] = useState(0); // Elapsed time in seconds
-  const [startTime, setStartTime] = useState(null); // When the CURRENT session started (Date object or null)
+  const [time, setTime] = useState(0);
+  const [startTime, setStartTime] = useState(null);
   const timerRef = useRef(null);
 
-  // --- Persistence & Initialization ---
   useEffect(() => {
-    // 1. Load from localStorage on mount
     const savedState = localStorage.getItem('stopwatchState');
     if (savedState) {
       const { isRunning: wasRunning, startTime: savedStartTimeStr, elapsedTime: savedElapsed } = JSON.parse(savedState);
@@ -21,23 +19,19 @@ export default function Stopwatch({ defaultProjectId, onStop }) {
       let newElapsed = savedElapsed || 0;
 
       if (wasRunning && savedStartTimeStr) {
-        // If it was running, calculate missing time
         const savedStart = new Date(savedStartTimeStr);
         const now = new Date();
         const diffSeconds = Math.floor((now - savedStart) / 1000);
         newElapsed += diffSeconds;
 
-        // Resume automatically if it was running
         setIsRunning(true);
-        setStartTime(new Date(new Date() - newElapsed * 1000)); // "Fake" start time so intervals align
+        setStartTime(new Date(new Date() - newElapsed * 1000));
       } else {
-        // Just restore elapsed time
         setTime(newElapsed);
       }
     }
   }, []);
 
-  // 2. Save to localStorage whenever state changes
   useEffect(() => {
     const state = {
       isRunning,
@@ -47,12 +41,9 @@ export default function Stopwatch({ defaultProjectId, onStop }) {
     localStorage.setItem('stopwatchState', JSON.stringify(state));
   }, [isRunning, startTime, time]);
 
-  // --- Browser Safety ---
-  // --- Auto-Save on Refresh/Close ---
   useEffect(() => {
     const handleUnload = () => {
       if (isRunning && time > 0) {
-        // Calculate times
         const endTime = new Date();
         const derivedStartTime = new Date(endTime.getTime() - time * 1000);
 
@@ -64,10 +55,8 @@ export default function Stopwatch({ defaultProjectId, onStop }) {
         };
 
         const token = localStorage.getItem('token');
-        // Using the same URL as AutoTimeTracker and API base
         const url = 'https://freelanceflow-oy9e.onrender.com/api/timelogs';
 
-        // Use fetch with keepalive
         fetch(url, {
           method: 'POST',
           headers: {
@@ -78,7 +67,6 @@ export default function Stopwatch({ defaultProjectId, onStop }) {
           keepalive: true
         });
 
-        // Clear local storage so it doesn't resume
         localStorage.removeItem('stopwatchState');
       }
     };
@@ -87,19 +75,9 @@ export default function Stopwatch({ defaultProjectId, onStop }) {
     return () => window.removeEventListener('pagehide', handleUnload);
   }, [isRunning, time, defaultProjectId]);
 
-  // --- Timer Logic ---
   useEffect(() => {
     if (isRunning) {
       if (!timerRef.current) {
-        // Use a more precise approach: calculating difference from start
-        // However, user asked for "useRef for animation frame loop" in requirements, 
-        // but existing code used setInterval. 
-        // Let's stick to setInterval for simplicity as asked in original constraints "useRef for animation frame loop" (Wait, user said use animation frame loop in requirements?)
-        // Re-reading: "Use useRef for the animation frame loop" -> This usually means requestAnimationFrame.
-        // BUT, for a simple stopwatch (seconds), setInterval is usually fine and easier for "seconds" count.
-        // I will stick to setInterval for 1s updates to match "seconds" state, BUT I will sync it with Date to be accurate.
-
-        // Actually, let's just stick to the previous implementation style but robust.
         timerRef.current = setInterval(() => {
           setTime(prev => prev + 1);
         }, 1000);
@@ -122,7 +100,6 @@ export default function Stopwatch({ defaultProjectId, onStop }) {
   const handleStart = () => {
     if (!defaultProjectId) return toast.error("Please select a project first!");
 
-    // Only set start time if it's a fresh start
     if (!startTime) {
       setStartTime(new Date());
     }
@@ -138,11 +115,9 @@ export default function Stopwatch({ defaultProjectId, onStop }) {
   const handlePauseAndShowToast = () => {
     if (!defaultProjectId) return;
 
-    // 1. Pause immediately
     setIsRunning(false);
     clearInterval(timerRef.current);
 
-    // 2. Show Confirmation Toast
     toast.custom((t) => (
       <div className={`${GLASS_CLASSES} p-6 rounded-2xl max-w-sm w-full animate-in fade-in zoom-in duration-300 pointer-events-auto`}>
         <div className="flex items-start gap-4">
@@ -190,13 +165,7 @@ export default function Stopwatch({ defaultProjectId, onStop }) {
     toast.success("Resumed! ⏯️");
   };
 
-  // calculate real start time based on current time minus elapsed seconds
-  // This is crucial for accuracy if the user paused/resumed multiple times
   const getCalculatedStartTime = () => {
-    // If we simply use the original startTime state, it might be old if we paused.
-    // But for the log, we usually want (EndTime - Duration) or just track Duration.
-    // The backend likely expects startTime/endTime. 
-    // If we use Duration, we can just say Start = Now - Duration, End = Now.
     const now = new Date();
     const derivedStart = new Date(now.getTime() - (time * 1000));
     return derivedStart;
@@ -206,8 +175,6 @@ export default function Stopwatch({ defaultProjectId, onStop }) {
     toast.dismiss(toastId);
 
     const endTime = new Date();
-    // Re-calculate start time derived from the total elapsed time to ensure consistency
-    // This avoids gaps if the timer was paused for a while.
     const derivedStartTime = new Date(endTime.getTime() - time * 1000);
 
     try {
@@ -215,10 +182,9 @@ export default function Stopwatch({ defaultProjectId, onStop }) {
         projectId: defaultProjectId,
         startTime: derivedStartTime.toISOString(),
         endTime: endTime.toISOString(),
-        description: "Live Timer Session" // Could be dynamic in future
+        description: "Live Timer Session"
       });
 
-      // Reset
       setTime(0);
       setStartTime(null);
       clearLocalData();
@@ -229,7 +195,6 @@ export default function Stopwatch({ defaultProjectId, onStop }) {
     } catch (err) {
       console.error(err);
       toast.error("Failed to save. Try again.");
-      // If failed, we DO NOT reset, so user doesn't lose data.
     }
   };
 

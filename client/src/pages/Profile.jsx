@@ -28,14 +28,14 @@ const Profile = () => {
     name: '', email: '', defaultHourlyRate: 0, mobile: ''
   });
 
-  // OTP & Security State
+
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSensitiveChange, setIsSensitiveChange] = useState(false);
 
-  const [otpAction, setOtpAction] = useState('update'); // 'update' or 'delete'
+  const [otpAction, setOtpAction] = useState('update');
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [isEmailFocused, setIsEmailFocused] = useState(false);
 
@@ -82,7 +82,7 @@ const Profile = () => {
   const handleUpdate = async (e) => {
     e.preventDefault();
 
-    // Validation Logic from Register.jsx
+
     const nameRegex = /^[a-zA-Z\s]+$/;
     const mobileRegex = /^[0-9+\(\)\s-]+$/;
 
@@ -92,13 +92,13 @@ const Profile = () => {
 
     if (formData.mobile) {
       const digitsOnly = formData.mobile.replace(/\D/g, '');
-      // Strict check for India (starts with 91)
+
       if (digitsOnly.startsWith('91')) {
-        if (digitsOnly.length !== 12) { // 91 + 10 digits = 12
+        if (digitsOnly.length !== 12) {
           return toast.error("For India (+91), please enter exactly 10 digits.");
         }
       } else {
-        // Generic validation for other codes
+
         if (digitsOnly.length < 11 || digitsOnly.length > 15) {
           return toast.error("Invalid Mobile Number. Min 10 digits + Country Code required.");
         }
@@ -108,7 +108,7 @@ const Profile = () => {
     try {
       const payload = { ...formData };
 
-      // Check for sensitive changes
+
       const isEmailChanged = user.email.toLowerCase() !== formData.email.toLowerCase();
       const isPasswordChanged = newPassword.length > 0;
 
@@ -121,7 +121,7 @@ const Profile = () => {
         setOtpAction('update');
         setShowOtpModal(true);
 
-        // Send OTP using new endpoint that supports email change verification
+
         const type = isEmailChanged ? 'update_email' : 'profile_update';
         const targetEmail = isEmailChanged ? formData.email : user.email;
 
@@ -130,13 +130,13 @@ const Profile = () => {
         return;
       }
 
-      // Standard Update
+
       const res = await api.put(`/users/${user._id}`, payload);
       toast.success("Profile Updated Successfully!");
 
       const lsUser = JSON.parse(localStorage.getItem('user'));
       lsUser.name = res.data.name;
-      lsUser.email = res.data.email; // Update email in local storage
+      lsUser.email = res.data.email;
       localStorage.setItem('user', JSON.stringify(lsUser));
       setUser(res.data);
     } catch (err) {
@@ -207,7 +207,7 @@ const Profile = () => {
       localStorage.setItem('user', JSON.stringify(lsUser));
       setUser(res.data);
 
-      // Reset State
+
       setShowOtpModal(false);
       setOtp('');
       setNewPassword('');
@@ -523,7 +523,7 @@ const Profile = () => {
                         value={formData.mobile}
                         onChange={e => {
                           const val = e.target.value;
-                          // Allow + at start, then numbers, spaces, - and ()
+
                           if (/^[+]?[0-9\s-()]*$/.test(val)) {
                             setFormData({ ...formData, mobile: val });
                           }

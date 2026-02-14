@@ -1,4 +1,3 @@
-// src/utils/pdfGenerator.js
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCurrency } from '../utils/formatCurrency';
@@ -11,7 +10,6 @@ export const generateInvoicePDF = (invoice) => {
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
 
-    // Data Extraction (Safety Checks)
     const client = invoice.client || { name: "Client", email: "N/A" };
     const freelancer = invoice.freelancer || { name: "Freelancer", email: "N/A" };
     const project = invoice.project || { title: "Project" };
@@ -19,13 +17,11 @@ export const generateInvoicePDF = (invoice) => {
     const invoiceNum = invoice.invoiceNumber || `INV-${String(invoice._id).slice(-6).toUpperCase()}`;
     const dateStr = new Date(invoice.createdAt || Date.now()).toLocaleDateString().toUpperCase();
 
-    // Colors
     const violetDark = [46, 16, 101];
     const violetPrimary = [124, 58, 237];
     const slateText = [30, 41, 59];
     const slateLight = [148, 163, 184];
 
-    // --- 1. TOP BRANDING BAR ---
     doc.setFillColor(139, 92, 246);
     doc.rect(0, 0, pageWidth / 3, 6, 'F');
     doc.setFillColor(168, 85, 247);
@@ -33,7 +29,6 @@ export const generateInvoicePDF = (invoice) => {
     doc.setFillColor(236, 72, 153);
     doc.rect((pageWidth / 3) * 2, 0, pageWidth / 3, 6, 'F');
 
-    // --- 2. HEADER ---
     doc.setFontSize(26);
     doc.setTextColor(...violetDark);
     doc.setFont("helvetica", "bold");
@@ -53,10 +48,8 @@ export const generateInvoicePDF = (invoice) => {
     doc.text(`DATE: ${dateStr}`, pageWidth - 14, 32, { align: 'right' });
     doc.text(`REF: #${invoiceNum}`, pageWidth - 14, 37, { align: 'right' });
 
-    // --- 3. DETAILS GRID ---
     const startY = 55;
 
-    // Left: FROM (Freelancer)
     doc.setDrawColor(200);
     doc.line(14, startY - 5, 14, startY + 25);
     doc.setLineWidth(1);
@@ -78,13 +71,12 @@ export const generateInvoicePDF = (invoice) => {
     doc.text(freelancer.email || "", 18, startY + 11);
     doc.text(freelancer.mobile || freelancer.phone || "", 18, startY + 16);
 
-    // Right: TO (Client)
     const rightColX = pageWidth / 2 + 10;
     doc.setLineWidth(0.5);
     doc.setDrawColor(200);
     doc.line(rightColX, startY - 5, rightColX, startY + 25);
     doc.setLineWidth(1);
-    doc.setDrawColor(236, 72, 153); // Pink Accent
+    doc.setDrawColor(236, 72, 153);
     doc.line(rightColX, startY - 5, rightColX, startY + 10);
 
     doc.setFontSize(8);
@@ -102,7 +94,6 @@ export const generateInvoicePDF = (invoice) => {
     doc.text(client.email || "", rightColX + 4, startY + 11);
     doc.text(client.mobile || client.phone || "", rightColX + 4, startY + 16);
 
-    // Project Badge
     doc.setFillColor(245, 243, 255);
     doc.roundedRect(14, startY + 30, pageWidth - 28, 12, 2, 2, 'F');
     doc.setFontSize(9);
@@ -110,8 +101,6 @@ export const generateInvoicePDF = (invoice) => {
     doc.setFont("helvetica", "bold");
     doc.text(`PROJECT: ${(project.title || "").toUpperCase()}`, 18, startY + 37.5);
 
-    // --- 4. DATA TABLE ---
-    // Extract hourly rate from items (preferred) or calculate from totals
     const hourlyRate = (invoice.items && invoice.items.length > 0)
         ? invoice.items[0].hourlyRate
         : (invoice.totalAmount / (invoice.totalHours || 1));
@@ -131,22 +120,22 @@ export const generateInvoicePDF = (invoice) => {
             ];
         });
     } else if (invoice.items && invoice.items.length > 0) {
-        // Fallback: If logs are missing but items exist (legacy support or different data structure)
+
         tableBody = invoice.items.map(item => [
-            dateStr, // Items don't always have date, use invoice date
+            dateStr,
             item.description,
             formatDuration(item.hours),
             formatCurrency(item.hourlyRate).replace('₹', 'Rs.'),
             formatCurrency(item.amount).replace('₹', 'Rs.')
         ]);
     } else {
-        // Fallback for flat invoices without logs/items
+
         tableBody = [[
             dateStr,
             "Consolidated Project Payment",
             formatDuration(invoice.totalHours || 0),
-            formatCurrency(hourlyRate).replace('₹', 'Rs.'), // Rate
-            formatCurrency(invoice.totalAmount).replace('₹', 'Rs.') // Total
+            formatCurrency(hourlyRate).replace('₹', 'Rs.'),
+            formatCurrency(invoice.totalAmount).replace('₹', 'Rs.')
         ]];
     }
 
@@ -173,7 +162,6 @@ export const generateInvoicePDF = (invoice) => {
         styles: { fontSize: 9, lineColor: [226, 232, 240] }
     });
 
-    // --- 5. FLOATING TOTAL CARD ---
     const finalY = doc.lastAutoTable.finalY + 10;
     const boxWidth = 80;
     const boxX = pageWidth - 14 - boxWidth;
@@ -199,7 +187,6 @@ export const generateInvoicePDF = (invoice) => {
     doc.setFontSize(14);
     doc.text(formatCurrency(invoice.totalAmount || 0).replace('₹', 'Rs.'), pageWidth - 19, finalY + 19, { align: 'right' });
 
-    // --- 6. FOOTER ---
     const footerY = pageHeight - 15;
     doc.setFontSize(8);
     doc.setTextColor(150);

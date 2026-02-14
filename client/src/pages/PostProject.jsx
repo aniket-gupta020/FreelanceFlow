@@ -105,7 +105,7 @@ const PostProject = () => {
     e.preventDefault();
     setLoading(true);
 
-    // Validation
+
     if (new Date(formData.startDate) > new Date(formData.deadline)) {
       setLoading(false);
       return toast.error("Start Date cannot be after the Deadline");

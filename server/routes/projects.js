@@ -3,12 +3,10 @@ const Project = require('../models/Project');
 const Client = require('../models/Client');
 const verifyToken = require('../middleware/verifyToken');
 
-// 1️⃣ GET ALL PROJECTS
 router.get('/', async (req, res) => {
   try {
     const projects = await Project.find()
       .populate('client', 'name email mobile phone defaultHourlyRate')
-      // 👇 FIXED: Added 'defaultHourlyRate' so the report can calculate cost
       .populate('applicants', 'name email defaultHourlyRate mobile phone isDeleted')
       .sort({ createdAt: -1 });
 
@@ -18,12 +16,10 @@ router.get('/', async (req, res) => {
   }
 });
 
-// 2️⃣ GET SINGLE PROJECT
 router.get('/:id', async (req, res) => {
   try {
     const project = await Project.findById(req.params.id)
       .populate('client', 'name email mobile phone defaultHourlyRate')
-      // 👇 FIXED: Added 'defaultHourlyRate' here too
       .populate('applicants', 'name email defaultHourlyRate mobile phone isDeleted');
 
     if (!project) return res.status(404).json({ message: "Project not found" });
@@ -34,7 +30,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// 3️⃣ CREATE PROJECT
 router.post('/', verifyToken, async (req, res) => {
   try {
     const clientId = req.body.client || req.user.id;
@@ -48,7 +43,6 @@ router.post('/', verifyToken, async (req, res) => {
     const newProject = new Project(payload);
     const savedProject = await newProject.save();
 
-    // Recover client if they were previously "deleted"
     if (req.body.client) {
       await Client.findByIdAndUpdate(req.body.client, { isDeleted: false });
     }
@@ -59,7 +53,6 @@ router.post('/', verifyToken, async (req, res) => {
   }
 });
 
-// 4️⃣ DELETE PROJECT
 router.delete('/:id', verifyToken, async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
@@ -76,14 +69,12 @@ router.delete('/:id', verifyToken, async (req, res) => {
   }
 });
 
-// 5️⃣ UPDATE PROJECT
 router.put('/:id', verifyToken, async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
     const updateData = { ...req.body };
-    // Auto-set completedAt timestamp if status changes to completed
     if (req.body.status === 'completed' && project.status !== 'completed') {
       updateData.completedAt = new Date();
     }
@@ -103,7 +94,6 @@ router.put('/:id', verifyToken, async (req, res) => {
   }
 });
 
-// 6️⃣ APPLY TO PROJECT
 router.post('/:id/apply', verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;

@@ -264,7 +264,7 @@ const Dashboard = () => {
       .then(res => setIsSampleLoaded(res.data.isLoaded))
       .catch(err => console.error("Error fetching sample status:", err))
       .finally(() => {
-        // Minimum delay for branding as requested
+
         setTimeout(() => setLoading(false), 800);
       });
   }, [navigate]);
@@ -283,7 +283,7 @@ const Dashboard = () => {
 
       setProjects(prevProjects => prevProjects.map(project => {
         if (project._id === projectId) {
-          // Optimistically update applicants to include current user
+
           const updatedApplicants = project.applicants ? [...project.applicants, user] : [user];
           return { ...project, applicants: updatedApplicants };
         }
@@ -384,9 +384,11 @@ const Dashboard = () => {
       await api.post('/sample-data/load');
       setIsSampleLoaded(true);
       toast.success("Sample data loaded! 🚀", { id: toastId });
-      // Refresh projects
-      const res = await api.get('/projects');
-      setProjects(res.data);
+
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to load sample data", { id: toastId });
     }
@@ -398,9 +400,11 @@ const Dashboard = () => {
       await api.delete('/sample-data/unload');
       setIsSampleLoaded(false);
       toast.success("Sample data removed", { id: toastId });
-      // Refresh projects
-      const res = await api.get('/projects');
-      setProjects(res.data);
+
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to remove sample data", { id: toastId });
     }
@@ -419,7 +423,7 @@ const Dashboard = () => {
   const activeMyProjects = myProjects.filter(p => p.status !== 'completed' && new Date(p.deadline) >= new Date());
   const pastMyProjects = myProjects.filter(p => p.status === 'completed' || new Date(p.deadline) < new Date());
 
-  // Only show user's own past projects (dead and completed)
+
   const allPastProjects = pastMyProjects;
 
   const checkIsOwner = (project) => {

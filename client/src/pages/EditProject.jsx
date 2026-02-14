@@ -194,7 +194,7 @@ const EditProject = () => {
             <button onClick={() => setIsMobileMenuOpen(true)} className={`${GLASS_CLASSES} p-2 rounded-lg text-gray-600 dark:text-gray-300 md:hidden`}><Menu className="w-6 h-6" /></button>
           </header>
 
-          <div className={`max-w-3xl mx-auto ${GLASS_CLASSES} rounded-3xl p-8`}>
+          <div className={`max-w-3xl mx-auto ${GLASS_CLASSES} rounded-3xl p-6`}>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label className={LABEL_CLASSES}>Project Title</label>
@@ -214,7 +214,7 @@ const EditProject = () => {
 
               <div>
                 <label className={LABEL_CLASSES}>Description</label>
-                <textarea name="description" value={formData.description} required rows="5" className={INPUT_CLASSES} onChange={handleChange} />
+                <textarea name="description" value={formData.description} required rows="4" className={INPUT_CLASSES} onChange={handleChange} />
               </div>
 
               <div className="pt-4 flex justify-end gap-4">

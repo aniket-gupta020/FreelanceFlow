@@ -1,9 +1,7 @@
 const brevo = require('@getbrevo/brevo');
 
-// 🔵 BREVO API CONFIGURATION (HTTP - Firewall Proof)
 const apiInstance = new brevo.TransactionalEmailsApi();
 
-// 🛑 USE PROCESS.ENV (Secure)
 const apiKey = process.env.BREVO_API_KEY;
 
 const authenticator = apiInstance.authentications['apiKey'];
@@ -22,7 +20,6 @@ const getEmailTemplate = (otp, type) => {
         textColor: '#ffffff'
     };
 
-    // (Kept your existing theme logic)
     switch (type) {
         case 'delete_account':
             config.subject = '⚠️ Confirm Account Deletion';
@@ -85,7 +82,6 @@ const getEmailTemplate = (otp, type) => {
  * Sends an OTP email using Brevo HTTP API
  */
 const sendEmail = async (email, otp, type = 'register') => {
-    // 🛑 USE THE VERIFIED SENDER FROM BREVO
     const SENDER_EMAIL = 'mail.akguptaji@gmail.com';
     const SENDER_NAME = "FreelanceFlow";
 

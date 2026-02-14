@@ -6,10 +6,8 @@ const verifyToken = require('../middleware/verifyToken');
 
 router.use(verifyToken);
 
-// 1️⃣ GET ALL LOGS (Fixed visibility for Project Owners)
 router.get('/', async (req, res) => {
   try {
-    // 🔍 Find projects where YOU are the Owner (Creator) OR the Client
     const ownedProjects = await Project.find({
       $or: [
         { client: req.user.id },
@@ -19,9 +17,6 @@ router.get('/', async (req, res) => {
 
     const ownedProjectIds = ownedProjects.map(p => p._id);
 
-    // Fetch logs if:
-    // 1. You created the log (Your own work)
-    // 2. OR the log belongs to a project you own/manage
     const logs = await TimeLog.find({
       $or: [
         { user: req.user.id },
@@ -29,7 +24,7 @@ router.get('/', async (req, res) => {
       ]
     })
       .populate('project', 'title')
-      .populate('user', 'name email defaultHourlyRate mobile') // ✅ Populating user info + mobile
+      .populate('user', 'name email defaultHourlyRate mobile')
       .sort({ startTime: -1 });
 
     res.status(200).json(logs);
@@ -38,7 +33,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// 2️⃣ GET UNBILLED (For Invoicing)
 router.get('/unbilled', async (req, res) => {
   try {
     const logs = await TimeLog.find({ user: req.user.id, billed: false });
@@ -48,7 +42,6 @@ router.get('/unbilled', async (req, res) => {
   }
 });
 
-// 3️⃣ CREATE LOG
 router.post('/', async (req, res) => {
   try {
     console.log("📥 New TimeLog Request:", req.body);
@@ -75,7 +68,6 @@ router.post('/', async (req, res) => {
     const savedLog = await newLog.save();
     console.log("✅ Saved Log:", savedLog._id);
 
-    // ✅ FIXED: Correct syntax for multiple populate in an array
     const populatedLog = await savedLog.populate([
       { path: 'project', select: 'title' },
       { path: 'user', select: 'name email defaultHourlyRate mobile' }
@@ -89,7 +81,6 @@ router.post('/', async (req, res) => {
   }
 });
 
-// 4️⃣ DELETE LOG
 router.delete('/:id', async (req, res) => {
   try {
     await TimeLog.findByIdAndDelete(req.params.id);

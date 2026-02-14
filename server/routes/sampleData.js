@@ -6,10 +6,8 @@ const TimeLog = require('../models/TimeLog');
 const Invoice = require('../models/Invoice');
 const verifyToken = require('../middleware/verifyToken');
 
-const SAMPLE_CLIENT_EMAIL = 'mail.akgutaji@gmail.com'; // Matches user request typo exactly
+const SAMPLE_CLIENT_EMAIL = 'mail.akgutaji@gmail.com';
 
-// @route   GET /api/sample-data/status
-// @desc    Check if sample data is loaded
 router.get('/status', verifyToken, async (req, res) => {
     try {
         const client = await Client.findOne({ email: SAMPLE_CLIENT_EMAIL, user: req.user.id });
@@ -20,21 +18,17 @@ router.get('/status', verifyToken, async (req, res) => {
     }
 });
 
-// @route   POST /api/sample-data/load
-// @desc    Load sample data
 router.post('/load', verifyToken, async (req, res) => {
     try {
         const userId = req.user.id;
         console.log("Loading sample data for user:", userId);
 
-        // Check if sample data already exists
         const existingClient = await Client.findOne({ email: SAMPLE_CLIENT_EMAIL, user: userId });
         if (existingClient) {
             console.log("Sample data already exists for this user");
             return res.status(400).json({ message: "Sample data already loaded" });
         }
 
-        // 1. Create Client
         console.log("Step 1: Creating Client...");
         const client = new Client({
             name: 'AK Corp.',
@@ -46,13 +40,12 @@ router.post('/load', verifyToken, async (req, res) => {
         const savedClient = await client.save();
         console.log("Client saved:", savedClient._id);
 
-        // 2. Create Project
         console.log("Step 2: Creating Project...");
         const project = new Project({
             title: 'FreelanceFlow',
             description: 'Freelancers are small business owners who often struggle with the administrative side of their work. They use Trello for tasks, Excel for finances, and Word for invoices. "FreelanceFlow" consolidates this chaos into a single dashboard.',
             startDate: new Date('2026-02-01'),
-            deadline: new Date('2026-03-01'), // Future date relative to Feb 2026
+            deadline: new Date('2026-03-01'),
             budget: 45000,
             hourlyRate: 1500,
             client: savedClient._id,
@@ -62,7 +55,6 @@ router.post('/load', verifyToken, async (req, res) => {
         const savedProject = await project.save();
         console.log("Project saved:", savedProject._id);
 
-        // 3. Create Tasks
         console.log("Step 3: Creating Tasks...");
         const tasks = [
             { title: 'Setup Database Schema', status: 'done', project: savedProject._id },
@@ -72,7 +64,6 @@ router.post('/load', verifyToken, async (req, res) => {
         await Task.insertMany(tasks);
         console.log("Tasks saved");
 
-        // 4. Create Time Logs
         console.log("Step 4: Creating Time Logs...");
         const timeLogs = [
             {
@@ -109,7 +100,6 @@ router.post('/load', verifyToken, async (req, res) => {
         const savedLogs = await TimeLog.insertMany(timeLogs);
         console.log("Time logs saved");
 
-        // 5. Create Invoices
         console.log("Step 5: Creating Invoices...");
         const invoice1 = new Invoice({
             invoiceNumber: `INV-SAMPLE-${Date.now()}-1`,
@@ -144,7 +134,6 @@ router.post('/load', verifyToken, async (req, res) => {
         await invoice2.save();
         console.log("Invoice 2 saved");
 
-        // Update logs with invoice IDs
         console.log("Updating logs with invoice IDs...");
         await TimeLog.findByIdAndUpdate(savedLogs[0]._id, { invoice: invoice1._id });
         await TimeLog.findByIdAndUpdate(savedLogs[1]._id, { invoice: invoice2._id });
@@ -157,8 +146,6 @@ router.post('/load', verifyToken, async (req, res) => {
     }
 });
 
-// @route   DELETE /api/sample-data/unload
-// @desc    Unload sample data
 router.delete('/unload', verifyToken, async (req, res) => {
     try {
         const userId = req.user.id;
@@ -171,7 +158,6 @@ router.delete('/unload', verifyToken, async (req, res) => {
         const projects = await Project.find({ client: client._id });
         const projectIds = projects.map(p => p._id);
 
-        // Cascade delete
         await Invoice.deleteMany({ client: client._id });
         await TimeLog.deleteMany({ project: { $in: projectIds } });
         await Task.deleteMany({ project: { $in: projectIds } });

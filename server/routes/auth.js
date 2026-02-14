@@ -5,7 +5,6 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { sendEmail } = require('../utils/emailService');
 
-// Helper to set the cookie (DRY Principle)
 const sendTokenResponse = (user, statusCode, res, message) => {
   const secret = process.env.JWT_SECRET || 'devsecret';
   const token = jwt.sign(
@@ -21,22 +20,20 @@ const sendTokenResponse = (user, statusCode, res, message) => {
   delete userResponse.isDeleted;
   delete userResponse.deletedAt;
 
-  // ✅ THE MAGIC COOKIE SETTINGS FOR VERCEL -> RENDER
   res.cookie("accessToken", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 Days
+    maxAge: 7 * 24 * 60 * 60 * 1000
   })
     .status(statusCode)
     .json({
       message,
       user: userResponse,
-      token // Optional: Keep sending it in body just in case frontend needs it immediately
+      token
     });
 };
 
-// 1️⃣ REGISTER ROUTE (No OTP Required)
 router.post('/register', async (req, res) => {
   try {
     let { name, email, password, role, mobile, subscription } = req.body;
@@ -44,7 +41,6 @@ router.post('/register', async (req, res) => {
 
     console.log("👉 HIT REGISTER for:", email);
 
-    // 0. STRICT VALIDATION 🛡️
     const nameRegex = /^[a-zA-Z\s]+$/;
     const mobileRegex = /^[0-9+\(\)\s-]+$/;
 
@@ -52,11 +48,9 @@ router.post('/register', async (req, res) => {
     if (mobile && (!mobileRegex.test(mobile) || mobile.length < 10)) return res.status(400).json({ message: 'Invalid Mobile.' });
     if (!password || password.length < 6) return res.status(400).json({ message: 'Password too short.' });
 
-    // 1. Check if user already exists
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
-      // 👻 RESTORATION LOGIC (Ghost Mode)
       if (existingUser.isDeleted) {
         console.log("👻 RESTORING USER:", email);
 
@@ -70,7 +64,6 @@ router.post('/register', async (req, res) => {
 
         await existingUser.save();
 
-        // ✅ Send Response with Cookie
         return sendTokenResponse(existingUser, 200, res, 'Account Restored Successfully! Welcome back.');
       }
 
@@ -81,7 +74,6 @@ router.post('/register', async (req, res) => {
       }
     }
 
-    // 1.5 Check if mobile already exists 📱
     if (mobile) {
       const existingMobile = await User.findOne({ mobile, isDeleted: false });
       if (existingMobile) {
@@ -89,7 +81,6 @@ router.post('/register', async (req, res) => {
       }
     }
 
-    // 2. Hash Password & Create User Directly
     const salt = await bcrypt.genSalt(10);
     const hashed = await bcrypt.hash(password, salt);
 
@@ -100,12 +91,11 @@ router.post('/register', async (req, res) => {
       role: role || 'freelancer',
       mobile: mobile || '',
       subscription: subscription || 'free',
-      isVerified: true // Automatically verified, no OTP needed
+      isVerified: true
     });
 
     const savedUser = await newUser.save();
 
-    // ✅ Send Response with Cookie and Token
     sendTokenResponse(savedUser, 201, res, 'Registration Successful! Welcome to FreelanceFlow.');
 
   } catch (err) {
@@ -114,7 +104,6 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// 2️⃣ VERIFY OTP ROUTE
 router.post('/verify-otp', async (req, res) => {
   try {
     let { email, otp } = req.body;
@@ -146,7 +135,6 @@ router.post('/verify-otp', async (req, res) => {
     const savedUser = await newUser.save();
     await TempUser.deleteOne({ email });
 
-    // ✅ Send Response with Cookie
     sendTokenResponse(savedUser, 200, res, 'Email Verified Successfully!');
 
   } catch (err) {
@@ -155,14 +143,11 @@ router.post('/verify-otp', async (req, res) => {
   }
 });
 
-// 3️⃣ LOGIN ROUTE
 router.post('/login', async (req, res) => {
   try {
     let { email, password } = req.body;
     if (email) email = email.trim().toLowerCase();
 
-    // Find User (Ignore Deleted Users for normal login attempt, or handle gracefully)
-    // Note: If they are deleted, they should use Register to restore, or we can catch it here.
     const user = await User.findOne({ email });
 
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -178,7 +163,6 @@ router.post('/login', async (req, res) => {
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(400).json({ message: 'Wrong Password!' });
 
-    // ✅ Send Response with Cookie
     sendTokenResponse(user, 200, res, 'Login Successful!');
 
   } catch (err) {
@@ -187,7 +171,6 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// 4️⃣ SEND OTP (For Login OR Forgot Password)
 router.post('/send-otp', async (req, res) => {
   try {
     let { email, type } = req.body;
@@ -199,7 +182,7 @@ router.post('/send-otp', async (req, res) => {
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
 
     user.otp = otp;
     user.otpExpires = otpExpires;
@@ -214,7 +197,6 @@ router.post('/send-otp', async (req, res) => {
   }
 });
 
-// 5️⃣ LOGIN VIA OTP
 router.post('/login-via-otp', async (req, res) => {
   try {
     let { email, otp } = req.body;
@@ -231,7 +213,6 @@ router.post('/login-via-otp', async (req, res) => {
     user.otpExpires = undefined;
     await user.save();
 
-    // ✅ Send Response with Cookie
     sendTokenResponse(user, 200, res, 'Login Successful!');
 
   } catch (err) {
@@ -240,7 +221,6 @@ router.post('/login-via-otp', async (req, res) => {
   }
 });
 
-// 6️⃣ RESET PASSWORD
 router.post('/reset-password', async (req, res) => {
   try {
     let { email, otp, newPassword } = req.body;

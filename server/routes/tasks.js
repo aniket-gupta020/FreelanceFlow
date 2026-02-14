@@ -30,17 +30,13 @@ router.post('/', async (req, res) => {
         const projectExists = await Project.findById(effectiveProjectId);
         if (!projectExists) return res.status(404).json({ message: "Project not found" });
 
-        // Map frontend "To Do" to backend "todo" if needed, but preferably frontend sends correct value.
-        // For now, let's map generic status to something valid or default.
-        // Schema default is 'todo'.
-
         const newTask = new Task({
             title,
             description,
             project: effectiveProjectId,
             assignedTo: assignedTo || null,
             dueDate: dueDate || deadline,
-            status: status ? status.toLowerCase().replace(' ', '-') : 'todo' // Basic mapping
+            status: status ? status.toLowerCase().replace(' ', '-') : 'todo'
         });
 
         const savedTask = await newTask.save();

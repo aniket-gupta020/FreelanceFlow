@@ -9,7 +9,6 @@ const Sidebar = ({ mobile, closeMobile, darkMode, toggleTheme, handleLogout, use
     const location = useLocation();
     const isActive = (path) => path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
 
-    // Retrieve user from localStorage if not provided via props
     const currentUser = user || (() => {
         try {
             const stored = localStorage.getItem('user');

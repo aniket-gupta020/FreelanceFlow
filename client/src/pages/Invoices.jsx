@@ -288,7 +288,7 @@ export default function Invoices() {
 
   const totalIncome = calculateTotalIncome();
 
-  // Filter Invoices: Only show invoices where I am the freelancer (creator) AND matches search
+
   const myInvoices = invoices.filter(inv => {
     if (!user || inv.freelancer?._id !== user._id) return false;
 

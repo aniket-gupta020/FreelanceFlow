@@ -1,7 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const cookieParser = require('cookie-parser'); // ✅ Import cookie-parser
+const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
 const authRoute = require('./routes/auth');
@@ -17,37 +17,37 @@ const sampleDataRoute = require('./routes/sampleData');
 
 const app = express();
 
-// 🏓 Keep-Alive Route (The Robot's Door)
+
 app.get('/ping', (req, res) => {
   res.status(200).send('Pong');
 });
 
 const PORT = process.env.PORT || 5000;
 
-// ✅ 1. TRUST PROXY (CRITICAL for Render + Cookies)
-// Without this, 'secure: true' cookies will fail because Render is a proxy.
+
+
 app.set('trust proxy', 1);
 
-// ✅ 2. CORS SETTINGS
+
 app.use(cors({
   origin: process.env.CLIENT_URL ? [process.env.CLIENT_URL, "http://localhost:5173", "http://127.0.0.1:5173"] : [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "https://freelance-flow-omega.vercel.app"
   ],
-  credentials: true, // Allow cookies to cross borders
+  credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
 app.use(express.json());
-app.use(cookieParser()); // ✅ Initialize Cookie Parser
+app.use(cookieParser());
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('✅ MongoDB Connected Successfully!'))
   .catch((err) => console.log('❌ MongoDB Connection Error:', err));
 
-// Routes
+
 app.use('/api/auth', authRoute);
 app.use('/api/projects', projectRoute);
 app.use('/api/timelogs', timelogRoute);

@@ -47,7 +47,7 @@ const Register = () => {
   const handleRegister = async (e) => {
     e.preventDefault();
     setLoading(true);
-    // Validation
+
     const nameRegex = /^[a-zA-Z\s]+$/;
     const mobileRegex = /^[0-9+\(\)\s-]+$/;
 
@@ -59,15 +59,15 @@ const Register = () => {
 
     if (mobile) {
       const digitsOnly = mobile.replace(/\D/g, '');
-      // Strict check for India (starts with 91)
+
       if (digitsOnly.startsWith('91')) {
-        if (digitsOnly.length !== 12) { // 91 + 10 digits = 12
+        if (digitsOnly.length !== 12) {
           toast.error("For India (+91), please enter exactly 10 digits.");
           setLoading(false);
           return;
         }
       } else {
-        // Generic validation for other codes
+
         if (digitsOnly.length < 11 || digitsOnly.length > 15) {
           toast.error("Invalid Mobile Number. Min 10 digits + Country Code required.");
           setLoading(false);
@@ -85,7 +85,7 @@ const Register = () => {
     try {
       const res = await api.post('/auth/register', { name, email, password, mobile });
 
-      // Store token and user data
+
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));
 
@@ -198,7 +198,7 @@ const Register = () => {
                 value={mobile}
                 onChange={(e) => {
                   const val = e.target.value;
-                  // Allow + at start, then numbers, spaces, - and ()
+
                   if (/^[+]?[0-9\s-()]*$/.test(val)) {
                     setMobile(val);
                   }

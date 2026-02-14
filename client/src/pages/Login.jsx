@@ -13,8 +13,8 @@ const LABEL_CLASSES = "block text-sm font-medium text-slate-700 dark:text-gray-3
 const BACKEND_URL = "https://freelanceflow-oy9e.onrender.com/api/auth";
 
 const Login = () => {
-  const [loginMethod, setLoginMethod] = useState('password'); // 'password' or 'otp'
-  const [step, setStep] = useState(1); // 1: Input Email, 2: Input OTP (Only for OTP Method)
+  const [loginMethod, setLoginMethod] = useState('password');
+  const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');

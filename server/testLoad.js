@@ -15,7 +15,6 @@ async function run() {
         await mongoose.connect(process.env.MONGO_URI);
         console.log("Connected to MongoDB");
 
-        // Cleanup
         console.log("Cleaning up...");
         const client = await Client.findOne({ email: SAMPLE_CLIENT_EMAIL, user: userId });
         if (client) {
@@ -29,7 +28,6 @@ async function run() {
             console.log("Cleanup done");
         }
 
-        // Test Load
         console.log("Step 1: Creating Client...");
         const savedClient = await new Client({
             name: 'AK Corp.',

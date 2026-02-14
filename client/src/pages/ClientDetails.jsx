@@ -40,7 +40,6 @@ const ClientDetails = () => {
     const [invoices, setInvoices] = useState([]);
     const [showPastInvoices, setShowPastInvoices] = useState(false);
 
-    // Fetch Invoices
     useEffect(() => {
         if (clientId) {
             api.get('/invoices')
@@ -78,7 +77,6 @@ const ClientDetails = () => {
         navigate('/login');
     };
 
-    // Fetch client data
     useEffect(() => {
         if (clientId) {
             api.get(`/clients/${clientId}`)
@@ -97,18 +95,15 @@ const ClientDetails = () => {
         }
     }, [clientId]);
 
-    // Fetch projects where this client is the client/owner
     useEffect(() => {
         if (!clientId) return;
 
         api.get('/projects').then(res => {
-            // Filter projects where the clientId matches the project's client field
             const clientProjects = res.data.filter(p => {
                 const projectClientId = p.client?._id || p.client;
                 return String(projectClientId) === String(clientId);
             });
 
-            // Sort by active/inactive
             const sortedProjects = [...clientProjects].sort((a, b) => {
                 const aActive = isProjectActive(a);
                 const bActive = isProjectActive(b);
@@ -135,7 +130,6 @@ const ClientDetails = () => {
     const handleUpdateClient = async (e) => {
         e.preventDefault();
 
-        // Validation
         const nameRegex = /^[a-zA-Z\s]+$/;
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         const phoneRegex = /^[0-9+\(\)\s-]+$/;
@@ -153,13 +147,11 @@ const ClientDetails = () => {
         }
 
         const digitsOnly = formData.phone.replace(/\D/g, '');
-        // Strict check for India (starts with 91)
         if (digitsOnly.startsWith('91')) {
-            if (digitsOnly.length !== 12) { // 91 + 10 digits = 12
+            if (digitsOnly.length !== 12) {
                 return toast.error("For India (+91), please enter exactly 10 digits.");
             }
         } else {
-            // Generic validation for other codes
             if (digitsOnly.length < 11 || digitsOnly.length > 15) {
                 return toast.error("Please enter a valid phone number (Min 10 digits + Country Code).");
             }
@@ -188,13 +180,12 @@ const ClientDetails = () => {
         try {
             const payload = {
                 ...projectFormData,
-                client: clientId  // Automatically link to current client
+                client: clientId
             };
 
             await api.post('/projects', payload);
             toast.success("Project created successfully! 🚀");
 
-            // Reset form and close modal
             setProjectFormData({
                 title: '',
                 description: '',
@@ -205,7 +196,6 @@ const ClientDetails = () => {
             });
             setShowProjectModal(false);
 
-            // Refresh projects list
             api.get('/projects').then(res => {
                 const clientProjects = res.data.filter(p => {
                     const projectClientId = p.client?._id || p.client;
@@ -295,7 +285,6 @@ const ClientDetails = () => {
                         <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
 
                         {!isEditing ? (
-                            // View Mode
                             <div className="relative z-10">
                                 <div className="flex flex-col lg:flex-row justify-between items-center lg:items-start mb-6 gap-6">
                                     <div className="flex flex-col lg:flex-row gap-6 items-center lg:items-start w-full text-center lg:text-left">
@@ -331,7 +320,6 @@ const ClientDetails = () => {
                                 </div>
                             </div>
                         ) : (
-                            // Edit Mode
                             <form onSubmit={handleUpdateClient} className="relative z-10">
                                 <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Edit Client Information</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -643,7 +631,7 @@ const ClientDetails = () => {
                     {/* Project Creation Modal */}
                     {showProjectModal && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowProjectModal(false)}>
-                            <div className={`${GLASS_CLASSES} rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto`} onClick={(e) => e.stopPropagation()}>
+                            <div className={`${GLASS_CLASSES} rounded-3xl p-6 max-w-2xl w-full max-h-[85vh] overflow-y-auto`} onClick={(e) => e.stopPropagation()}>
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-2xl font-bold text-slate-800 dark:text-white">Create New Project</h3>
                                     <button
@@ -674,7 +662,7 @@ const ClientDetails = () => {
                                         <label className={LABEL_CLASSES}>Description</label>
                                         <textarea
                                             required
-                                            rows="4"
+                                            rows="3"
                                             className={INPUT_CLASSES}
                                             value={projectFormData.description}
                                             onChange={(e) => setProjectFormData({ ...projectFormData, description: e.target.value })}

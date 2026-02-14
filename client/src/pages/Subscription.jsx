@@ -72,27 +72,27 @@ const Subscription = () => {
         ));
     };
 
-    // Handle Mock Payment & Upgrade
+
     const handleUpgrade = async () => {
         setLoading(true);
         try {
-            // 1. Simulate Payment Delay
+
             await new Promise(resolve => setTimeout(resolve, 2000));
 
-            // 2. Mock API Call to Upgrade User
+
             const expiryDate = new Date();
-            expiryDate.setDate(expiryDate.getDate() + 30); // 30 days from now
+            expiryDate.setDate(expiryDate.getDate() + 30);
 
             const res = await api.put(`/users/${user._id}`, {
                 subscription: 'pro',
                 subscriptionExpiresAt: expiryDate
             });
 
-            // 3. Update Local Storage & State
+
             const updatedUser = res.data;
             const lsData = JSON.parse(localStorage.getItem('user'));
 
-            // Handle different storage structures (some store as {user: ...} others just {...})
+
             if (lsData.user) {
                 lsData.user = updatedUser;
             } else {
@@ -101,7 +101,7 @@ const Subscription = () => {
             localStorage.setItem('user', JSON.stringify(lsData));
             setUser(updatedUser);
 
-            // 4. Success Message
+
             toast.custom((t) => (
                 <div className={`${GLASS_CLASSES} p-6 rounded-2xl max-w-sm w-full animate-in fade-in zoom-in duration-300 border-l-4 border-l-green-500`}>
                     <div className="flex items-start gap-4">
@@ -119,7 +119,7 @@ const Subscription = () => {
                 </div>
             ));
 
-            // 5. Redirect after delay
+
             const from = location.state?.from?.pathname || '/';
             setTimeout(() => navigate(from), 2000);
 

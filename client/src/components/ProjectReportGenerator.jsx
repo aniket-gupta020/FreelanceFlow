@@ -8,7 +8,6 @@ import { formatDuration } from '../utils/formatDuration';
 
 const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
     const location = useLocation();
-    // Get user from local storage safely
     const user = (() => {
         try {
             const stored = localStorage.getItem('user');
@@ -16,7 +15,6 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
         } catch (e) { return null; }
     })();
 
-    // 1. Date State
     const [startDate, setStartDate] = useState(() => {
         const d = new Date();
         d.setMonth(d.getMonth() - 1);
@@ -26,12 +24,10 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
     const [generatedReport, setGeneratedReport] = useState(null);
     const [summaryStats, setSummaryStats] = useState({ cost: 0, hours: 0, freelancers: 0 });
 
-    // Modal State
     const [selectedUser, setSelectedUser] = useState(null);
     const [selectedLogs, setSelectedLogs] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // 2. 🧮 CALCULATION LOGIC
     const handleCalculate = () => {
         if (!startDate || !endDate) return toast.error("Please select a date range");
         if (!timeLogs || timeLogs.length === 0) return toast("No time logs found", { icon: 'ℹ️' });
@@ -51,7 +47,6 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
 
             if (logDate < start || logDate > end) return;
 
-            // STRICTLY PENDING ONLY
             if (log.billed || log.status === 'paid' || log.status === 'billed') {
                 skippedCount++;
                 return;
@@ -120,8 +115,6 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
         }
     };
 
-
-
     const handleProcessPayment = async (actionType) => {
         if (selectedLogs.length === 0) return toast.error("Please select at least one log.");
 
@@ -145,7 +138,6 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
             toast.success("Bill Generated Successfully!");
             setIsModalOpen(false);
 
-            // Generate the New Futuristic PDF
             const tempInvoice = {
                 client: project.client || { name: 'Project Owner', email: 'N/A' },
                 freelancer: {

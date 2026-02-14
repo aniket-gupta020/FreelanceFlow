@@ -27,13 +27,13 @@ const ProjectDetails = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
 
-    // Modal State
+
     const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
     const [newTaskTitle, setNewTaskTitle] = useState('');
     const [newTaskDesc, setNewTaskDesc] = useState('');
     const [newTaskDeadline, setNewTaskDeadline] = useState('');
 
-    // Edit Project Modal State
+
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editFormData, setEditFormData] = useState({
         title: '',
@@ -45,7 +45,7 @@ const ProjectDetails = () => {
         deadline: ''
     });
 
-    // Time Tracking State
+
     const [manualForm, setManualForm] = useState({
         hours: '',
         minutes: '',
@@ -75,17 +75,17 @@ const ProjectDetails = () => {
             if (found) setProject(found);
         }).catch(console.error);
 
-        // Fetch Tasks
+
         api.get(`/tasks?projectId=${projectId}`).then(res => {
             const projectTasks = res.data.filter(t => t.project === projectId || (t.project && t.project._id === projectId));
             setTasks(projectTasks);
         }).catch(console.error);
 
-        // Fetch Time Logs
+
         api.get('/timelogs').then(res => {
-            // Filter logs for this project
-            // Note: Backend might not support filtering yet properly, so we filter here.
-            // Usually logs have `project` populated or as ID.
+
+
+
             const pLogs = res.data.filter(l => (l.projectId === projectId || l.project === projectId || l.project?._id === projectId));
             setTimeLogs(pLogs);
         }).catch(console.error);
@@ -98,11 +98,11 @@ const ProjectDetails = () => {
     const handleCreateTask = async (e) => {
         e.preventDefault();
 
-        // Validation: Task deadline cannot be after Project deadline
+
         if (project.deadline && newTaskDeadline) {
             const taskDate = new Date(newTaskDeadline);
             const projectDate = new Date(project.deadline);
-            // Compare dates (ignoring time for simplicity, or keep if needed)
+
             if (taskDate > projectDate) {
                 return toast.error(`Task deadline cannot be after Project deadline (${new Date(project.deadline).toLocaleDateString()})`);
             }
@@ -121,7 +121,7 @@ const ProjectDetails = () => {
             setNewTaskTitle('');
             setNewTaskDesc('');
             setNewTaskDeadline('');
-            fetchProjectData(); // Refresh list
+            fetchProjectData();
         } catch (err) {
             toast.error("Failed to add task");
             console.error(err);
@@ -208,26 +208,26 @@ const ProjectDetails = () => {
 
         if (hrs === 0 && mins === 0) return toast.error('Please enter valid time');
 
-        // Calculate total hours exactly as user expects: 1h 30m = 1.5 hours
+
         const hours = hrs + (mins / 60);
 
         if (!manualForm.description.trim()) return toast.error('Description is required');
 
-        // Validation: Cannot exceed project age (Now - StartDate/CreatedAt)
+
         if (project.createdAt || project.startDate) {
             const effectiveStart = new Date(project.startDate || project.createdAt);
             const now = new Date();
-            // Only enforce this check if the project started in the past
+
             if (now > effectiveStart) {
                 const projectAgeHours = (now - effectiveStart) / (1000 * 60 * 60);
 
-                // Allow a small buffer (e.g. 1 min) or just strict check
-                if (hours > projectAgeHours + 0.1) { // 0.1 hour buffer
+
+                if (hours > projectAgeHours + 0.1) {
                     return toast.error(`Cannot log ${hours.toFixed(2)} hours. Project is only ${projectAgeHours.toFixed(2)} hours old.`);
                 }
             }
 
-            // New Date Validation: Project Start (StartDate or CreatedAt) & Death (Deadline)
+
             const selectedDate = new Date(manualForm.date);
             selectedDate.setHours(0, 0, 0, 0);
 
@@ -344,7 +344,7 @@ const ProjectDetails = () => {
 
     const user = JSON.parse(localStorage.getItem('user'));
     const isCreator = user && (user._id === project.createdBy || user._id === project.createdBy?._id);
-    const isValidUser = isCreator; // Alias for clarity if logic expands
+    const isValidUser = isCreator;
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-orange-100 via-yellow-100 to-orange-50 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors duration-500">
@@ -553,7 +553,7 @@ const ProjectDetails = () => {
                     {/* Time Tracking Section - Visible to Creator (Owner) and others */
                         (() => {
                             const user = JSON.parse(localStorage.getItem('user'));
-                            // Removed check: if (isCreator) return null; 
+
 
                             return (
                                 <>

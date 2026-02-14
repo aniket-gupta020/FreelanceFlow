@@ -29,8 +29,6 @@ export default function UpcomingDeadlines() {
   };
 
   const handleClick = (task) => {
-    // For project deadlines, navigate using the task's _id (which is the project ID)
-    // For task deadlines, navigate using the task's project._id
     const projectId = task.isProjectDeadline ? task._id : (task.project?._id || task.project);
     if (projectId) {
       navigate(`/projects/${projectId}`);

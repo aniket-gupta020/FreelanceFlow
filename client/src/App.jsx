@@ -15,7 +15,6 @@ import ProjectDetails from './pages/ProjectDetails';
 import TimeTracker from './pages/TimeTracker';
 import Invoices from './pages/Invoices';
 import InvoiceGenerator from './pages/InvoiceGenerator';
-// import Tasks from './pages/Tasks';
 import Profile from './pages/Profile';
 import Subscription from './pages/Subscription';
 
@@ -27,7 +26,6 @@ function App() {
       setToastPosition(window.innerWidth < 768 ? 'bottom-center' : 'top-center');
     };
 
-    // Set initial position
     handleResize();
 
     window.addEventListener('resize', handleResize);

@@ -1,142 +1,167 @@
-# 🚀 **FreelanceFlow**
+# 🚀 FreelanceFlow
 
-**User and Rightholder:** *Aniket Guptaji*  
-**Year Created:** *January 2026*
+## 📖 Overview
 
----
+**FreelanceFlow** is a comprehensive, all-in-one platform designed to streamline the entire freelance lifecycle. Bridging the gap between **Project Management**, **CRM**, **Time Tracking**, and **Financial Reporting**, it empowers independent professionals to manage their business with ease and elegance.
 
-**FreelanceFlow** is a *comprehensive Freelance Marketplace and CRM application* designed to streamline the **entire freelance lifecycle**—from project inception to final invoicing. It integrates **project management**, **client interactions**, **real-time time tracking**, and **financial reporting** into a single, cohesive platform.
+Built on the robust **MERN Stack** and featuring a modern "Glassmorphism" UI, FreelanceFlow ensures a seamless, secure, and visually stunning experience from client acquisition to final invoicing.
 
----
-
-## ⚠️ **Legal Warning & Copyright Notice**
-
-> **© January 2026 Aniket Guptaji. All rights reserved.**
-
-The **source code, design, database schema, and intellectual property** contained within this repository are the **exclusive property of Aniket Guptaji**.
-
-- 🚫 **Unauthorized Cloning:** Cloning, forking, or downloading this repository without *explicit written permission* from the Rightholder is **strictly prohibited**.
-- 🔐 **Unauthorized Access:** Accessing this codebase, database, or associated APIs without authorization is a **violation of applicable cyber laws**.
-- 💼 **Commercial Use:** No part of this software may be used for commercial purposes, sold, or distributed without a **valid license agreement**.
-
-> **Any violation of these terms will be met with legal action.**
+**Live Demo:** [freelance-flow-omega.vercel.app](https://freelance-flow-omega.vercel.app)
 
 ---
 
-## 🚀 **Features**
+## 📑 Table of Contents
 
-### 💼 **Project & Client Management**
-- **Centralized Dashboard:** Real-time visual insights using `recharts` for financial health and project status.
-- **CRM:** Maintain detailed *client profiles*, *contact history*, and *project associations*.
-- **Kanban/Task System:** Organize work with a **drag-and-drop** capable task management system.
-
-### ⏱️ **Productivity Tools**
-- **Smart Time Tracking:** Integrated **stopwatch** and **manual time logging** (`Stopwatch.jsx`, `TimeTracker.jsx`).
-- **Activity Logs:** Track hours spent on specific tasks for *accurate billing*.
-
-### 💳 **Financials**
-- **Automated Invoicing:** Generate professional **PDF invoices** instantly using `jspdf` and `pdfkit`.
-- **Revenue Tracking:** Visual breakdowns of *pending* vs. *paid* invoices.
-
-### 🔒 **Security & UX**
-- **Authentication:** Secure **JWT-based login** with **Bcrypt hashing**.
-- **Antigravity UI:** Modern **"Glassmorphism"** design using **Tailwind CSS** with *backdrop-blur effects*.
-- **Global Notifications:** Non-intrusive **toast notifications** for all system actions.
+- [Features](#-features)
+- [Tech Stack](#-tech-stack)
+- [Getting Started](#-getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Running Locally](#running-locally)
+- [Project Structure](#-project-structure)
+- [Testing](#-testing)
+- [License & Legal](#-license--legal)
+- [Contact](#-contact)
 
 ---
 
-## 🛠️ **Technology Stack**
+## ✨ Features
 
-### **Client (Frontend)**
-- **Framework:** React (via Vite)
-- **Styling:** Tailwind CSS
-- **State & Routing:** React Router DOM, React Hooks
-- **Key Libraries:**
-  - `axios` (API Requests)
-  - `lucide-react` (Iconography)
-  - `react-hot-toast` (Notifications)
-  - `recharts` (Data Visualization)
-  - `jspdf` (Client-side PDF generation)
-
-### **Server (Backend)**
-- **Runtime:** Node.js
-- **Framework:** Express.js
-- **Database:** MongoDB (Atlas/Local) with Mongoose ODM
-- **Security:** `jsonwebtoken` (JWT), `bcryptjs`, `cors`
-- **Utilities:** `pdfkit` (Server-side PDF), `faker` (Data Seeding)
+- **📊 Smart Dashboard**: Real-time insights into active projects, total clients, and revenue via interactive charts.
+- **👥 CRM System**: Complete client lifecycle management with detailed history and project linking.
+- **⏱️ Precision Time Tracking**: Integrated stopwatch and manual logging for accurate billing.
+- **💰 Automated Invoicing**: One-click PDF generation with "Mark as Paid" tracking.
+- **📱 Mobile-First Design**: Fully responsive UI with sidebar-to-hamburger navigation.
+- **🔐 Secure Authentication**: JWT-based auth with session management.
+- **📈 Tiered Access**: Logic for Free vs. Pro plans (Freemium model).
 
 ---
 
-## � **Project Structure**
+## 🛠 Tech Stack
 
-```bash
-FreelanceFlow/
-├── client/                 # Frontend React Application
-│   ├── src/
-│   │   ├── components/     # Reusable UI (FinancialDashboard, Stopwatch, etc.)
-│   │   ├── pages/          # Full Views (Dashboard, Invoices, Clients)
-│   │   ├── api.js          # Centralized Axios Configuration
-│   │   └── App.jsx         # Main Entry & Routing
-│   └── ...
-└── server/                 # Backend Node/Express Application
-    ├── models/             # Mongoose Schemas (Invoice, Project, User)
-    ├── routes/             # API Endpoints
-    ├── middleware/         # Auth & Validation
-    └── index.js            # Server Entry 
-```
+### Frontend (Client)
+- **Framework**: React (Vite)
+- **Styling**: Tailwind CSS (Glassmorphism & Backdrop-blur)
+- **State & Routing**: React Router DOM, React Hooks, Axios
+- **Visualization**: Recharts
+- **PDF Engine**: jspdf (Client-side generation)
+
+### Backend (Server)
+- **Runtime**: Node.js & Express.js
+- **Database**: MongoDB Atlas (Mongoose ODM)
+- **Security**: JWT, Bcrypt, CORS
+- **Hosting**: Render (Backend), Vercel (Frontend)
 
 ---
 
-## ⚡ **Getting Started**
+## 🚀 Getting Started
 
-### **1. Server Setup**
-Navigate to the server directory and install dependencies:
+Follow these instructions to set up the project locally.
 
-```bash
-cd server
-npm install
-```
+### Prerequisites
+- **Node.js** (v14 or higher)
+- **MongoDB** (Local or Atlas connection string)
+- **Git**
 
-Create a `.env` file in the server root directory:
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/aniket-guptaji/FreelanceFlow.git
+   cd FreelanceFlow
+   ```
+
+2. **Install Backend Dependencies**
+   ```bash
+   cd server
+   npm install
+   ```
+
+3. **Install Frontend Dependencies**
+   ```bash
+   cd ../client
+   npm install
+   ```
+
+### Environment Variables
+
+Create a `.env` file in the `server` directory with the following variables:
 
 ```env
 PORT=5000
 MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_secure_jwt_secret
+JWT_SECRET=your_jwt_secret_key
+# Add other backend variables as needed
 ```
 
-Start the backend:
+*(Optional)* Create a `.env` file in the `client` directory if you want to override the API URL:
 
-```bash
-npm run dev
+```env
+VITE_API_URL=http://localhost:5000/api
 ```
 
-### **2. Client Setup**
-Open a new terminal, navigate to the client directory, and install dependencies:
+### Running Locally
 
-```bash
-cd client
-npm install
-```
+1. **Start the Backend Server**
+   ```bash
+   cd server
+   npm run dev
+   # Server runs on http://localhost:5000
+   ```
 
-Start the Vite development server:
-
-```bash
-npm run dev
-```
-
-The application will launch at `http://localhost:5173` (or your configured port).
+2. **Start the Frontend Client**
+   ```bash
+   cd client
+   npm run dev
+   # Client runs on http://localhost:5173 (usually)
+   ```
 
 ---
 
-## 📬 **Contact & Support**
+## 📂 Project Structure
 
-For **licensing inquiries**, **permissions**, or **support**, please contact the developer directly:
+```bash
+FreelanceFlow/
+├── client/                 # React + Vite Frontend
+│   ├── src/
+│   │   ├── components/     # UI Components (Stopwatch, Charts, etc.)
+│   │   ├── pages/          # Page Views (Dashboard, Invoices, Profile)
+│   │   └── api.js          # Axios Configuration
+│   └── public/             # Static Assets
+└── server/                 # Node.js + Express Backend
+    ├── models/             # Mongoose Schemas (User, Client, Project)
+    ├── routes/             # API Routes
+    ├── controllers/        # Request Handlers
+    └── middleware/         # Auth & Validation
+```
 
-- 👤 **Developer:** [Aniket Guptaji](https://ianiket.netlify.app)
-- 🌐 **Portfolio:** [ianiket.netlify.app](https://ianiket.netlify.app)
-- 🔗 **LinkedIn:** [linkedin.com/in/aniket-guptaji](https://linkedin.com/in/aniket-guptaji)
-- 📧 **Email:** [mail.akguptaji@gmail.com](mailto:mail.akguptaji@gmail.com)
-- 📱 **Mobile:** +91 74149 08640
+---
 
-> **© 2026 Aniket Guptaji.**
+## 🧪 Testing
+
+To verify the system functionality, please refer to the detailed [Testing Guide](TESTING.md).
+
+- **Load Sample Data**: Use the "Load Sample Data" button on the Dashboard.
+- **Auth Flow**: Test registration, login, and token persistence.
+- **Core Features**: Subscription limits, Project logic, and Invoicing accuracy.
+
+---
+
+## ⚠️ License & Legal
+
+**© 2026 Aniket Guptaji. All rights reserved.**
+
+The source code, database schema, and UI design are the **exclusive property** of Aniket Guptaji.
+
+- **Unauthorized Cloning/Forking** is strictly prohibited.
+- **Commercial Use** without a valid license will result in legal action.
+
+---
+
+## 📬 Contact
+
+For licensing inquiries or technical support:
+
+- **Developer**: Aniket Guptaji
+- **LinkedIn**: [aniket-guptaji](https://linkedin.com/in/aniket-guptaji)
+- **Email**: mail.akguptaji@gmail.com

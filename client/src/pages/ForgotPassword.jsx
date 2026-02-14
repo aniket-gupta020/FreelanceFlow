@@ -4,7 +4,7 @@ import { toast } from 'react-hot-toast';
 import { useNavigate, Link } from 'react-router-dom';
 import { LayoutDashboard, Mail, Lock, ArrowRight, Sun, Moon, KeyRound } from 'lucide-react';
 
-// 🎨 DESIGN SYSTEM CONSTANTS (Matches Login/Register)
+
 const GLASS_CLASSES = "bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl shadow-orange-500/10";
 const INPUT_GROUP = "relative flex items-center group";
 const INPUT_ICON = "absolute left-3 w-5 h-5 text-gray-400 group-focus-within:text-orange-500 dark:group-focus-within:text-yellow-400 transition-colors";
@@ -21,7 +21,7 @@ const ForgotPassword = () => {
     const [newPassword, setNewPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // Theme Management
+
     const [darkMode, setDarkMode] = useState(() => {
         if (localStorage.getItem('theme')) return localStorage.getItem('theme') === 'dark';
         return window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -48,7 +48,7 @@ const ForgotPassword = () => {
         });
     };
 
-    // Step 1: Send OTP
+
     const handleSendOtp = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -63,7 +63,7 @@ const ForgotPassword = () => {
         }
     };
 
-    // Step 2: Reset Password
+
     const handleResetPassword = async (e) => {
         e.preventDefault();
         setLoading(true);
