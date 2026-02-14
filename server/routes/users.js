@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const User = require('../models/User');
 const verifyToken = require('../middleware/verifyToken');
+const { sendEmail } = require('../utils/emailService');
 
 router.get('/', async (req, res) => {
   try {
@@ -20,6 +21,50 @@ router.get('/:id', async (req, res) => {
     res.status(200).json(user);
   } catch (err) {
     res.status(500).json(err);
+  }
+});
+
+// NEW: Request Verification OTP (Authenticated Only)
+router.post('/send-verification', verifyToken, async (req, res) => {
+  try {
+    let { email, type } = req.body;
+    const userId = req.user.id;
+
+    if (type === 'update_email' && !email) {
+      return res.status(400).json({ message: "New email is required for verification." });
+    }
+
+    if (email) email = email.trim().toLowerCase();
+
+    // 1. Check if new email is already taken by someone else
+    if (type === 'update_email') {
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({ message: "This email is already in use by another account." });
+      }
+    }
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // 2. Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    user.otp = otp;
+    user.otpExpires = otpExpires;
+    await user.save();
+
+    // 3. Send Email to the NEW address (or current if just verifying action)
+    const targetEmail = (type === 'update_email') ? email : user.email;
+
+    await sendEmail(targetEmail, otp, type || 'profile_update');
+
+    res.status(200).json({ message: `Verification code sent to ${targetEmail}` });
+
+  } catch (err) {
+    console.error("❌ SEND VERIFICATION ERROR:", err);
+    res.status(500).json({ message: 'Failed to send verification email', error: err.message });
   }
 });
 

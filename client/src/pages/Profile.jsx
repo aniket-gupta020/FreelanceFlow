@@ -119,10 +119,13 @@ const Profile = () => {
         setIsSensitiveChange(true);
         setOtpAction('update');
         setShowOtpModal(true);
-        // Send OTP immediately
+
+        // Send OTP using new endpoint that supports email change verification
         const type = isEmailChanged ? 'update_email' : 'profile_update';
-        await api.post('/auth/send-otp', { email: user.email, type });
-        toast.success(`OTP sent to ${user.email} for verification`);
+        const targetEmail = isEmailChanged ? formData.email : user.email;
+
+        await api.post('/users/send-verification', { email: targetEmail, type });
+        toast.success(`OTP sent to ${targetEmail} for verification`);
         return;
       }
 
@@ -350,7 +353,7 @@ const Profile = () => {
             <div className="lg:col-span-1">
               <div className={`${GLASS_CLASSES} rounded-3xl p-8 text-center sticky top-8`}>
                 <div className="w-28 h-28 bg-gradient-to-br from-orange-500 to-yellow-500 rounded-full mx-auto flex items-center justify-center text-white dark:text-black text-4xl font-bold mb-4 shadow-lg">
-                  {user.name.charAt(0).toUpperCase()}
+                  <User className="w-14 h-14" />
                 </div>
                 <h2 className="text-xl font-bold text-slate-800 dark:text-white">{user.name}</h2>
                 <p className="select-text cursor-text text-slate-500 dark:text-gray-400 mb-4 break-all">{user.email}</p>

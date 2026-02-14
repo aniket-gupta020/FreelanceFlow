@@ -23,8 +23,8 @@ export default function FinancialDashboard() {
   };
 
   const processData = (allInvoices) => {
-    // For financials, if API returns data in specific structure, we handle it here.
-    // The API might return `{ received: [], sent: [] }`, so we extract the array.
+
+
 
     const invoices = Array.isArray(allInvoices) ? allInvoices : (allInvoices.received || []);
 
@@ -48,7 +48,7 @@ export default function FinancialDashboard() {
     setOutstandingData(outData);
   };
 
-  // Calculate min and max for outstanding payments
+
   const minOutstanding = outstandingData.length > 0
     ? Math.min(...outstandingData.map(d => d.amount))
     : 0;
@@ -56,7 +56,7 @@ export default function FinancialDashboard() {
     ? Math.max(...outstandingData.map(d => d.amount))
     : 0;
 
-  // Calculate min and max for monthly revenue
+
   const minRevenue = revenueData.length > 0
     ? Math.min(...revenueData.map(d => d.amount))
     : 0;

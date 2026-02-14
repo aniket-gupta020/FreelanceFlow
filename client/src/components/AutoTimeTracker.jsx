@@ -5,11 +5,11 @@ const AutoTimeTracker = ({ projectId, onSave }) => {
     const [elapsed, setElapsed] = useState(0);
     const startTimeRef = useRef(null);
     const intervalRef = useRef(null);
-    // Use a ref to track if we've already saved to prevent double-saving on strict mode or weird unmounts
+
     const hasSavedRef = useRef(false);
 
     useEffect(() => {
-        // 1. Auto Start on Mount
+
         startTimeRef.current = new Date();
         hasSavedRef.current = false;
 
@@ -17,19 +17,19 @@ const AutoTimeTracker = ({ projectId, onSave }) => {
             setElapsed(prev => prev + 1);
         }, 1000);
 
-        // Function to save log
+
         const saveLog = () => {
             if (hasSavedRef.current || !startTimeRef.current || !projectId) return;
 
             const endTime = new Date();
             const durationMs = endTime - startTimeRef.current;
 
-            // Only save if duration is meaningful (e.g. > 5 seconds) to avoid accidental refresh spam
+
             if (durationMs < 5000) return;
 
-            hasSavedRef.current = true; // Mark as saved
+            hasSavedRef.current = true;
 
-            // Construct payload
+
             const payload = {
                 projectId,
                 startTime: startTimeRef.current.toISOString(),
@@ -38,11 +38,11 @@ const AutoTimeTracker = ({ projectId, onSave }) => {
             };
 
             const token = localStorage.getItem('token');
-            // Using the hardcoded URL from api.js since we can't easily access the axios instance base URL here without importing it, 
-            // and we need standard fetch for keepalive.
+
+
             const url = 'https://freelanceflow-oy9e.onrender.com/api/timelogs';
 
-            // Use fetch with keepalive for reliable exit saving
+
             fetch(url, {
                 method: 'POST',
                 headers: {
@@ -60,22 +60,22 @@ const AutoTimeTracker = ({ projectId, onSave }) => {
             saveLog();
         };
 
-        // 2. Auto Save on Unmount (Component unmount)
+
         return () => {
             clearInterval(intervalRef.current);
             saveLog();
         };
 
-        // 3. Handle Tab Close / Refresh
-        // 'beforeunload' is for prompting validation, 'visibilitychange' or 'pagehide' is better for saving.
-        // 'pagehide' is reliable.
+
+
+
         window.addEventListener('pagehide', handleUnload);
         return () => {
             window.removeEventListener('pagehide', handleUnload);
         };
     }, [projectId]);
 
-    // Format time helper
+
     const formatTime = (seconds) => {
         const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
         const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
