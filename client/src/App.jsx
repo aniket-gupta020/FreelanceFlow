@@ -16,6 +16,7 @@ import Invoices from './pages/Invoices';
 import InvoiceGenerator from './pages/InvoiceGenerator';
 // import Tasks from './pages/Tasks';
 import Profile from './pages/Profile';
+import Subscription from './pages/Subscription';
 
 function App() {
   return (
@@ -84,6 +85,7 @@ function App() {
         <Route path="/invoices/edit/:id" element={<InvoiceGenerator />} />
         {/* <Route path="/tasks" element={<Tasks />} />  <-- Removed global tasks route */}
         <Route path="/profile" element={<Profile />} />
+        <Route path="/subscription" element={<Subscription />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />

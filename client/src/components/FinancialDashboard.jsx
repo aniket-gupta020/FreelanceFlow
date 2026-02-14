@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import api from '../api';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { Link } from 'react-router-dom';
+import { Lock, TrendingUp } from 'lucide-react';
 import { formatCurrency } from '../utils/formatCurrency';
 
 const GLASS_CLASSES = "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-xl";
 
-export default function FinancialDashboard() {
+export default function FinancialDashboard({ user }) {
   const [revenueData, setRevenueData] = useState([]);
   const [outstandingData, setOutstandingData] = useState([]);
 
@@ -185,6 +187,39 @@ export default function FinancialDashboard() {
       {revenueData.length === 0 && outstandingData.length === 0 && (
         <div className={`${GLASS_CLASSES} rounded-3xl p-8 text-center lg:col-span-2`}>
           <p className="text-slate-600 dark:text-gray-400">No invoices yet. Create and submit invoices to see financial data.</p>
+        </div>
+      )}
+
+      {/* Advanced Forecasting Teaser (Pro Feature) */}
+      {(user?.subscription !== 'pro' && user?.plan !== 'pro') && (
+        <div className={`lg:col-span-2 ${GLASS_CLASSES} rounded-3xl p-6 relative overflow-hidden`}>
+          <div className="absolute inset-0 bg-white/50 dark:bg-black/50 backdrop-blur-md z-10 flex flex-col items-center justify-center text-center p-6">
+            <div className="p-4 bg-orange-100 dark:bg-orange-500/20 rounded-full mb-4">
+              <Lock className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Unlock Financial Forecasting</h3>
+            <p className="text-slate-600 dark:text-gray-400 mb-6 max-w-md">
+              Upgrade to Pro to see 6-month revenue value projections and cash flow analysis.
+            </p>
+            <Link
+              to="/subscription"
+              className="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-xl font-bold shadow-lg hover:shadow-orange-500/20 active:scale-95 transition-all"
+            >
+              Unlock Analytics
+            </Link>
+          </div>
+
+          <div className="opacity-50 pointer-events-none filter blur-sm select-none">
+            <div className="flex items-center gap-2 mb-6">
+              <TrendingUp className="w-5 h-5 text-emerald-500" />
+              <h3 className="font-bold text-slate-800 dark:text-white">Revenue Forecast</h3>
+            </div>
+            <div className="h-40 w-full bg-gradient-to-t from-emerald-500/20 to-transparent rounded-xl flex items-end justify-between px-4 pb-2">
+              {[40, 60, 45, 70, 65, 80].map((h, i) => (
+                <div key={i} className="w-8 bg-emerald-500/30 rounded-t-lg" style={{ height: `${h}%` }}></div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </div>

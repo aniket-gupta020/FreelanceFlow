@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   IndianRupee,
   Trash2, Menu, X, LogOut, Download,
-  Send, CheckCircle, ArrowDownCircle
+  Send, CheckCircle, ArrowDownCircle, Lock
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import LoadingPage from '../components/LoadingPage';
@@ -35,7 +35,7 @@ const InvoiceStatusBadge = ({ status }) => {
   );
 };
 
-const InvoiceItemRender = ({ invoice, handleDelete, handleStatusChange, setSelectedInvoice, setShowDetails, handlePrint }) => (
+const InvoiceItemRender = ({ invoice, handleDelete, handleStatusChange, setSelectedInvoice, setShowDetails, handlePrint, user }) => (
   <div
     className={`${GLASS_CLASSES} p-6 rounded-2xl ${CARD_HOVER} cursor-pointer border-l-4 border-l-orange-500 animate-fade-in-up`}
     onClick={() => {
@@ -81,9 +81,9 @@ const InvoiceItemRender = ({ invoice, handleDelete, handleStatusChange, setSelec
               e.stopPropagation();
               handlePrint(invoice);
             }}
-            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-slate-600 dark:text-white rounded-lg transition text-xs font-medium flex items-center gap-1"
+            className={`px-3 py-1.5 ${user?.subscription === 'pro' ? 'bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-slate-600 dark:text-white' : 'bg-gray-100 text-gray-400 cursor-not-allowed'} rounded-lg transition text-xs font-medium flex items-center gap-1`}
           >
-            <Download className="w-3 h-3" /> PDF
+            {user?.subscription === 'pro' ? <Download className="w-3 h-3" /> : <Lock className="w-3 h-3" />} PDF
           </button>
 
           {invoice.status === 'draft' && (
@@ -201,6 +201,41 @@ export default function Invoices() {
   };
 
   const handlePrint = (invoice) => {
+    if (user?.subscription !== 'pro') {
+      toast.custom((t) => (
+        <div className={`${GLASS_CLASSES} p-6 rounded-2xl max-w-sm w-full animate-in fade-in zoom-in duration-300`}>
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-gradient-to-br from-orange-500 to-yellow-500 rounded-full text-white shadow-lg shadow-orange-500/30">
+              <Lock className="w-6 h-6" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-slate-800 dark:text-white mb-1">Pro Feature</h3>
+              <p className="text-sm text-slate-600 dark:text-gray-400 mb-4">
+                Upgrade to Pro to generate professional PDF invoices.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    toast.dismiss(t.id);
+                    navigate('/subscription');
+                  }}
+                  className={`flex-1 px-4 py-2 ${ACCENT_BG} rounded-xl font-bold text-sm transition-all shadow-lg active:scale-95`}
+                >
+                  Upgrade Now
+                </button>
+                <button
+                  onClick={() => toast.dismiss(t.id)}
+                  className="flex-1 px-4 py-2 bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-white/20 rounded-xl font-medium text-sm transition-colors"
+                >
+                  Later
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ));
+      return;
+    }
     generateInvoicePDF(invoice);
   };
 
@@ -352,6 +387,7 @@ export default function Invoices() {
                       setSelectedInvoice={setSelectedInvoice}
                       setShowDetails={setShowDetails}
                       handlePrint={handlePrint}
+                      user={user}
                     />
                   ))
                 )}
@@ -440,9 +476,9 @@ export default function Invoices() {
                 <div className="flex gap-3 justify-end pt-4 border-t border-white/10">
                   <button
                     onClick={() => handlePrint(selectedInvoice)}
-                    className={`${BUTTON_BASE} ${ACCENT_BG}`}
+                    className={`${BUTTON_BASE} ${user?.subscription === 'pro' ? ACCENT_BG : 'bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed'}`}
                   >
-                    <Download className="w-5 h-5" />
+                    {user?.subscription === 'pro' ? <Download className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
                     Print / PDF
                   </button>
                   <button

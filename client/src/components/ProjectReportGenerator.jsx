@@ -1,11 +1,20 @@
 import React, { useState } from 'react';
-import { PieChart, Calculator, Calendar, Users, IndianRupee, Clock, Eye, CheckCircle, X } from 'lucide-react';
+import { PieChart, Calculator, Calendar, Users, IndianRupee, Clock, Eye, CheckCircle, X, Zap } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { Link } from 'react-router-dom';
 import api from '../api';
 import { generateInvoicePDF } from './pdfGenerator';
 import { formatDuration } from '../utils/formatDuration';
 
 const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
+    // Get user from local storage safely
+    const user = (() => {
+        try {
+            const stored = localStorage.getItem('user');
+            return stored ? JSON.parse(stored).user || JSON.parse(stored) : null;
+        } catch (e) { return null; }
+    })();
+
     // 1. Date State
     const [startDate, setStartDate] = useState(() => {
         const d = new Date();
@@ -168,6 +177,17 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
             <div className="relative overflow-hidden rounded-3xl backdrop-blur-xl bg-white/40 dark:bg-black/40 border border-white/50 dark:border-white/10 shadow-2xl transition-all duration-300 mb-8">
                 {/* Top Gradient Line */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 via-yellow-500 to-orange-600"></div>
+
+                {/* Pro Ad Banner */}
+                {(user?.subscription !== 'pro' && user?.plan !== 'pro') && (
+                    <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-3 flex justify-between items-center text-sm">
+                        <div className="flex items-center gap-2">
+                            <Zap className="w-4 h-4 text-orange-400" />
+                            <span className="font-medium">Get detailed PDF exports with Pro</span>
+                        </div>
+                        <Link to="/subscription" className="text-orange-400 font-bold hover:underline">Upgrade</Link>
+                    </div>
+                )}
 
                 <div className="p-8">
                     {/* Header */}

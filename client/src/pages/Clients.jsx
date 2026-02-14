@@ -24,7 +24,7 @@ const Clients = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   // NEW STATE FOR FREELANCERS
-  const [userPlan, setUserPlan] = useState('free');
+  const [userSubscription, setUserSubscription] = useState('free');
   const [showAddClientModal, setShowAddClientModal] = useState(false);
   const [newClient, setNewClient] = useState({ name: '', email: '', phone: '+91 ' });
   const [searchQuery, setSearchQuery] = useState('');
@@ -134,7 +134,7 @@ const Clients = () => {
           setDeletedClients(deleted);
           setAllProjects(allProjects); // Save for later checks
 
-          setUserPlan(resUser.data.plan || 'free');
+          setUserSubscription(resUser.data.subscription || resUser.data.plan || 'free');
           setLoading(false);
         })
         .catch(err => {
@@ -257,7 +257,7 @@ const Clients = () => {
 
   // CALCULATE LIMITS
   const clientCount = activeClients.length + pastClients.length + deletedClients.length; // Count ALL clients including deleted ones
-  const isLimitReached = isFreelancer && userPlan === 'free' && clientCount >= 2;
+  const isLimitReached = isFreelancer && userSubscription === 'free' && clientCount >= 2;
 
   const handleDeleteClient = async (e, clientId) => {
     e.stopPropagation();

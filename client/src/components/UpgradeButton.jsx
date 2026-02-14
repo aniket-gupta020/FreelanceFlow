@@ -1,62 +1,21 @@
-import React, { useState } from 'react';
-import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const UpgradeButton = () => {
-    const [loading, setLoading] = useState(false);
-
-    const handleFakePayment = async () => {
-        // 1. Start the "Fake" Processing
-        setLoading(true);
-
-        // 2. Simulate a 2-second delay (like a real bank)
-        setTimeout(async () => {
-            try {
-                const token = localStorage.getItem('token');
-                const config = {
-                    headers: { 'x-auth-token': token }
-                };
-
-                // 3. Call the backend to flip the switch
-                const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://freelanceflow-oy9e.onrender.com';
-                const res = await axios.post(
-                    `${API_URL}/api/payment/fake-verify`,
-                    {},
-                    config
-                );
-
-                if (res.data.success) {
-                    alert("🎉 Payment Successful! Welcome to Pro Plan.");
-                    window.location.reload(); // Refresh to unlock features
-                }
-
-            } catch (err) {
-                console.error(err);
-                alert("Payment Failed. Try again.");
-                setLoading(false);
-            }
-        }, 2000); // 2000ms = 2 seconds delay
-    };
+    const navigate = useNavigate();
 
     return (
-        <div className="p-4 border rounded-lg shadow-xl bg-gradient-to-r from-orange-500 to-yellow-600 text-white text-center hover:scale-105 transition-transform duration-300">
-            <h3 className="text-xl font-bold mb-2">Upgrade to Pro 🚀</h3>
-            <p className="mb-4 text-sm opacity-90">Unlimited Clients & PDF Invoices for just ₹1/mo</p>
+        <div className="p-6 border rounded-2xl shadow-xl bg-gradient-to-r from-orange-500 to-yellow-600 text-white text-center hover:scale-[1.02] transition-transform duration-300 relative overflow-hidden group">
+            <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <h3 className="text-2xl font-bold mb-2 relative z-10">Limit Reached 🚀</h3>
+            <p className="mb-6 text-sm opacity-90 relative z-10 max-w-sm mx-auto">
+                You've hit the limit of 2 clients on the Free plan. Upgrade to <b>Pro</b> for unlimited clients and PDF invoices.
+            </p>
 
             <button
-                onClick={handleFakePayment}
-                disabled={loading}
-                className={`px-6 py-2 rounded-full font-bold transition-all shadow-lg ${loading
-                    ? "bg-gray-400 cursor-wait"
-                    : "bg-white text-orange-600 hover:bg-gray-100 hover:scale-110"
-                    }`}
+                onClick={() => navigate('/subscription')}
+                className="px-8 py-3 rounded-xl font-bold transition-all shadow-lg bg-white text-orange-600 hover:bg-orange-50 hover:scale-105 active:scale-95 relative z-10"
             >
-                {loading ? (
-                    <span className="flex items-center justify-center">
-                        🔄 Processing...
-                    </span>
-                ) : (
-                    "⚡ Upgrade Now (Demo)"
-                )}
+                ⚡ Upgrade Now
             </button>
         </div>
     );

@@ -488,6 +488,29 @@ const Dashboard = () => {
             </button>
           </header>
 
+          {(user?.subscription !== 'pro' && user?.plan !== 'pro') && (
+            <div className="mb-8 p-6 rounded-3xl bg-gradient-to-r from-slate-900 to-slate-800 text-white relative overflow-hidden shadow-xl shadow-slate-900/10 animate-fade-in-up">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500 rounded-full blur-[100px] opacity-20 -mr-16 -mt-16 pointer-events-none"></div>
+              <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Pro Tip</span>
+                    <h3 className="text-xl font-bold">Unlock Full Potential</h3>
+                  </div>
+                  <p className="text-slate-300 max-w-xl">
+                    Get unlimited clients, professional PDF invoices, and advanced analytics with FreelanceFlow Pro.
+                  </p>
+                </div>
+                <Link
+                  to="/subscription"
+                  className="px-6 py-3 bg-white text-slate-900 rounded-xl font-bold hover:bg-orange-50 transition-colors shadow-lg active:scale-95 flex items-center gap-2"
+                >
+                  View Plans <ChevronRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <StatCard title="Active Projects" value={activeMyProjects.length} subtext="Currently active" type="emerald" icon={Briefcase} />
             <StatCard title="Owned Projects" value={myProjects.length} subtext="Total owned" type="blue" icon={LayoutDashboard} />
@@ -561,7 +584,7 @@ const Dashboard = () => {
           )}
 
           <div className="mt-8 flex flex-col gap-8 pb-8">
-            <FinancialDashboard />
+            <FinancialDashboard user={user} />
             <UpcomingDeadlines />
 
           </div>

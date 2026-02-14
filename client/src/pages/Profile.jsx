@@ -5,7 +5,7 @@ import api from '../api';
 import {
   LayoutDashboard, Users, Clock, IndianRupee, Menu, X,
   Sun, Moon, LogOut, User, Mail, Save, Trash2, CheckSquare, Lock, Key,
-  ChevronDown, ChevronUp
+  ChevronDown, ChevronUp, CreditCard, Zap
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import LoadingPage from '../components/LoadingPage';
@@ -141,6 +141,54 @@ const Profile = () => {
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to update profile");
     }
+  };
+
+  const handleDowngrade = async () => {
+    toast.custom((t) => (
+      <div className={`${GLASS_CLASSES} p-6 rounded-2xl max-w-sm w-full animate-in fade-in zoom-in duration-300`}>
+        <div className="flex items-start gap-4">
+          <div className="p-3 bg-orange-100 dark:bg-yellow-500/20 rounded-full">
+            <CreditCard className="w-6 h-6 text-orange-600 dark:text-yellow-400" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-bold text-slate-800 dark:text-white mb-1">Cancel Subscription?</h3>
+            <p className="text-sm text-slate-600 dark:text-gray-400 mb-4">
+              You will lose access to unlimited clients and PDF invoices. You will be downgraded to the <b>Free</b> plan immediately.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={async () => {
+                  toast.dismiss(t.id);
+                  try {
+                    const res = await api.put(`/users/${user._id}`, { subscription: 'free' });
+
+                    const lsUser = JSON.parse(localStorage.getItem('user'));
+                    if (lsUser.user) lsUser.user = res.data;
+                    else Object.assign(lsUser, res.data);
+
+                    localStorage.setItem('user', JSON.stringify(lsUser));
+                    setUser(res.data);
+                    toast.success("Subscription cancelled. You are now on the Free plan.");
+                  } catch (err) {
+                    console.error(err);
+                    toast.error("Failed to cancel subscription");
+                  }
+                }}
+                className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium text-sm transition-colors"
+              >
+                Confirm Cancel
+              </button>
+              <button
+                onClick={() => toast.dismiss(t.id)}
+                className="flex-1 px-4 py-2 bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-white/20 rounded-xl font-medium text-sm transition-colors"
+              >
+                Keep Pro
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    ));
   };
 
   const handleVerifyAndSave = async () => {
@@ -501,6 +549,48 @@ const Profile = () => {
                   </button>
                 </div>
               </form>
+
+              {/* Subscription Management Section */}
+              <div className={`${GLASS_CLASSES} rounded-3xl p-8 mt-8`}>
+                <div className="flex items-center gap-3 mb-6 border-b border-white/20 pb-4">
+                  <div className="p-2 bg-orange-100 dark:bg-yellow-500/20 rounded-lg">
+                    <CreditCard className="w-6 h-6 text-orange-600 dark:text-yellow-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-white">Subscription</h3>
+                    <p className="text-sm text-slate-500 dark:text-gray-400">Manage your billing and plan</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between bg-slate-50 dark:bg-white/5 p-4 rounded-2xl border border-white/10">
+                  <div>
+                    <div className="text-sm text-slate-500 dark:text-gray-400 mb-1">Current Plan</div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-2xl font-bold ${user.subscription === 'pro' ? 'text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-yellow-500' : 'text-slate-700 dark:text-white'}`}>
+                        {user.subscription === 'pro' ? 'Pro Plan' : 'Free Plan'}
+                      </span>
+                      {user.subscription === 'pro' && <Zap className="w-5 h-5 text-yellow-500 fill-yellow-500" />}
+                    </div>
+                  </div>
+
+                  {user.subscription === 'pro' ? (
+                    <button
+                      onClick={handleDowngrade}
+                      className="px-4 py-2 text-sm font-medium text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors"
+                    >
+                      Cancel Subscription
+                    </button>
+                  ) : (
+                    <Link
+                      to="/subscription"
+                      className="px-6 py-2 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-all text-sm"
+                    >
+                      Upgrade to Pro
+                    </Link>
+                  )}
+                </div>
+              </div>
+
             </div>
 
           </div>
