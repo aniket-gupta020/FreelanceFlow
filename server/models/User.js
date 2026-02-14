@@ -49,6 +49,10 @@ const UserSchema = new mongoose.Schema({
     enum: ['free', 'pro'],
     default: 'free'
   },
+  subscriptionExpiresAt: {
+    type: Date,
+    default: null
+  },
   isVerified: {
     type: Boolean,
     default: false

@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { PieChart, Calculator, Calendar, Users, IndianRupee, Clock, Eye, CheckCircle, X, Zap } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import api from '../api';
 import { generateInvoicePDF } from './pdfGenerator';
 import { formatDuration } from '../utils/formatDuration';
 
 const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
+    const location = useLocation();
     // Get user from local storage safely
     const user = (() => {
         try {
@@ -185,7 +186,7 @@ const ProjectReportGenerator = ({ project, timeLogs, onRefresh }) => {
                             <Zap className="w-4 h-4 text-orange-400" />
                             <span className="font-medium">Get detailed PDF exports with Pro</span>
                         </div>
-                        <Link to="/subscription" className="text-orange-400 font-bold hover:underline">Upgrade</Link>
+                        <Link to="/subscription" state={{ from: location }} className="text-orange-400 font-bold hover:underline">Upgrade</Link>
                     </div>
                 )}
 

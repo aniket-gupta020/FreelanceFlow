@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import api from '../api';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   IndianRupee,
   Trash2, Menu, X, LogOut, Download,
@@ -135,6 +135,7 @@ export default function Invoices() {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [darkMode, setDarkMode] = useState(() => {
     if (localStorage.getItem('theme')) return localStorage.getItem('theme') === 'dark';
@@ -217,7 +218,7 @@ export default function Invoices() {
                 <button
                   onClick={() => {
                     toast.dismiss(t.id);
-                    navigate('/subscription');
+                    navigate('/subscription', { state: { from: location } });
                   }}
                   className={`flex-1 px-4 py-2 ${ACCENT_BG} rounded-xl font-bold text-sm transition-all shadow-lg active:scale-95`}
                 >

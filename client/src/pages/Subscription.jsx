@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Check, Star, Zap, Shield, IndianRupee, ArrowRight, Loader2, X, LogOut, Moon, Sun } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Check, Star, Zap, Shield, IndianRupee, ArrowRight, Loader2, X, LogOut, Moon, Sun, Menu } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../api';
 import Sidebar from '../components/Sidebar';
@@ -10,7 +10,9 @@ const ACCENT_GRADIENT = "bg-gradient-to-r from-orange-500 to-yellow-500 hover:fr
 
 const Subscription = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [loading, setLoading] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [user, setUser] = useState(() => {
         try {
             const stored = localStorage.getItem('user');
@@ -78,7 +80,13 @@ const Subscription = () => {
             await new Promise(resolve => setTimeout(resolve, 2000));
 
             // 2. Mock API Call to Upgrade User
-            const res = await api.put(`/users/${user._id}`, { subscription: 'pro' });
+            const expiryDate = new Date();
+            expiryDate.setDate(expiryDate.getDate() + 30); // 30 days from now
+
+            const res = await api.put(`/users/${user._id}`, {
+                subscription: 'pro',
+                subscriptionExpiresAt: expiryDate
+            });
 
             // 3. Update Local Storage & State
             const updatedUser = res.data;
@@ -112,7 +120,8 @@ const Subscription = () => {
             ));
 
             // 5. Redirect after delay
-            setTimeout(() => navigate('/invoices'), 2000);
+            const from = location.state?.from?.pathname || '/';
+            setTimeout(() => navigate(from), 2000);
 
         } catch (err) {
             console.error(err);
@@ -124,6 +133,22 @@ const Subscription = () => {
 
     return (
         <div className="min-h-screen transition-colors duration-500 bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 dark:from-gray-900 dark:via-black dark:to-gray-900 select-none flex">
+
+            {/* Mobile Menu Overlay */}
+            <div className={`fixed inset-0 z-50 md:hidden pointer-events-none`}>
+                <div className={`absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0'}`} onClick={() => setIsMobileMenuOpen(false)} />
+                <div className={`absolute top-0 left-0 w-72 h-full ${GLASS_CLASSES} transform transition-transform duration-300 ease-out pointer-events-auto ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                    <Sidebar mobile={true} closeMobile={() => setIsMobileMenuOpen(false)} darkMode={darkMode} toggleTheme={toggleTheme} handleLogout={handleLogout} user={user} />
+                </div>
+            </div>
+
+            <button
+                onClick={() => setIsMobileMenuOpen(true)}
+                className={`fixed top-4 right-4 z-50 md:hidden ${GLASS_CLASSES} p-2 rounded-lg text-gray-600 dark:text-gray-300 shadow-lg`}
+            >
+                <Menu className="w-6 h-6" />
+            </button>
+
             {/* Sidebar (Optional: keep layout consistent) */}
             <aside className={`w-72 hidden md:block border-r border-white/20 dark:border-white/5 ${GLASS_CLASSES} z-10 sticky top-0 h-screen`}>
                 <Sidebar user={user} darkMode={darkMode} toggleTheme={toggleTheme} handleLogout={handleLogout} />
@@ -218,7 +243,7 @@ const Subscription = () => {
                                         </>
                                     ) : (
                                         <>
-                                            Upgrade to Pro <ArrowRight className="w-5 h-5" />
+                                            Upgrade to Pro <ArrowRight className="w-5 h-5" /> ( Demo )
                                         </>
                                     )}
                                 </button>

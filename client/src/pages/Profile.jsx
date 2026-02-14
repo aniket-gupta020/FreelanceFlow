@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import api from '../api';
 import {
   LayoutDashboard, Users, Clock, IndianRupee, Menu, X,
@@ -20,6 +20,7 @@ const ACCENT_BG = "bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-ora
 
 const Profile = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -571,6 +572,16 @@ const Profile = () => {
                       </span>
                       {user.subscription === 'pro' && <Zap className="w-5 h-5 text-yellow-500 fill-yellow-500" />}
                     </div>
+                    {user.subscription === 'pro' && user.subscriptionExpiresAt && (
+                      <div className="mt-1 flex flex-col items-start gap-1">
+                        <p className="text-xs text-slate-500 dark:text-gray-500">
+                          Renews on: {new Date(user.subscriptionExpiresAt).toLocaleDateString()}
+                        </p>
+                        <span className="text-[10px] font-bold bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-2 py-0.5 rounded-full">
+                          {Math.ceil((new Date(user.subscriptionExpiresAt) - new Date()) / (1000 * 60 * 60 * 24))} Days Remaining
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {user.subscription === 'pro' ? (
@@ -583,6 +594,7 @@ const Profile = () => {
                   ) : (
                     <Link
                       to="/subscription"
+                      state={{ from: location }}
                       className="px-6 py-2 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-all text-sm"
                     >
                       Upgrade to Pro

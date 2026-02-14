@@ -54,7 +54,7 @@ const Sidebar = ({ mobile, closeMobile, darkMode, toggleTheme, handleLogout, use
                                 <Zap size={10} fill="currentColor" /> PRO
                             </span>
                         ) : (
-                            <span className="flex items-center gap-1 text-[10px] font-bold bg-slate-200 dark:bg-white/10 text-slate-500 dark:text-gray-400 px-2 py-0.5 rounded-full">
+                            <span className="flex items-center gap-1 text-[10px] font-bold bg-slate-200 dark:bg-white/20 text-slate-500 dark:text-slate-200 px-2 py-0.5 rounded-full">
                                 <Coffee size={10} /> FREE
                             </span>
                         )}
@@ -75,6 +75,7 @@ const Sidebar = ({ mobile, closeMobile, darkMode, toggleTheme, handleLogout, use
                     </p>
                     <Link
                         to="/subscription"
+                        state={{ from: location }}
                         className="block w-full py-2 text-center text-xs font-bold bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-lg shadow-lg shadow-orange-500/20 hover:shadow-orange-500/40 active:scale-95 transition-all relative z-10"
                     >
                         Upgrade Now

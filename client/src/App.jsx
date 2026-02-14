@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Toaster, resolveValue, ToastIcon, toast } from 'react-hot-toast';
@@ -19,10 +20,24 @@ import Profile from './pages/Profile';
 import Subscription from './pages/Subscription';
 
 function App() {
+  const [toastPosition, setToastPosition] = useState('top-center');
+
+  useEffect(() => {
+    const handleResize = () => {
+      setToastPosition(window.innerWidth < 768 ? 'bottom-center' : 'top-center');
+    };
+
+    // Set initial position
+    handleResize();
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
     <BrowserRouter>
       <SpeedInsights />
-      <Toaster position="top-center">
+      <Toaster position={toastPosition}>
         {(t) => (
           <div
             className="select-none"

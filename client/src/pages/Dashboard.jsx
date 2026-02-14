@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../api';
 import { toast } from 'react-hot-toast';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Clock, IndianRupee, Users, Plus,
   Trash2, Pencil, Briefcase, Menu, X, Sun, Moon,
@@ -205,6 +205,8 @@ const ProjectCard = ({ project, user, isOwner, handleDelete, handleApply, handle
 
 const Dashboard = () => {
   const [projects, setProjects] = useState([]);
+  const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [expandedProjectId, setExpandedProjectId] = useState(null);
@@ -212,7 +214,6 @@ const Dashboard = () => {
   const [showPreviousProjects, setShowPreviousProjects] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isSampleLoaded, setIsSampleLoaded] = useState(false);
-  const navigate = useNavigate();
 
   const [darkMode, setDarkMode] = useState(() => {
     if (localStorage.getItem('theme')) return localStorage.getItem('theme') === 'dark';
@@ -503,6 +504,7 @@ const Dashboard = () => {
                 </div>
                 <Link
                   to="/subscription"
+                  state={{ from: location }}
                   className="px-6 py-3 bg-white text-slate-900 rounded-xl font-bold hover:bg-orange-50 transition-colors shadow-lg active:scale-95 flex items-center gap-2"
                 >
                   View Plans <ChevronRight className="w-4 h-4" />
